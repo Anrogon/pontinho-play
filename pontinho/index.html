@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>♠   Pontinho Play   ♠</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/game.css" />
+  <link rel="stylesheet" href="css/mobile.css" />
+  <link rel="stylesheet" href="css/mobile-portrait.css" />
+  <link rel="stylesheet" href="css/mobile-tables.css">
+</head>
+
+<body>
+
+  <!-- =============================
+       HOME (Mobile + Desktop)
+  ============================== -->
+  <div id="homeScreen">
+
+    <div class="home-shell">
+
+      <div class="home-logo">
+        <img src="/assets/image/logo-mobile.png" alt="PontinhoBR" />
+      </div>
+
+      <div class="home-menu">
+      <button type="button" id="btnSettings">Configurações</button>
+      <button type="button" id="btnLogin">Login</button>
+      <button type="button" id="btnSignup">Cadastre-se</button>
+      <button type="button" id="btnTrain">Perfil</button>
+      <button type="button" id="btnOnline" class="primary" onclick="window.showScreen('tables')">Jogar Online</button>
+      <button type="button" id="btnLogout" style="display:none;">Sair</button>
+    </div>
+
+      <div class="home-status-wrap">
+
+  <div class="home-usercard" id="homeUserCard">
+    <div class="home-usercard-row">
+      <img id="homeUserAvatar" class="home-user-avatar" src="https://i.pravatar.cc/80?img=3" alt="Avatar" />
+      <div class="home-user-meta">
+        <div id="homeUserName">Visitante</div>
+        <div id="homeUserBalance">Saldo: —</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="home-status">
+    <div class="panel-title">Status Online</div>
+    <div class="panel-row"><span>Jogadores online</span><strong id="onlinePlayers">—</strong></div>
+    <div class="panel-row"><span>Mesas abertas</span><strong id="openTables">—</strong></div>
+    <div class="panel-row"><span>Ping</span><strong id="pingMs">—</strong></div>
+  </div>
+
+  </div>
+
+    </div>
+
+    <div class="home-banner">
+      <div class="home-banner-title">♣ CRIE SUA CONTA GRÁTIS! ♠</div>
+      <br>
+      <div class="home-banner-sub">♥ JOGUE ONLINE COM SEUS AMIGOS E DIVIRTA-SE! ♦</div>
+    </div>
+
+    <div class="home-lastrow">
+
+      <div class="home-panel">
+        <div class="panel-title">Últimas mesas</div>
+        <div class="last-table">
+          <div>
+            <div class="lt-name">Mesa 1</div>
+            <div class="lt-sub">Aposta: 1.000 • 2/6</div>
+          </div>
+          <button type="button" class="lt-btn" id="quickJoin1">Entrar</button>
+        </div>
+      </div>
+
+      <div class="home-panel">
+        <div class="panel-title">Últimas mesas</div>
+        <div class="last-table">
+          <div>
+            <div class="lt-name">Mesa 2</div>
+            <div class="lt-sub">Aposta: 5.000 • 3/6</div>
+          </div>
+          <button type="button" class="lt-btn" id="quickJoin2">Entrar</button>
+        </div>
+      </div>
+
+      <div class="home-panel">
+        <div class="panel-title">Últimas mesas</div>
+        <div class="last-table">
+          <div>
+            <div class="lt-name">Mesa 3</div>
+            <div class="lt-sub">Aposta: 10.000 • 1/6</div>
+          </div>
+          <button type="button" class="lt-btn" id="quickJoin3">Entrar</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div> <!-- ✅ FECHA homeScreen CORRETAMENTE -->
+
+
+
+  <!-- =============================
+       TELA DE MESAS
+  ============================== -->
+  <div id="tablesScreen">
+
+  <div class="tables-header">
+    <div class="tables-title">
+      ♦ ♣ Pontinho Play ♠ ♥
+    </div>
+
+    <div id="tablesVariantSwitch"></div>
+    </div>
+
+    <div id="tablesGrid"></div>
+
+    </div>
+
+    <div id="tablesGrid"></div>
+
+    <button id="startGame" style="display:none;">Iniciar jogo</button>
+
+  </div>
+
+
+  <!-- =============================
+       JOGO
+  ============================== -->
+  <div id="game" style="display:none;">
+
+    <div id="playerInfo"></div>
+
+    <div id="table"></div>
+
+    <div id="deck-area">
+      <div id="monte" class="pile-slot"></div>
+      <div id="lixo" class="pile-slot"></div>
+    </div>
+
+    <div id="bottomArea">
+      <div id="hand"></div>
+      <div id="scoreboard"></div>
+      <button class="sort-btn" onclick="window.setHandSort('value')">
+  <img src="./assets/image/sort-value.png" alt="Ordenar por valor"></button>
+
+<button class="sort-btn" onclick="window.setHandSort('suit')">
+  <img src="./assets/image/sort-suit.png" alt="Ordenar por naipe"></button>
+
+<!--<button class="sort-btn" onclick="window.setHandSort(null)">
+  <img src="./assets/image/sort-manual.png" alt="Ordem manual"></button>-->
+  </div>
+
+  <script type="module" src="./js/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,11 @@
+@media (max-width: 768px) {
+  .card {
+    width: 46px;
+    height: 70px;
+  }
+
+  .jogo-mesa {
+    gap: 4px;
+  }
+}
+

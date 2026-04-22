@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pontinho Play - Login</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, #0b3c66, #0a2238);
+      font-family: Arial, Helvetica, sans-serif;
+      color: #fff;
+    }
+
+    .auth-card {
+      width: min(92vw, 400px);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    .auth-card h1 {
+      margin: 0 0 18px;
+      text-align: center;
+      font-size: 28px;
+    }
+
+    .auth-card input {
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 12px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.10);
+      color: #fff;
+      font-size: 15px;
+    }
+
+    .auth-card input::placeholder {
+      color: rgba(255,255,255,0.70);
+    }
+
+    .auth-actions {
+      display: grid;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    button {
+      padding: 12px 14px;
+      border: 0;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .primary {
+      background: #f0c14b;
+      color: #1a1a1a;
+    }
+
+    .secondary {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .auth-message {
+      min-height: 22px;
+      margin-top: 10px;
+      text-align: center;
+      font-size: 14px;
+      color: #ffd38a;
+    }
+
+    .auth-links {
+      margin-top: 14px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .auth-links a {
+      color: #fff;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-card">
+    <h1> ♠ Login  ♠</h1>
+
+    <input type="email" id="loginEmail" placeholder="Seu e-mail">
+    <input type="password" id="loginPassword" placeholder="Sua senha">
+
+    <div class="auth-actions">
+      <button id="btnLoginSubmit" class="primary" type="button">Entrar</button>
+      <button id="btnBackHome" class="secondary" type="button">Voltar</button>
+    </div>
+
+    <div id="authMessage" class="auth-message"></div>
+
+    <div class="auth-links" style="margin-top:10px;">
+    Problemas para acessar? Fale com a administração.
+    </div>
+
+    <div class="auth-links">
+      Não tem conta?
+      <a href="./signup.html">Cadastre-se</a>
+    </div>
+  </div>
+
+  <script src="./js/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pontinho Play - Perfil</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, #0b3c66, #0a2238);
+      font-family: Arial, Helvetica, sans-serif;
+      color: #fff;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .page-card {
+      width: min(92vw, 560px);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      text-align: center;
+    }
+
+    .profile-top {
+      display: grid;
+      place-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .profile-avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+    }
+
+    .carousel-wrap,
+    .password-wrap {
+      margin: 18px 0 20px;
+      padding: 16px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .carousel-title,
+    .password-title {
+      text-align: center;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #dbeafe;
+    }
+
+    .avatar-carousel {
+      display: grid;
+      grid-template-columns: 46px 1fr 46px;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .carousel-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .carousel-center {
+      display: grid;
+      place-items: center;
+      gap: 10px;
+    }
+
+    .carousel-preview {
+      width: 128px;
+      height: 128px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(255,255,255,0.22);
+      background: rgba(255,255,255,0.08);
+    }
+
+    .carousel-label {
+      font-size: 13px;
+      color: #dbeafe;
+      text-align: center;
+    }
+
+    .profile-line {
+      margin: 10px 0;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .password-fields {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .password-fields input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.10);
+      color: #fff;
+      font-size: 15px;
+    }
+
+    .password-fields input::placeholder {
+      color: rgba(255,255,255,0.70);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    button {
+      padding: 12px 14px;
+      border: 0;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .primary {
+      background: #f0c14b;
+      color: #1a1a1a;
+    }
+
+    .secondary {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .msg {
+      min-height: 22px;
+      text-align: center;
+      color: #ffd38a;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-card">
+    <h1>♠  Perfil  ♠</h1>
+
+    <div class="profile-top">
+      <img id="profileAvatar" class="profile-avatar" src="/assets/avatars/avatar-01.png" alt="Avatar">
+      <div id="profileUsername">Carregando...</div>
+    </div>
+
+    <div class="carousel-wrap">
+      <div class="carousel-title">Escolha seu avatar</div>
+
+      <div class="avatar-carousel">
+        <button id="btnPrevAvatar" class="carousel-btn" type="button">‹</button>
+
+        <div class="carousel-center">
+          <img id="carouselAvatarPreview" class="carousel-preview" src="/assets/avatars/avatar-01.png" alt="Avatar selecionado">
+          <div id="carouselAvatarLabel" class="carousel-label">Avatar 01</div>
+        </div>
+
+        <button id="btnNextAvatar" class="carousel-btn" type="button">›</button>
+      </div>
+
+      <div class="actions" style="margin-top:14px;">
+        <button id="btnSaveAvatar" class="primary" type="button">Salvar avatar</button>
+      </div>
+    </div>
+
+    <div class="profile-line"><strong>E-mail:</strong> <span id="profileEmail">—</span></div>
+    <div class="profile-line"><strong>Saldo:</strong> <span id="profileBalance">—</span></div>
+    <div class="profile-line"><strong>Criado em:</strong> <span id="profileCreatedAt">—</span></div>
+
+    <div class="password-wrap" style="margin-top:18px;">
+      <div class="password-title">Estatísticas Básicas</div>
+
+      <div class="profile-line"><strong>Tipo de conta:</strong> <span id="profileAccountType">—</span></div>
+      <div class="profile-line"><strong>Status da conta:</strong> <span id="profileAccountStatus">—</span></div>
+      <div class="profile-line"><strong>Saldo atual:</strong> <span id="profileStatsBalance">—</span></div>
+      <div class="profile-line"><strong>Membro desde:</strong> <span id="profileStatsMemberSince">—</span></div>
+    </div>
+
+<div class="password-wrap" style="margin-top:18px;">
+  <div class="password-title">Estatísticas do jogador</div>
+
+  <div class="profile-line"><strong>Partidas jogadas:</strong> <span id="profileGamesPlayed">—</span></div>
+  <div class="profile-line"><strong>Vitórias:</strong> <span id="profileWins">—</span></div>
+  <div class="profile-line"><strong>Derrotas:</strong> <span id="profileLosses">—</span></div>
+  <div class="profile-line"><strong>Aproveitamento:</strong> <span id="profileWinRate">—</span></div>
+  <div class="profile-line"><strong>Lucro / Prejuízo:</strong> <span id="profileProfitLoss">—</span></div>
+</div>
+
+
+
+
+    <div class="password-wrap">
+      <div class="password-title">Trocar senha</div>
+
+      <div class="password-fields">
+        <input type="password" id="currentPassword" placeholder="Senha atual">
+        <input type="password" id="newPassword" placeholder="Nova senha">
+        <input type="password" id="confirmPassword" placeholder="Confirmar nova senha">
+      </div>
+
+      <div class="actions" style="margin-top:14px;">
+        <button id="btnChangePassword" class="primary" type="button">Salvar nova senha</button>
+      </div>
+    </div>
+
+    <div id="profileMsg" class="msg"></div>
+
+    <div class="actions">
+      <!--<button id="btnGoSettings" class="primary" type="button">Configurações</button>-->
+      <button id="btnBackHome" class="secondary" type="button">Voltar</button>
+    </div>
+  </div>
+
+  <script src="./js/profile.js"></script>
+</body>
+</html>

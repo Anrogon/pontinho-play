@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3001/api";
+const API_BASE = "/api";
 let allAdminUsers = [];
 let currentPage = 1;
 let pageSize = 20;

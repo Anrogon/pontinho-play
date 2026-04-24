@@ -1388,25 +1388,42 @@ export function renderTablesScreen() {
     const isCrazyMode = String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";
 
     controls.innerHTML = `
-      <div class="tables-tabs">
+      <div class="tables-header">
         <button
-          id="btnTabClassic"
-          class="tables-tab ${!isCrazyMode ? "active" : ""}"
+          id="btnBackHomeFromTables"
+          class="tables-back-btn"
           type="button"
         >
-          Jogar modo Clássico
-        </button>
-
-        <button
-          id="btnTabCrazy"
-          class="tables-tab ${isCrazyMode ? "active" : ""}"
-          type="button"
-        >
-          Jogar modo Crazy
+          ← Voltar
         </button>
       </div>
-    `;
 
+      <div class="tables-tabs-wrapper">
+        <div class="tables-tabs">
+          <button
+            id="btnTabClassic"
+            class="tables-tab ${!isCrazyMode ? "active" : ""}"
+            type="button"
+          >
+            Jogar modo Clássico
+          </button>
+
+          <button
+            id="btnTabCrazy"
+            class="tables-tab ${isCrazyMode ? "active" : ""}"
+            type="button"
+          >
+            Jogar modo Crazy
+          </button>
+        </div>
+      </div>
+    `;
+    const btnBackHomeFromTables = document.getElementById("btnBackHomeFromTables");
+    if (btnBackHomeFromTables) {
+      btnBackHomeFromTables.onclick = () => {
+        showScreen("home");
+      };
+    }
     const btnTabClassic = document.getElementById("btnTabClassic");
     const btnTabCrazy = document.getElementById("btnTabCrazy");
 

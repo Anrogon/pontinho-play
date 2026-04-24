@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3001/api";
+const API_BASE = "/api";
 
 function showMessage(text, isError = false) {
   const el = document.getElementById("authMessage");

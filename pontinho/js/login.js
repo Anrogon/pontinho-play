@@ -1,4 +1,4 @@
-const API_BASE = window.location.origin;
+const API_BASE = "/api";
 
 function showMessage(text, isError = false) {
   const el = document.getElementById("authMessage");

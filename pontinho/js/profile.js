@@ -1,4 +1,7 @@
-const API_BASE = "http://localhost:3001/api";
+const API_BASE =
+  window.location.hostname === "localhost"
+    ? "http://localhost:3001/api"
+    : "/api";
 
 const AVATAR_LIST = Array.from({ length: 35 }, (_, i) => {
   const n = String(i + 1).padStart(2, "0");

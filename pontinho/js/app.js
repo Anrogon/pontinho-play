@@ -1375,8 +1375,43 @@ function getLoggedPlayerName() {
   }
 }
 
+let tableStartTickerId = null;
+
+function startTableStartTicker() {
+  if (tableStartTickerId) return;
+
+  tableStartTickerId = setInterval(() => {
+    document.querySelectorAll(".table-start-wrap[data-start-at]").forEach(wrap => {
+      const startAt = Number(wrap.dataset.startAt) || 0;
+      if (!startAt) return;
+
+      const leftMs = Math.max(0, startAt - Date.now());
+      const leftSec = Math.ceil(leftMs / 1000);
+
+      const fill = wrap.querySelector(".table-start-bar-fill");
+      if (fill) {
+        const totalMs = 30000;
+        const pct = Math.max(0, Math.min(100, (leftMs / totalMs) * 100));
+        fill.style.width = `${pct}%`;
+      }
+
+      let text = wrap.querySelector(".table-start-text");
+      if (!text) {
+        text = document.createElement("div");
+        text.className = "table-start-text";
+        wrap.appendChild(text);
+      }
+
+      text.textContent = leftSec > 0 ? `${leftSec}s` : "Iniciando...";
+    });
+  }, 250);
+}
+
+
+
 
 export function renderTablesScreen() {
+  startTableStartTicker();
   const tablesScreenEl = document.getElementById("tablesScreen");
   if (tablesScreenEl) {
     const isCrazyMode = String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";
@@ -1412,7 +1447,7 @@ export function renderTablesScreen() {
             class="tables-tab ${!isCrazyMode ? "active" : ""}"
             type="button"
           >
-            Jogar modo Clássico
+            Pontinho Clássico
           </button>
 
           <button
@@ -1420,7 +1455,7 @@ export function renderTablesScreen() {
             class="tables-tab ${isCrazyMode ? "active" : ""}"
             type="button"
           >
-            Jogar modo Crazy
+            Pontinho Crazy
           </button>
         </div>
       </div>

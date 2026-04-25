@@ -1418,7 +1418,6 @@ function startTableStartTicker() {
 
 
 export function renderTablesScreen() {
-  startTableStartTicker();
   const tablesScreenEl = document.getElementById("tablesScreen");
   if (tablesScreenEl) {
     const isCrazyMode = String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";

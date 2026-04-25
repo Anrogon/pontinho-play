@@ -84,7 +84,9 @@ export function startTurnTimer() {
     state.turnOwnerId === ownerId &&
     Number(state.turnTimerTargetMs) === turnEndsAt
   ) {
-    const left = Math.max(0, Math.ceil((turnEndsAt - Date.now()) / 1000));
+    const rawLeft = Math.ceil((turnEndsAt - Date.now()) / 1000);
+    const maxLeft = Number(state.turnDurationSec) || 30;
+    const left = Math.max(0, Math.min(rawLeft, maxLeft));
     state.turnSecondsLeft = left;
     updateTurnTimerUI();
     return;
@@ -97,7 +99,9 @@ export function startTurnTimer() {
   state.turnDurationSec = durationSec;
 
   const tick = () => {
-    const left = Math.max(0, Math.ceil((turnEndsAt - Date.now()) / 1000));
+    const rawLeft = Math.ceil((turnEndsAt - Date.now()) / 1000);
+    const maxLeft = Number(state.turnDurationSec) || 30;
+    const left = Math.max(0, Math.min(rawLeft, maxLeft));
     state.turnSecondsLeft = left;
     updateTurnTimerUI();
 

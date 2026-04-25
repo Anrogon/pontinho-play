@@ -1342,21 +1342,18 @@
     top: 64px;
   }
 }
-@media (max-width: 700px) {
-  .table-melds,
-  .melds-area,
-  #tableMelds {
+@media (max-width: 520px) {
+
+  .table-melds-layer {
     display: flex !important;
-    flex-wrap: wrap !important;
-    align-items: flex-start !important;
-    gap: 10px !important;
-    overflow: visible !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 20px !important;
   }
 
-  .meld,
-  .table-meld {
+  .grupo-table {
     position: relative !important;
-    flex: 0 0 auto !important;
-    margin: 6px !important;
+    margin-bottom: 20px !important;
   }
+
 }

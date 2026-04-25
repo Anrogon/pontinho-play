@@ -1381,7 +1381,14 @@ function startTableStartTicker() {
   if (tableStartTickerId) return;
 
   tableStartTickerId = setInterval(() => {
-    document.querySelectorAll(".table-start-wrap[data-start-at]").forEach(wrap => {
+
+    // ✅ Só roda se estiver na tela de mesas
+    if (state.currentScreen !== "tables") return;
+
+    const tablesScreen = document.getElementById("tablesScreen");
+    if (!tablesScreen || tablesScreen.style.display === "none") return;
+
+    tablesScreen.querySelectorAll(".table-start-wrap[data-start-at]").forEach(wrap => {
       const startAt = Number(wrap.dataset.startAt) || 0;
       if (!startAt) return;
 
@@ -1404,9 +1411,9 @@ function startTableStartTicker() {
 
       text.textContent = leftSec > 0 ? `${leftSec}s` : "Iniciando...";
     });
+
   }, 250);
 }
-
 
 
 

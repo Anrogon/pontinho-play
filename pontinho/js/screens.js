@@ -98,6 +98,8 @@ function ensureHomeStatusFeed() {
 // Feed termina aqui
 
 export function showScreen(idToShow) {
+  state.currentScreen = idToShow;
+
   const home = document.getElementById("homeScreen");
   const tables = document.getElementById("tablesScreen");
   const game = document.getElementById("game");
@@ -107,12 +109,11 @@ export function showScreen(idToShow) {
   if (game) game.style.display = (idToShow === "game") ? "block" : "none";
 
   if (idToShow === "home") {
-  transformHomePlayButtons();
-  setTimeout(() => ensureHomeStatusFeed(), 50);
-}
+    transformHomePlayButtons();
+    setTimeout(() => ensureHomeStatusFeed(), 50);
+  }
 
   if (idToShow === "tables") {
     window.renderTablesScreen?.();
-    
   }
 }

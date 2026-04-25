@@ -1342,3 +1342,21 @@
     top: 64px;
   }
 }
+@media (max-width: 700px) {
+  .table-melds,
+  .melds-area,
+  #tableMelds {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    overflow: visible !important;
+  }
+
+  .meld,
+  .table-meld {
+    position: relative !important;
+    flex: 0 0 auto !important;
+    margin: 6px !important;
+  }
+}

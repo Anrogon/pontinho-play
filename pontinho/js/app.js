@@ -203,9 +203,16 @@ if (pub.tableId) {
   state.currentSeat = pub.currentSeat ?? null;
   state.variant = String(pub.variant || "CLASSIC").toUpperCase();
   state.turnEndsAt = Number(pub.turnEndsAt) || 0;
-  state.turnDurationSec = Math.ceil((Number(pub.turnMs) || 30000) / 1000);
   state.buyEndsAt = Number(pub.buyEndsAt) || 0;
-  state.buyDurationSec = Math.ceil((Number(pub.buyMs) || 15000) / 1000);
+  const safeTurnMs = Number(pub.turnMs);
+  state.turnDurationSec = Math.ceil(
+    (safeTurnMs > 0 && safeTurnMs <= 60000 ? safeTurnMs : 30000) / 1000
+  );
+
+  const safeBuyMs = Number(pub.buyMs);
+  state.buyDurationSec = Math.ceil(
+    (safeBuyMs > 0 && safeBuyMs <= 30000 ? safeBuyMs : 15000) / 1000
+  );
   state.dealEndsAt = Number(pub.dealEndsAt) || 0;
   state.dealMs = Number(pub.dealMs) || 2200;
   state.batidaAnnouncement = String(pub.batidaAnnouncement || "");
@@ -1369,7 +1376,22 @@ function getLoggedPlayerName() {
 }
 
 
+let tablesCountdownTimerId = null;
+
+function startTablesCountdownTicker() {
+  if (tablesCountdownTimerId) return;
+
+  tablesCountdownTimerId = setInterval(() => {
+    const tablesScreen = document.getElementById("tablesScreen");
+    if (!tablesScreen || tablesScreen.classList.contains("hidden")) return;
+
+    renderTablesScreen();
+  }, 1000);
+}
+
+
 export function renderTablesScreen() {
+  startTablesCountdownTicker();
   const tablesScreenEl = document.getElementById("tablesScreen");
   if (tablesScreenEl) {
     const isCrazyMode = String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";

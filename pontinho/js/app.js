@@ -1376,22 +1376,7 @@ function getLoggedPlayerName() {
 }
 
 
-let tablesCountdownTimerId = null;
-
-function startTablesCountdownTicker() {
-  if (tablesCountdownTimerId) return;
-
-  tablesCountdownTimerId = setInterval(() => {
-    const tablesScreen = document.getElementById("tablesScreen");
-    if (!tablesScreen || tablesScreen.classList.contains("hidden")) return;
-
-    renderTablesScreen();
-  }, 1000);
-}
-
-
 export function renderTablesScreen() {
-  startTablesCountdownTicker();
   const tablesScreenEl = document.getElementById("tablesScreen");
   if (tablesScreenEl) {
     const isCrazyMode = String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";

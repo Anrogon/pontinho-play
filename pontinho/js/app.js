@@ -1381,24 +1381,22 @@ function startTableStartTicker() {
   if (tableStartTickerId) return;
 
   tableStartTickerId = setInterval(() => {
-
-    // ✅ Só roda se estiver na tela de mesas
     if (state.currentScreen !== "tables") return;
 
-    const tablesScreen = document.getElementById("tablesScreen");
-    if (!tablesScreen || tablesScreen.style.display === "none") return;
+    const wraps = document.querySelectorAll(".table-start-wrap[data-start-at]");
+    if (!wraps.length) return;
 
-    tablesScreen.querySelectorAll(".table-start-wrap[data-start-at]").forEach(wrap => {
+    wraps.forEach(wrap => {
       const startAt = Number(wrap.dataset.startAt) || 0;
       if (!startAt) return;
 
       const leftMs = Math.max(0, startAt - Date.now());
-      const leftSec = Math.ceil(leftMs / 1000);
+      const totalMs = 30000;
 
+      const pct = Math.max(0, Math.min(100, (leftMs / totalMs) * 100));
       const fill = wrap.querySelector(".table-start-bar-fill");
+
       if (fill) {
-        const totalMs = 30000;
-        const pct = Math.max(0, Math.min(100, (leftMs / totalMs) * 100));
         fill.style.width = `${pct}%`;
       }
 
@@ -1409,12 +1407,12 @@ function startTableStartTicker() {
         wrap.appendChild(text);
       }
 
+      const leftSec = Math.ceil(leftMs / 1000);
       text.textContent = leftSec > 0 ? `${leftSec}s` : "Iniciando...";
     });
 
   }, 250);
 }
-
 
 
 export function renderTablesScreen() {

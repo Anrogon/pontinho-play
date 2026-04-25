@@ -114,6 +114,7 @@ export function showScreen(idToShow) {
   }
 
   if (idToShow === "tables") {
-    window.renderTablesScreen?.();
+  window.renderTablesScreen?.();
+  startTableStartTicker();
   }
 }

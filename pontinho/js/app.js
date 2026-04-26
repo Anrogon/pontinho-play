@@ -1492,7 +1492,7 @@ export function renderTablesScreen() {
   Number(startAt) > 0;
 
   if (shouldShowTimer) {
-  const leftMs = Math.max(0, startAt - Date.now());
+  const leftMs = Math.max(0, Math.min(30000, startAt - Date.now()));
 
   countdownHtml = `
     <div class="table-start-wrap" data-start-at="${startAt}">

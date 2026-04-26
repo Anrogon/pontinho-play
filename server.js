@@ -4318,17 +4318,59 @@ if (msg.type === "leaveTable") {
   }
     
     else {
-      // se a partida já começou, mantém a lógica de reconexão
-      p.disconnected = true;
-      p.disconnectDeadline = 0;
+  // se a partida já começou, dá uma janela curta para reconexão
+  p.disconnected = true;
+  p.disconnectDeadline = Date.now() + 120000; // 120 segundos
 
-      if (p.disconnectTimer) {
-        clearTimeout(p.disconnectTimer);
-        p.disconnectTimer = null;
-      }
+  if (p.disconnectTimer) {
+    clearTimeout(p.disconnectTimer);
+    p.disconnectTimer = null;
+  }
 
-      if (room?.id) sendState(room.id);
+  p.disconnectTimer = setTimeout(() => {
+    const currentRoom = rooms.get(tableId);
+    if (!currentRoom) return;
+
+    const currentPlayer = currentRoom.playersBySeat?.[seat - 1];
+
+    // se reconectou ou o assento mudou, não faz nada
+    if (!currentPlayer || currentPlayer.clientId !== clientId) return;
+    if (!currentPlayer.disconnected) return;
+
+    console.log("[DISCONNECT] jogador não reconectou, removendo da mesa", {
+      tableId,
+      seat,
+      name: currentPlayer.name || currentPlayer.username || currentPlayer.email || "?"
+    });
+
+    removePlayerFromSeat(currentRoom, seat, clientId);
+
+    const activePlayers = (currentRoom.playersBySeat || []).filter(Boolean);
+
+    if (activePlayers.length <= 1) {
+      currentRoom.started = false;
+      currentRoom.phase = "WAITING";
+      currentRoom.roundEnded = false;
+      currentRoom.winnerSeat = null;
+      currentRoom.startAt = 0;
+      currentRoom.currentSeat = null;
+      currentRoom.turnEndsAt = 0;
+      currentRoom.buyEndsAt = 0;
+      currentRoom.deck = [];
+      currentRoom.discard = [];
+      currentRoom.tableMelds = [];
     }
+
+    refreshStartCountdown(currentRoom);
+    broadcastRoomState(currentRoom);
+
+    if (currentRoom.id) {
+      sendState(currentRoom.id);
+    }
+  }, 60000);
+
+  if (room?.id) sendState(room.id);
+}
   }
 }
 

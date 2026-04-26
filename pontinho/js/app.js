@@ -1375,44 +1375,6 @@ function getLoggedPlayerName() {
   }
 }
 
-let tableStartTickerId = null;
-
-function startTableStartTicker() {
-  if (tableStartTickerId) return;
-
-  tableStartTickerId = setInterval(() => {
-    if (state.currentScreen !== "tables") return;
-
-    const wraps = document.querySelectorAll(".table-start-wrap[data-start-at]");
-    if (!wraps.length) return;
-
-    wraps.forEach(wrap => {
-      const startAt = Number(wrap.dataset.startAt) || 0;
-      if (!startAt) return;
-
-      const leftMs = Math.max(0, startAt - Date.now());
-      const totalMs = 30000;
-
-      const pct = Math.max(0, Math.min(100, (leftMs / totalMs) * 100));
-      const fill = wrap.querySelector(".table-start-bar-fill");
-
-      if (fill) {
-        fill.style.width = `${pct}%`;
-      }
-
-      let text = wrap.querySelector(".table-start-text");
-      if (!text) {
-        text = document.createElement("div");
-        text.className = "table-start-text";
-        wrap.appendChild(text);
-      }
-
-      const leftSec = Math.ceil(leftMs / 1000);
-      text.textContent = leftSec > 0 ? `${leftSec}s` : "Iniciando...";
-    });
-
-  }, 250);
-}
 
 
 export function renderTablesScreen() {
@@ -1522,24 +1484,6 @@ export function renderTablesScreen() {
     const minPlayersToStart = Number(liveTable.minPlayersToStart) || 2;
     const startAt = Number(liveTable.startAt) || 0;
 
-
-    if (t.id === "S1") {
-      console.log("[START TIMER PROD]", {
-        startAt,
-        now: Date.now(),
-        diffSec: Math.ceil((startAt - Date.now()) / 1000),
-        seatedCount,
-        minPlayersToStart,
-        shouldShowTimer,
-        started: liveTable.started
-      });
-    }
-
-
-
-
-
-
  let countdownHtml = "";
 
   const shouldShowTimer =
@@ -1548,14 +1492,19 @@ export function renderTablesScreen() {
   Number(startAt) > 0;
 
   if (shouldShowTimer) {
+  const leftMs = Math.max(0, startAt - Date.now());
+
   countdownHtml = `
     <div class="table-start-wrap" data-start-at="${startAt}">
       <div class="table-start-bar">
-        <div class="table-start-bar-fill"></div>
+        <div
+          class="table-start-bar-fill"
+          style="animation: tableStartShrink ${leftMs}ms linear forwards;"
+        ></div>
       </div>
     </div>
   `;
-  }
+}
 
   if (t.id === "S1") {
   console.log("[COUNTDOWN CHECK]", {

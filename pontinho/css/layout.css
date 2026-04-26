@@ -1686,3 +1686,12 @@ body{
   display: flex;
   gap: 12px;
 }
+@keyframes tableStartShrink {
+  from {
+    width: 100%;
+  }
+
+  to {
+    width: 0%;
+  }
+}

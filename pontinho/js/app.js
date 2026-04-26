@@ -1522,6 +1522,24 @@ export function renderTablesScreen() {
     const minPlayersToStart = Number(liveTable.minPlayersToStart) || 2;
     const startAt = Number(liveTable.startAt) || 0;
 
+
+    if (t.id === "S1") {
+      console.log("[START TIMER PROD]", {
+        startAt,
+        now: Date.now(),
+        diffSec: Math.ceil((startAt - Date.now()) / 1000),
+        seatedCount,
+        minPlayersToStart,
+        shouldShowTimer,
+        started: liveTable.started
+      });
+    }
+
+
+
+
+
+
  let countdownHtml = "";
 
   const shouldShowTimer =

@@ -1357,3 +1357,37 @@
   }
 
 }
+
+/* Mobile: evita jogos baixados sobrepostos */
+@media (max-width: 520px) and (orientation: portrait) {
+  #table {
+    min-height: 560px !important;
+  }
+
+  #table .table-melds-layer {
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+
+    gap: 34px !important;
+    overflow: visible !important;
+    z-index: 5 !important;
+  }
+
+  #table .table-melds-top {
+    top: 55px !important;
+    min-height: 360px !important;
+  }
+
+  #table .grupo-table {
+    position: relative !important;
+    flex: 0 0 auto !important;
+    margin: 0 auto !important;
+    transform: none !important;
+  }
+}

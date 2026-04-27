@@ -1306,55 +1306,44 @@
     margin-top: 12px !important;
   }
 }
-
 /* =========================================================
    TABLE MELDS - MOBILE PORTRAIT EM 2 FAIXAS
 ========================================================= */
-@media (max-width: 520px) and (orientation: portrait){
-  #table{
+@media (max-width: 520px) and (orientation: portrait) {
+  #table {
     position: relative;
   }
 
-  #table .table-melds-layer{
+  #table .table-melds-layer {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 16px);
 
     display: flex;
+    flex-direction: row;
     justify-content: center;
     align-items: flex-start;
     flex-wrap: wrap;
-    gap: 6px 8px;
 
+    gap: 22px 12px;
     pointer-events: none;
+    overflow: visible;
   }
 
-  #table .table-melds-layer .grupo-table{
+  #table .table-melds-layer .grupo-table {
     pointer-events: auto;
+    position: relative !important;
+    flex: 0 0 auto;
+    margin: 0 !important;
+    transform: none !important;
   }
 
-  #table .table-melds-bottom{
-    bottom: 8px;
-  }
-
-  #table .table-melds-top{
+  #table .table-melds-top {
     top: 64px;
   }
-}
-@media (max-width: 520px) {
 
-  .table-melds-layer {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    gap: 20px !important;
+  #table .table-melds-bottom {
+    bottom: 210px;
   }
-
-  .grupo-table {
-    position: relative !important;
-    margin-bottom: 20px !important;
-  }
-
 }
-

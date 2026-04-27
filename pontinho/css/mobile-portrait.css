@@ -558,7 +558,7 @@
     position: relative !important;
   }
 
-  /* última carta fica por cima (até 13 cartas) */
+  /* última carta fica por cima (até 13 cartas) 
   .grupo-table .card:nth-child(1)  { top: 1px;   z-index: 1;  }
   .grupo-table .card:nth-child(2)  { top: 20px;  z-index: 2;  }
   .grupo-table .card:nth-child(3)  { top: 40px;  z-index: 3;  }
@@ -573,7 +573,7 @@
   .grupo-table .card:nth-child(12) { top: 220px; z-index: 12; }
   .grupo-table .card:nth-child(13) { top: 240px; z-index: 13; }
 }
-
+*/
 }
 
 }
@@ -1308,4 +1308,5 @@
   #homeScreen .home-btn + .home-btn {
     margin-top: 12px !important;
   }
+}
 }

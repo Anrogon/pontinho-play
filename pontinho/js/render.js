@@ -529,8 +529,8 @@ export function renderTable() {
 
   const totalMelds = state.table.length;
   const splitIndex = isMobilePortrait
-    ? Math.ceil(totalMelds / 2)
-    : totalMelds;
+  ? 6
+  : totalMelds;
 
   state.table.forEach((jogo, index) => {
     const group = document.createElement("div");

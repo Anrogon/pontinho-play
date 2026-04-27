@@ -8,7 +8,6 @@
     gap: 4px;
   }
 }
-
 @media (max-width: 520px) and (orientation: portrait) {
   #table {
     position: fixed !important;
@@ -17,49 +16,70 @@
     top: calc(10px + env(safe-area-inset-top) + 150px) !important;
     bottom: calc(10px + env(safe-area-inset-bottom) + 220px) !important;
 
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: flex-start !important;
-    justify-content: flex-start !important;
-    gap: 12px !important;
-
+    background: transparent !important;
     overflow-x: auto !important;
     overflow-y: hidden !important;
-    padding: 8px 10px !important;
-    background: transparent !important;
+
+    z-index: 16000 !important;
+    pointer-events: auto !important;
   }
 
   #table .table-melds-layer {
-    display: contents !important;
-    position: static !important;
-    left: auto !important;
+    position: absolute !important;
+    left: 0 !important;
     right: auto !important;
-    top: auto !important;
-    bottom: auto !important;
     transform: none !important;
-    width: auto !important;
-    height: auto !important;
+
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+
+    gap: 12px !important;
+    width: max-content !important;
+
+    pointer-events: none !important;
+  }
+
+  /* linha de cima */
+  #table .table-melds-top {
+    top: 0 !important;
+    bottom: auto !important;
+  }
+
+  /* linha de baixo */
+  #table .table-melds-bottom {
+    top: 260px !important;
+    bottom: auto !important;
   }
 
   #table .grupo-table {
     position: relative !important;
     display: block !important;
-    flex: 0 0 58px !important;
+
     width: 58px !important;
     min-width: 58px !important;
     height: 250px !important;
+
     overflow: visible !important;
     margin: 0 !important;
     padding: 0 !important;
     background: transparent !important;
+
+    pointer-events: auto !important;
+    flex: 0 0 58px !important;
   }
 
   #table .grupo-table .card {
     position: absolute !important;
     left: 0 !important;
+
     width: 58px !important;
     height: 82px !important;
+
     margin: 0 !important;
+    border-radius: 5px !important;
   }
 
   #table .grupo-table .card:nth-child(1)  { top: 0px !important; z-index: 1 !important; }
@@ -75,4 +95,39 @@
   #table .grupo-table .card:nth-child(11) { top: 180px !important; z-index: 11 !important; }
   #table .grupo-table .card:nth-child(12) { top: 198px !important; z-index: 12 !important; }
   #table .grupo-table .card:nth-child(13) { top: 216px !important; z-index: 13 !important; }
+}
+
+/* DEBUG TEMPORÁRIO - remover depois */
+@media (max-width: 520px) and (orientation: portrait) {
+  #table {
+    outline: 3px solid red !important;
+    background:
+      repeating-linear-gradient(
+        to right,
+        rgba(255,255,255,0.10) 0,
+        rgba(255,255,255,0.10) 58px,
+        transparent 58px,
+        transparent 70px
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,0,0.10) 0,
+        rgba(255,255,0,0.10) 250px,
+        transparent 250px,
+        transparent 270px
+      ) !important;
+  }
+
+  #table .table-melds-top {
+    outline: 3px solid cyan !important;
+  }
+
+  #table .table-melds-bottom {
+    outline: 3px solid orange !important;
+  }
+
+  #table .grupo-table {
+    outline: 2px solid magenta !important;
+    background: rgba(255, 0, 255, 0.12) !important;
+  }
 }

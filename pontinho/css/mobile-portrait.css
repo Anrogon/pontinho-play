@@ -1306,8 +1306,10 @@
     margin-top: 12px !important;
   }
 }
+
 /* =========================================================
-   TABLE MELDS - MOBILE PORTRAIT EM 2 FAIXAS
+   TABLE MELDS - MOBILE PORTRAIT
+   Preenche primeiro a linha de baixo, da esquerda para direita
 ========================================================= */
 @media (max-width: 520px) and (orientation: portrait) {
   #table {
@@ -1318,15 +1320,18 @@
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    width: calc(100% - 16px);
+    width: calc(100% - 22px);
 
     display: flex;
     flex-direction: row;
-    justify-content: center;
+    flex-wrap: wrap-reverse; /* 🔥 linha de baixo primeiro */
+    justify-content: flex-start; /* 🔥 esquerda para direita */
+    align-content: flex-end;
     align-items: flex-start;
-    flex-wrap: wrap;
 
-    gap: 22px 12px;
+    column-gap: 12px;
+    row-gap: 70px;
+
     pointer-events: none;
     overflow: visible;
   }
@@ -1339,11 +1344,11 @@
     transform: none !important;
   }
 
-  #table .table-melds-top {
-    top: 64px;
+  #table .table-melds-bottom {
+    bottom: 215px;
   }
 
-  #table .table-melds-bottom {
-    bottom: 210px;
+  #table .table-melds-top {
+    top: 74px;
   }
 }

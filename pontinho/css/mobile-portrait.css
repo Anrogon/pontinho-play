@@ -82,543 +82,103 @@
     background: transparent !important;
   }
 
-  /* =========================================================
-     MESA / JOGOS BAIXADOS (VERTICAL NO MOBILE)
-     - #table vira coluna
-     - cada .grupo-table vira uma “linha” com scroll horizontal
-  ========================================================= */
 
-  #table{
-    width: 100% !important;
-    max-width: 100% !important;
 
-    display: flex !important;
-    flex-direction: column !important;
-    flex-wrap: nowrap !important;
+/* =========================================================
+   MESA / JOGOS BAIXADOS - MOBILE LIMPO
+   - área fixa entre placar e mão
+   - jogos em colunas verticais
+   - esquerda para direita
+   - se tiver muitos jogos, rola horizontalmente
+========================================================= */
 
-    align-items: center !important;
-    justify-content: flex-start !important;
+#table {
+  position: fixed !important;
+  left: 10px !important;
+  right: 10px !important;
 
-    gap: 10px !important;
+  top: calc(10px + env(safe-area-inset-top) + 150px) !important;
+  bottom: calc(10px + env(safe-area-inset-bottom) + 220px) !important;
 
-    margin: 18px 0 0 0 !important;
-    padding: 0 10px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-end !important;
+  justify-content: flex-start !important;
 
-    border-radius: 0 !important; /* remove “oval” */
-    pointer-events: auto !important;
+  gap: 12px !important;
 
-    position: relative;
-    z-index: 12000 !important;
-  }
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
 
-  .grupo-table{
-    width: 100% !important;
-    max-width: 100% !important;
+  padding: 8px 10px !important;
+  margin: 0 !important;
 
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    justify-content: flex-start !important;
-
-    /* scroll horizontal se o jogo for grande */
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch;
-
-    gap: 0 !important;
-    padding: 8px 10px !important;
-
-    border-radius: 3px !important;
-    background: rgba(0,0,0,0.10) !important; /* leve só pra destacar */
-    pointer-events: auto !important;
-
-    position: relative;
-    z-index: 12001 !important;
-  }
-
-  /* cartas baixadas menores + overlap */
-  .grupo-table .card{
-    width: 46px !important;
-    height: 68px !important;
-    border-radius: 3px !important;
-
-    margin-left: -26px !important;
-    flex: 0 0 auto !important;
-  }
-
-  .grupo-table .card:first-child{
-    margin-left: 0 !important;
-  }
-
-
-
-  /* =========================================================
-     MONTE / LIXO FIXOS acima da mão (HUD) — menores
-  ========================================================= */
-
-  #deck-area{
-    position: fixed !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-
-    /* fica acima da mão */
-    bottom: calc(10px + env(safe-area-inset-bottom) + 118px) !important;
-
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    gap: 12px !important;
-
-    margin: 0 !important;
-
-    z-index: 25000 !important;
-    pointer-events: auto !important;
-  }
-
-  /* slots (se existirem) */
-  .pile-slot{
-    width: 58px !important;
-    height: 78px !important;
-    border-radius: 3px !important;
-  }
-
-  /* monte/lixo menores e proporcionais */
-  #monte, #lixo{
-    width: 58px !important;
-    height: 78px !important;
-
-    pointer-events: auto !important;
-    position: relative;
-    z-index: 25001 !important;
-  }
-
-  /* =========================================================
-     MÃO FIXA no rodapé (overlap)
-  ========================================================= */
-
-  #hand{
-    position: fixed !important;
-    left: 8px !important;
-    right: 8px !important;
-    bottom: calc(10px + env(safe-area-inset-bottom)) !important;
-
-    width: auto !important;
-    max-width: none !important;
-
-    display: flex !important;
-    align-items: flex-end !important;
-    justify-content: center !important;
-
-    padding: 10px 6px !important;
-    border-radius: 3px !important;
-
-    background: transparent !important;
-    box-shadow: none !important;
-
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch;
-
-    gap: 0 !important;
-
-    z-index: 30000 !important;
-    pointer-events: auto !important;
-
-    margin-left: 0 !important;
-    transform: none !important;
-  }
-
-  #hand .card{
-    width: 66px !important;
-    height: 98px !important;
-    border-radius: 3px !important;
-
-    position: relative !important;
-    z-index: 1 !important;
-
-    pointer-events: auto !important;
-
-    /* overlap real */
-    margin-left: -45px !important;
-    flex: 0 0 auto !important;
-  }
-
-  #hand .card:first-child{
-    margin-left: 0 !important;
-  }
-
-  #hand .card.selected{
-    transform: translateY(-4px) !important;
-  }
-
-  /* pseudo-elements não podem bloquear clique */
-  #hand::before,
-  #hand::after{
-    pointer-events: none !important;
-  }
-
-  /* Evita elementos enormes estourarem */
-  *{
-    max-width: 100%;
-  }
-
-
-  /* ✅ Mesa (jogos baixados) desce para perto do monte/lixo */
-  #tableArea{
-    justify-content: flex-end !important;   /* era flex-start */
-    overflow-y: auto !important;           /* se tiver muitos jogos, rola */
-  }
-
-  /* ✅ faz o #table “grudar” mais embaixo dentro do #tableArea */
-  #table{
-    margin-top: auto !important;
-    margin-bottom: 10px !important;        /* pequeno respiro acima do HUD */
-  }
-
-  /* ✅ garante que os jogos não fiquem escondidos atrás do placar */
-  #table{
-    position: relative;
-    z-index: 16000 !important;
-    pointer-events: auto !important;
-  }
-
-  .grupo-table{
-    pointer-events: auto !important;
-  }
-
-
-
-  /* =========================================================
-     1) SCOREBOARD NÃO PODE TER ALTURA DE TELA
-     (corrige o 364 x 774 que você viu)
-  ========================================================= */
-  #scoreboard{
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: 140px !important;  /* ajuste fino: 120~170 */
-    overflow: hidden !important;
-
-    /* garante que não cresce por flex */
-    flex: 0 0 auto !important;
-
-    /* se algum CSS antigo setou height:100% */
-    top: calc(10px + env(safe-area-inset-top)) !important;
-    bottom: auto !important;
-  }
-
-  /* =========================================================
-     2) ÁREA DOS JOGOS BAIXADOS FIXA ENTRE HUDS
-     (fica “no meio” e não some)
-  ========================================================= */
-
-  /* a mesa vira um painel rolável no meio da tela */
-  #table{
-    position: fixed !important;
-    left: 10px !important;
-    right: 10px !important;
-
-    /* logo abaixo do placar */
-    top: calc(10px + env(safe-area-inset-top) + 150px) !important;
-
-    /* acima do HUD de baixo (monte/lixo + mão) */
-    bottom: calc(10px + env(safe-area-inset-bottom) + 220px) !important;
-
-    margin: 0 !important;
-    padding: 8px 0 !important;
-
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 10px !important;
-
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-
-    z-index: 16000 !important; /* abaixo do deck-area(25000) e hand(30000) */
-    pointer-events: auto !important;
-
-    /* visual leve */
-    background: transparent !important;
-  }
-
-  /* cada jogo baixado vira “linha” com scroll horizontal */
-  .grupo-table{
-    width: 100% !important;
-
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch;
-
-    padding: 8px 10px !important;
-    border-radius: 3px !important;
-    background: rgba(0,0,0,0.10) !important;
-
-    pointer-events: auto !important;
-  }
-
-  /* cartas baixadas menores + overlap */
-  .grupo-table .card{
-    width: 46px !important;
-    height: 68px !important;
-    border-radius: 3px !important;
-
-    margin-left: -26px !important;
-    flex: 0 0 auto !important;
-  }
-  .grupo-table .card:first-child{
-    margin-left: 0 !important;
-  }
-
-  /* =========================================================
-     3) AJUSTE FINO DO HUD DE BAIXO (SE PRECISAR)
-  ========================================================= */
-
-  /* se quiser ainda mais espaço para os jogos baixados,
-     diminua estes bottoms aos poucos */
-  #deck-area{
-    bottom: calc(10px + env(safe-area-inset-bottom) + 110px) !important;
-  }
-
-  /* mão */
-  #hand{
-    bottom: calc(10px + env(safe-area-inset-bottom)) !important;
-  }
-
-
-  /* ==============================
-     TABLE: jogos lado a lado (horizontal)
-  ============================== */
-
-  #table{
-    position: fixed !important;
-    left: 10px !important;
-    right: 10px !important;
-
-    top: calc(10px + env(safe-area-inset-top) + 150px) !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 220px) !important;
-
-    /* agora é uma “faixa” horizontal de jogos */
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: flex-end !important;
-    justify-content: flex-start !important;
-
-    gap: 10px !important;
-
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch;
-
-    padding: 8px 6px !important;
-    margin: 0 !important;
-
-    z-index: 16000 !important;
-    pointer-events: auto !important;
-
-    background: transparent !important;
-  }
-
-  /* ==============================
-     CADA JOGO: vira COLUNA (vertical)
-  ============================== */
-
-  .grupo-table{
-    /* coluna em pé */
-    display: flex !important;
-    flex-direction: column !important; /* última carta fica embaixo */
-    flex-wrap: nowrap !important;
-
-    align-items: center !important;
-    justify-content: flex-end !important;
-
-    width: 54px !important;     /* largura da coluna */
-    min-width: 54px !important;
-
-    height: 140px !important;   /* altura da coluna (ajuste fino) */
-
-    overflow: visible !important; /* deixa overlap acontecer */
-
-    padding: 0 !important;
-    border-radius: 3px !important;
-
-    background: transparent !important; /* sem “caixinha” */
-    pointer-events: auto !important;
-
-    position: relative !important;
-  }
-
-  /* ==============================
-     CARTAS DENTRO DO JOGO: empilhadas
-     (overlap vertical)
-  ============================== */
-
-  .grupo-table .card{
-    width: 54px !important;
-    height: 78px !important;
-
-    margin: 0 !important;
-    margin-top: -54px !important;   /* overlap vertical */
-    flex: 0 0 auto !important;
-
-    border-radius: 3px !important;
-  }
-
-  /* primeira carta do topo não sobe demais */
-  .grupo-table .card:last-child{
-    margin-top: 0 !important;
-  }
-
-
-  /* faixa horizontal de jogos */
-  #table{
-    position: fixed !important;
-    left: 10px !important;
-    right: 10px !important;
-
-    top: calc(10px + env(safe-area-inset-top) + 150px) !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 220px) !important;
-
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-
-    align-items: flex-end !important;
-    justify-content: flex-start !important;
-
-    gap: 10px !important;
-
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch;
-
-    padding: 8px 6px !important;
-    margin: 0 !important;
-
-    z-index: 16000 !important;
-    pointer-events: auto !important;
-
-    background: transparent !important;
-  }
-
-  /* cada jogo = coluna (vertical) */
-  .grupo-table{
-    position: relative !important;
-
-    width: 54px !important;
-    min-width: 54px !important;
-
-    /* altura da pilha (1 carta + 12 deslocamentos) */
-    height: 320px !important;
-
-    display: block !important;
-    overflow: visible !important;
-    background: transparent !important;
-  }
-
-  /* as cartas deixam de “participar do fluxo” e viram empilhadas */
-  .grupo-table .card{
-    position: absolute !important;
-    left: 0 !important;
-
-    width: 54px !important;
-    height: 78px !important;
-
-    margin: 0 !important;          /* 🔥 mata margin-left do desktop */
-    border-radius: 5px !important;
-  }
-
-
-  /* cartas da coluna */
-  .grupo-table .card{
-    position: absolute !important;
-    left: 0 !important;
-
-    width: 54px !important;
-    height: 78px !important;
-
-    margin: 0 !important;          /* 🔥 mata margin-left do desktop */
-    border-radius: 5px !important;
-
-  /* primeira carta não sobe */
-  .grupo-table .card:first-child{
-    margin-top: 0 !important;
-
-
-
-  /* garante que z-index funcione */
-  .grupo-table .card{
-    position: relative !important;
-  }
-
-  /* última carta fica por cima (até 13 cartas) */
-  .grupo-table .card:nth-child(1)  { top: 1px;   z-index: 1;  }
-  .grupo-table .card:nth-child(2)  { top: 20px;  z-index: 2;  }
-  .grupo-table .card:nth-child(3)  { top: 40px;  z-index: 3;  }
-  .grupo-table .card:nth-child(4)  { top: 60px;  z-index: 4;  }
-  .grupo-table .card:nth-child(5)  { top: 80px;  z-index: 5;  }
-  .grupo-table .card:nth-child(6)  { top: 100px;  z-index: 6;  }
-  .grupo-table .card:nth-child(7)  { top: 120px;  z-index: 7;  }
-  .grupo-table .card:nth-child(8)  { top: 140px;  z-index: 8;  }
-  .grupo-table .card:nth-child(9)  { top: 160px;  z-index: 9;  }
-  .grupo-table .card:nth-child(10) { top: 180px; z-index: 10; }
-  .grupo-table .card:nth-child(11) { top: 200px; z-index: 11; }
-  .grupo-table .card:nth-child(12) { top: 220px; z-index: 12; }
-  .grupo-table .card:nth-child(13) { top: 240px; z-index: 13; }
+  background: transparent !important;
+  z-index: 16000 !important;
+  pointer-events: auto !important;
 }
+
+#table .table-melds-layer {
+  position: static !important;
+  transform: none !important;
+
+  display: contents !important;
+  width: auto !important;
+  height: auto !important;
+
+  pointer-events: auto !important;
+}
+
+#table .grupo-table {
+  position: relative !important;
+
+  width: 56px !important;
+  min-width: 56px !important;
+  height: 230px !important;
+
+  display: block !important;
+  overflow: visible !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+
+  pointer-events: auto !important;
+  flex: 0 0 auto !important;
+}
+
+#table .grupo-table .card {
+  position: absolute !important;
+  left: 0 !important;
+
+  width: 56px !important;
+  height: 80px !important;
+
+  margin: 0 !important;
+  border-radius: 5px !important;
+}
+
+/* empilhamento vertical das cartas do mesmo jogo */
+#table .grupo-table .card:nth-child(1)  { top: 0px;   z-index: 1; }
+#table .grupo-table .card:nth-child(2)  { top: 18px;  z-index: 2; }
+#table .grupo-table .card:nth-child(3)  { top: 36px;  z-index: 3; }
+#table .grupo-table .card:nth-child(4)  { top: 54px;  z-index: 4; }
+#table .grupo-table .card:nth-child(5)  { top: 72px;  z-index: 5; }
+#table .grupo-table .card:nth-child(6)  { top: 90px;  z-index: 6; }
+#table .grupo-table .card:nth-child(7)  { top: 108px; z-index: 7; }
+#table .grupo-table .card:nth-child(8)  { top: 126px; z-index: 8; }
+#table .grupo-table .card:nth-child(9)  { top: 144px; z-index: 9; }
+#table .grupo-table .card:nth-child(10) { top: 162px; z-index: 10; }
+#table .grupo-table .card:nth-child(11) { top: 180px; z-index: 11; }
+#table .grupo-table .card:nth-child(12) { top: 198px; z-index: 12; }
+#table .grupo-table .card:nth-child(13) { top: 216px; z-index: 13; }
 
 }
 
-}
-@media (max-width: 520px) and (orientation: portrait){
 
-  /* cada jogo vira um “slot” fixo onde as cartas serão empilhadas */
-  .grupo-table{
-    position: relative !important;
 
-    width: 54px !important;
-    min-width: 54px !important;
-
-    /* altura da pilha (1 carta + 12 deslocamentos) */
-    height: 222px !important;
-
-    display: block !important;
-    overflow: visible !important;
-    background: transparent !important;
-  }
-
-  /* as cartas deixam de “participar do fluxo” e viram empilhadas */
-  .grupo-table .card{
-    position: absolute !important;
-    left: 0 !important;
-
-    width: 54px !important;
-    height: 78px !important;
-
-    margin: 0 !important;          /* 🔥 mata margin-left do desktop */
-    border-radius: 5px !important;
-  }
-
-  /* deslocamento vertical (mostra ~12px da carta de baixo) + z-index crescente
-     ✅ a ÚLTIMA sempre fica por cima */
-  .grupo-table .card:nth-child(1)  { top: 0px;   z-index: 1;  }
-  .grupo-table .card:nth-child(2)  { top: 18px;  z-index: 2;  }
-  .grupo-table .card:nth-child(3)  { top: 36px;  z-index: 3;  }
-  .grupo-table .card:nth-child(4)  { top: 54px;  z-index: 4;  }
-  .grupo-table .card:nth-child(5)  { top: 72px;  z-index: 5;  }
-  .grupo-table .card:nth-child(6)  { top: 90px;  z-index: 6;  }
-  .grupo-table .card:nth-child(7)  { top: 108px;  z-index: 7;  }
-  .grupo-table .card:nth-child(8)  { top: 126px;  z-index: 8;  }
-  .grupo-table .card:nth-child(9)  { top: 144px;  z-index: 9;  }
-  .grupo-table .card:nth-child(10) { top: 162px; z-index: 10; }
-  .grupo-table .card:nth-child(11) { top: 180px; z-index: 11; }
-  .grupo-table .card:nth-child(12) { top: 198px; z-index: 12; }
-  .grupo-table .card:nth-child(13) { top: 216px; z-index: 13; }
-}
 
 /* =========================================================
    MOBILE PORTRAIT: placar compacto em 1 linha
@@ -1304,50 +864,5 @@
   #homeScreen .menu-btn + .menu-btn,
   #homeScreen .home-btn + .home-btn {
     margin-top: 12px !important;
-  }
-}
-/* =========================================================
-   TABLE MELDS - MOBILE (GRID FIXO 2 LINHAS)
-========================================================= */
-@media (max-width: 520px) and (orientation: portrait) {
-  #table {
-    position: relative;
-  }
-
-  #table .table-melds-layer {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - 20px);
-
-    display: grid !important;
-
-    /* 🔥 2 linhas fixas */
-    grid-template-rows: auto auto;
-
-    /* 🔥 quantas colunas couberem */
-    grid-auto-flow: column;
-
-    justify-content: start;
-    align-content: end;
-
-    gap: 18px 14px;
-
-    pointer-events: none;
-  }
-
-  #table .table-melds-layer .grupo-table {
-    pointer-events: auto;
-    position: relative !important;
-    transform: none !important;
-  }
-
-  /* posição da área */
-  #table .table-melds-bottom {
-    bottom: 210px;
-  }
-
-  #table .table-melds-top {
-    top: 70px;
   }
 }

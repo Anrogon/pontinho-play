@@ -1306,10 +1306,8 @@
     margin-top: 12px !important;
   }
 }
-
 /* =========================================================
-   TABLE MELDS - MOBILE PORTRAIT
-   Preenche primeiro a linha de baixo, da esquerda para direita
+   TABLE MELDS - MOBILE (GRID FIXO 2 LINHAS)
 ========================================================= */
 @media (max-width: 520px) and (orientation: portrait) {
   #table {
@@ -1320,35 +1318,36 @@
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    width: calc(100% - 22px);
+    width: calc(100% - 20px);
 
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap-reverse; /* 🔥 linha de baixo primeiro */
-    justify-content: flex-start; /* 🔥 esquerda para direita */
-    align-content: flex-end;
-    align-items: flex-start;
+    display: grid !important;
 
-    column-gap: 12px;
-    row-gap: 70px;
+    /* 🔥 2 linhas fixas */
+    grid-template-rows: auto auto;
+
+    /* 🔥 quantas colunas couberem */
+    grid-auto-flow: column;
+
+    justify-content: start;
+    align-content: end;
+
+    gap: 18px 14px;
 
     pointer-events: none;
-    overflow: visible;
   }
 
   #table .table-melds-layer .grupo-table {
     pointer-events: auto;
     position: relative !important;
-    flex: 0 0 auto;
-    margin: 0 !important;
     transform: none !important;
   }
 
+  /* posição da área */
   #table .table-melds-bottom {
-    bottom: 215px;
+    bottom: 210px;
   }
 
   #table .table-melds-top {
-    top: 74px;
+    top: 70px;
   }
 }

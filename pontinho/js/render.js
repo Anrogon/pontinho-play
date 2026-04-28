@@ -1040,76 +1040,9 @@ function getCrazyBatidaUi() {
   };
 }
 
-function renderMobilePlayersBar() {
-  let bar = document.getElementById("mobilePlayersBar");
-
-  const isMobilePortrait = window.matchMedia("(max-width: 520px) and (orientation: portrait)").matches;
-
-  if (!isMobilePortrait || state.spectator) {
-    if (bar) bar.remove();
-    return;
-  }
-
-  const tableId = state.room?.id || state.tableId || state.currentTableId;
-  const tableState = tableId && state.tables ? state.tables[tableId] : null;
-  const seats = Array.isArray(tableState?.seats)
-    ? tableState.seats
-    : [];
-
-  if (!seats.length) {
-    if (bar) bar.remove();
-    return;
-  }
-
-  if (!bar) {
-    bar = document.createElement("div");
-    bar.id = "mobilePlayersBar";
-
-    const game = document.getElementById("game");
-    if (game) game.appendChild(bar);
-  }
-
-  bar.innerHTML = seats.map((p, idx) => {
-    const seat = idx + 1;
-    if (!p) {
-      return `
-        <div class="mp-seat mp-empty">
-          <div class="mp-avatar">?</div>
-          <div class="mp-name">Livre</div>
-        </div>
-      `;
-    }
-
-    const name = p.name || p.username || `Jogador ${seat}`;
-    const initial = (name[0] || "?").toUpperCase();
-    const active = Number(state.currentSeat) === seat;
-
-    const avatar = p.avatarUrl
-      ? `<img src="${p.avatarUrl}" alt="">`
-      : `<span>${initial}</span>`;
-
-    const chips = typeof p.tableChips === "number"
-      ? p.tableChips
-      : (typeof p.chips === "number" ? p.chips : 0);
-
-    const handCount = typeof p.handCount === "number"
-      ? p.handCount
-      : (Array.isArray(p.hand) ? p.hand.length : "");
-
-    return `
-      <div class="mp-seat ${active ? "is-active" : ""}">
-        <div class="mp-avatar">${avatar}</div>
-        <div class="mp-info">
-          <div class="mp-name">${name}</div>
-          <div class="mp-meta">${chips.toLocaleString("pt-BR")} • ${handCount} cartas</div>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
 
 export function renderScoreboard() {
+  
   const el = document.getElementById("scoreboard");
   if (!el) return;
   
@@ -1217,8 +1150,6 @@ el.style.display = "";
   `;
 
 
-  renderMobilePlayersBar();
-  
   // bind do botão (uma vez)
   if (isMobilePortrait && el.dataset.bound !== "1") {
     el.dataset.bound = "1";
@@ -1350,9 +1281,175 @@ el.style.display = "";
       requestStartCrazyBatidaAttempt();
     }, { passive: true });
   }
+  renderMobileTableLayout();
 }
 
 
+
+function isMobilePortraitTable() {
+  return window.matchMedia("(max-width: 768px) and (orientation: portrait)").matches;
+}
+
+function getPublicStateSafe() {
+  return window.state_public || window.state || state_public || state || {};
+}
+
+function getPlayersForMobileTable() {
+  const s = getPublicStateSafe();
+  return s.players || s.seats || [];
+}
+
+function getMobilePlayerName(p, index) {
+  return (
+    p?.name ||
+    p?.username ||
+    p?.playerName ||
+    `Jogador ${index + 1}`
+  );
+}
+
+function getMobilePlayerChips(p) {
+  return Number(
+    p?.chips ??
+    p?.stack ??
+    p?.tableChips ??
+    p?.chips_balance ??
+    0
+  );
+}
+
+function getMobilePlayerPoints(p) {
+  return Number(
+    p?.points ??
+    p?.totalPoints ??
+    p?.score ??
+    0
+  );
+}
+
+function renderMobileTableLayout() {
+  const s = getPublicStateSafe();
+
+  const gameScreen =
+    document.getElementById("gameScreen") ||
+    document.querySelector(".game-screen") ||
+    document.querySelector("#game");
+
+  if (!gameScreen) return;
+
+  let root = document.getElementById("mobileTableLayout");
+
+  if (!isMobilePortraitTable()) {
+    if (root) root.remove();
+    document.body.classList.remove("mobile-table-mode");
+    return;
+  }
+
+  document.body.classList.add("mobile-table-mode");
+
+  if (!root) {
+    root = document.createElement("div");
+    root.id = "mobileTableLayout";
+    root.innerHTML = `
+      <div class="mobile-table-topbar">
+        <span id="mobileMesaInfo">Mesa: -</span>
+        <span id="mobileAnteInfo">Ante: -</span>
+        <span id="mobilePoteInfo">Pote: -</span>
+      </div>
+
+      <div class="mobile-seat-layer">
+        <div class="mobile-seat pos1" data-seat-pos="1"></div>
+        <div class="mobile-seat pos2" data-seat-pos="2"></div>
+        <div class="mobile-seat pos3" data-seat-pos="3"></div>
+        <div class="mobile-seat pos4" data-seat-pos="4"></div>
+        <div class="mobile-seat pos5" data-seat-pos="5"></div>
+        <div class="mobile-seat pos6" data-seat-pos="6"></div>
+      </div>
+
+      <div class="mobile-center-info">
+        <div class="mobile-center-cards">
+          <div class="mobile-center-card">MONTE</div>
+          <div class="mobile-center-card">LIXO</div>
+        </div>
+        <div class="mobile-pot-center" id="mobilePoteCenter">Pote: -</div>
+      </div>
+    `;
+
+    gameScreen.prepend(root);
+  }
+
+  const mesa =
+    s.tableName ||
+    s.table?.name ||
+    s.currentTable?.name ||
+    s.tableId ||
+    "-";
+
+  const ante = Number(
+    s.ante ??
+    s.table?.ante ??
+    s.currentTable?.ante ??
+    0
+  );
+
+  const pote = Number(
+    s.matchPot ??
+    s.pot ??
+    s.table?.matchPot ??
+    s.currentTable?.matchPot ??
+    0
+  );
+
+  const mesaEl = document.getElementById("mobileMesaInfo");
+  const anteEl = document.getElementById("mobileAnteInfo");
+  const poteEl = document.getElementById("mobilePoteInfo");
+  const poteCenterEl = document.getElementById("mobilePoteCenter");
+
+  if (mesaEl) mesaEl.textContent = `Mesa: ${mesa}`;
+  if (anteEl) anteEl.textContent = `Ante: ${ante}`;
+  if (poteEl) poteEl.textContent = `Pote: ${pote}`;
+  if (poteCenterEl) poteCenterEl.textContent = `Pote: ${pote}`;
+
+  const players = getPlayersForMobileTable();
+
+  for (let i = 0; i < 6; i++) {
+    const el = root.querySelector(`[data-seat-pos="${i + 1}"]`);
+    const p = players[i];
+
+    if (!el) continue;
+
+    if (!p) {
+      el.innerHTML = `
+        <div class="mobile-seat-name">Livre</div>
+        <div class="mobile-seat-meta">Fichas: -</div>
+        <div class="mobile-seat-meta">Pontos: -</div>
+      `;
+      el.classList.add("empty");
+      continue;
+    }
+
+    el.classList.remove("empty");
+
+    const isYou =
+      p.isYou ||
+      p.me ||
+      p.isMe ||
+      p.seat === s.mySeat ||
+      p.seatIndex === s.mySeatIndex ||
+      p.id === s.myPlayerId;
+
+    el.innerHTML = `
+      <div class="mobile-seat-name">
+        ${getMobilePlayerName(p, i)}${isYou ? " (VOCÊ)" : ""}
+      </div>
+      <div class="mobile-seat-meta">Fichas: ${getMobilePlayerChips(p)}</div>
+      <div class="mobile-seat-meta">Pontos: ${getMobilePlayerPoints(p)}</div>
+    `;
+
+    el.classList.toggle("you", !!isYou);
+  }
+  
+}
 
 
 // expõe para actions.js sem import (evita ciclo)

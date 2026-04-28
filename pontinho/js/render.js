@@ -1040,7 +1040,73 @@ function getCrazyBatidaUi() {
   };
 }
 
+function renderMobilePlayersBar() {
+  let bar = document.getElementById("mobilePlayersBar");
 
+  const isMobilePortrait = window.matchMedia("(max-width: 520px) and (orientation: portrait)").matches;
+
+  if (!isMobilePortrait || state.spectator) {
+    if (bar) bar.remove();
+    return;
+  }
+
+  const tableId = state.room?.id || state.tableId || state.currentTableId;
+  const tableState = tableId && state.tables ? state.tables[tableId] : null;
+  const seats = Array.isArray(tableState?.seats)
+    ? tableState.seats
+    : [];
+
+  if (!seats.length) {
+    if (bar) bar.remove();
+    return;
+  }
+
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "mobilePlayersBar";
+
+    const game = document.getElementById("game");
+    if (game) game.appendChild(bar);
+  }
+
+  bar.innerHTML = seats.map((p, idx) => {
+    const seat = idx + 1;
+    if (!p) {
+      return `
+        <div class="mp-seat mp-empty">
+          <div class="mp-avatar">?</div>
+          <div class="mp-name">Livre</div>
+        </div>
+      `;
+    }
+
+    const name = p.name || p.username || `Jogador ${seat}`;
+    const initial = (name[0] || "?").toUpperCase();
+    const active = Number(state.currentSeat) === seat;
+
+    const avatar = p.avatarUrl
+      ? `<img src="${p.avatarUrl}" alt="">`
+      : `<span>${initial}</span>`;
+
+    const chips = typeof p.tableChips === "number"
+      ? p.tableChips
+      : (typeof p.chips === "number" ? p.chips : 0);
+
+    const handCount = typeof p.handCount === "number"
+      ? p.handCount
+      : (Array.isArray(p.hand) ? p.hand.length : "");
+
+    return `
+      <div class="mp-seat ${active ? "is-active" : ""}">
+        <div class="mp-avatar">${avatar}</div>
+        <div class="mp-info">
+          <div class="mp-name">${name}</div>
+          <div class="mp-meta">${chips.toLocaleString("pt-BR")} • ${handCount} cartas</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
 
 
 export function renderScoreboard() {
@@ -1150,6 +1216,9 @@ el.style.display = "";
     </div>
   `;
 
+
+  renderMobilePlayersBar();
+  
   // bind do botão (uma vez)
   if (isMobilePortrait && el.dataset.bound !== "1") {
     el.dataset.bound = "1";

@@ -8,13 +8,15 @@
     gap: 4px;
   }
 }
+
 @media (max-width: 520px) and (orientation: portrait) {
   #table {
     position: fixed !important;
     left: 10px !important;
     right: 10px !important;
-    top: calc(10px + env(safe-area-inset-top) + 150px) !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 220px) !important;
+
+    top: calc(10px + env(safe-area-inset-top) + 165px) !important;
+    bottom: calc(10px + env(safe-area-inset-bottom) + 230px) !important;
 
     background: transparent !important;
     overflow-x: auto !important;
@@ -36,21 +38,19 @@
     align-items: flex-start !important;
     justify-content: flex-start !important;
 
-    gap: 12px !important;
+    gap: 10px !important;
     width: max-content !important;
 
     pointer-events: none !important;
   }
 
-  /* linha de cima */
   #table .table-melds-top {
     top: 0 !important;
     bottom: auto !important;
   }
 
-  /* linha de baixo */
   #table .table-melds-bottom {
-    top: 260px !important;
+    top: 175px !important;
     bottom: auto !important;
   }
 
@@ -58,9 +58,9 @@
     position: relative !important;
     display: block !important;
 
-    width: 58px !important;
-    min-width: 58px !important;
-    height: 250px !important;
+    width: 50px !important;
+    min-width: 50px !important;
+    height: 165px !important;
 
     overflow: visible !important;
     margin: 0 !important;
@@ -68,33 +68,33 @@
     background: transparent !important;
 
     pointer-events: auto !important;
-    flex: 0 0 58px !important;
+    flex: 0 0 50px !important;
   }
 
   #table .grupo-table .card {
     position: absolute !important;
     left: 0 !important;
 
-    width: 58px !important;
-    height: 82px !important;
+    width: 50px !important;
+    height: 72px !important;
 
     margin: 0 !important;
     border-radius: 5px !important;
   }
 
   #table .grupo-table .card:nth-child(1)  { top: 0px !important; z-index: 1 !important; }
-  #table .grupo-table .card:nth-child(2)  { top: 18px !important; z-index: 2 !important; }
-  #table .grupo-table .card:nth-child(3)  { top: 36px !important; z-index: 3 !important; }
-  #table .grupo-table .card:nth-child(4)  { top: 54px !important; z-index: 4 !important; }
-  #table .grupo-table .card:nth-child(5)  { top: 72px !important; z-index: 5 !important; }
-  #table .grupo-table .card:nth-child(6)  { top: 90px !important; z-index: 6 !important; }
-  #table .grupo-table .card:nth-child(7)  { top: 108px !important; z-index: 7 !important; }
-  #table .grupo-table .card:nth-child(8)  { top: 126px !important; z-index: 8 !important; }
-  #table .grupo-table .card:nth-child(9)  { top: 144px !important; z-index: 9 !important; }
-  #table .grupo-table .card:nth-child(10) { top: 162px !important; z-index: 10 !important; }
-  #table .grupo-table .card:nth-child(11) { top: 180px !important; z-index: 11 !important; }
-  #table .grupo-table .card:nth-child(12) { top: 198px !important; z-index: 12 !important; }
-  #table .grupo-table .card:nth-child(13) { top: 216px !important; z-index: 13 !important; }
+  #table .grupo-table .card:nth-child(2)  { top: 12px !important; z-index: 2 !important; }
+  #table .grupo-table .card:nth-child(3)  { top: 24px !important; z-index: 3 !important; }
+  #table .grupo-table .card:nth-child(4)  { top: 36px !important; z-index: 4 !important; }
+  #table .grupo-table .card:nth-child(5)  { top: 48px !important; z-index: 5 !important; }
+  #table .grupo-table .card:nth-child(6)  { top: 60px !important; z-index: 6 !important; }
+  #table .grupo-table .card:nth-child(7)  { top: 72px !important; z-index: 7 !important; }
+  #table .grupo-table .card:nth-child(8)  { top: 84px !important; z-index: 8 !important; }
+  #table .grupo-table .card:nth-child(9)  { top: 96px !important; z-index: 9 !important; }
+  #table .grupo-table .card:nth-child(10) { top: 108px !important; z-index: 10 !important; }
+  #table .grupo-table .card:nth-child(11) { top: 120px !important; z-index: 11 !important; }
+  #table .grupo-table .card:nth-child(12) { top: 132px !important; z-index: 12 !important; }
+  #table .grupo-table .card:nth-child(13) { top: 144px !important; z-index: 13 !important; }
 }
 
 /* DEBUG TEMPORÁRIO - remover depois */
@@ -129,5 +129,86 @@
   #table .grupo-table {
     outline: 2px solid magenta !important;
     background: rgba(255, 0, 255, 0.12) !important;
+  }
+}
+
+@media (max-width: 520px) and (orientation: portrait) {
+  #mobilePlayersBar {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    top: calc(10px + env(safe-area-inset-top) + 125px);
+
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    padding: 6px 2px;
+
+    z-index: 21000;
+    pointer-events: auto;
+  }
+
+  .mp-seat {
+    flex: 0 0 auto;
+    min-width: 118px;
+
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 5px 8px;
+    border-radius: 12px;
+
+    background: rgba(0, 0, 0, 0.32);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: #fff;
+  }
+
+  .mp-seat.is-active {
+    border-color: rgba(255, 215, 0, 0.85);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.32);
+  }
+
+  .mp-avatar {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+
+    border-radius: 50%;
+    overflow: hidden;
+
+    display: grid;
+    place-items: center;
+
+    background: rgba(255,255,255,0.16);
+    font-weight: 900;
+  }
+
+  .mp-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .mp-info {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .mp-name {
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 76px;
+  }
+
+  .mp-meta {
+    font-size: 10px;
+    opacity: 0.85;
+    white-space: nowrap;
   }
 }

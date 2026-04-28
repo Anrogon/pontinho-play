@@ -1365,50 +1365,50 @@ function renderMobileTableLayout() {
         <div class="mobile-seat pos5" data-seat-pos="5"></div>
         <div class="mobile-seat pos6" data-seat-pos="6"></div>
       </div>
-
-      <div class="mobile-center-info">
-        <div class="mobile-center-cards">
-          <div class="mobile-center-card">MONTE</div>
-          <div class="mobile-center-card">LIXO</div>
-        </div>
-        <div class="mobile-pot-center" id="mobilePoteCenter">Pote: -</div>
-      </div>
     `;
 
     gameScreen.prepend(root);
   }
 
-  const mesa =
-    s.tableName ||
-    s.table?.name ||
-    s.currentTable?.name ||
-    s.tableId ||
-    "-";
+  const tableId = s.tableId || s.currentTableId || s.selectedTableId;
+  const tableData = tableId && window.state?.tables
+    ? window.state.tables[tableId]
+    : null;
 
-  const ante = Number(
-    s.ante ??
-    s.table?.ante ??
-    s.currentTable?.ante ??
-    0
-  );
+const mesa =
+  tableData?.name ||
+  s.tableName ||
+  s.table?.name ||
+  s.currentTable?.name ||
+  tableId ||
+  "-";
 
-  const pote = Number(
-    s.matchPot ??
-    s.pot ??
-    s.table?.matchPot ??
-    s.currentTable?.matchPot ??
-    0
-  );
+const buyIn = Number(
+  tableData?.buyIn ??
+  s.buyIn ??
+  s.table?.buyIn ??
+  s.currentTable?.buyIn ??
+  0
+);
+
+const ante = Math.floor(buyIn * 0.1);
+
+const pote = Number(
+  tableData?.matchPot ??
+  s.matchPot ??
+  s.pot ??
+  s.table?.matchPot ??
+  s.currentTable?.matchPot ??
+  0
+);
 
   const mesaEl = document.getElementById("mobileMesaInfo");
   const anteEl = document.getElementById("mobileAnteInfo");
   const poteEl = document.getElementById("mobilePoteInfo");
-  const poteCenterEl = document.getElementById("mobilePoteCenter");
 
   if (mesaEl) mesaEl.textContent = `Mesa: ${mesa}`;
   if (anteEl) anteEl.textContent = `Ante: ${ante}`;
   if (poteEl) poteEl.textContent = `Pote: ${pote}`;
-  if (poteCenterEl) poteCenterEl.textContent = `Pote: ${pote}`;
 
   const players = getPlayersForMobileTable();
 

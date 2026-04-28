@@ -290,14 +290,4 @@
     font-weight: 800;
   }
 
-  body.mobile-table-mode .melds-area,
-  body.mobile-table-mode #meldsArea,
-  body.mobile-table-mode .table-melds,
-  body.mobile-table-mode .played-melds {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    max-height: 155px;
-    overflow-y: auto;
-  }
 }

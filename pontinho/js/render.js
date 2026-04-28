@@ -1354,7 +1354,6 @@ function renderMobileTableLayout() {
       <div class="mobile-table-topbar">
         <span id="mobileMesaInfo">Mesa: -</span>
         <span id="mobileAnteInfo">Ante: -</span>
-        <span id="mobilePoteInfo">Pote: -</span>
       </div>
 
       <div class="mobile-seat-layer">
@@ -1404,11 +1403,9 @@ const pote = Number(
 
   const mesaEl = document.getElementById("mobileMesaInfo");
   const anteEl = document.getElementById("mobileAnteInfo");
-  const poteEl = document.getElementById("mobilePoteInfo");
 
   if (mesaEl) mesaEl.textContent = `Mesa: ${mesa}`;
   if (anteEl) anteEl.textContent = `Ante: ${ante}`;
-  if (poteEl) poteEl.textContent = `Pote: ${pote}`;
 
   const players = getPlayersForMobileTable();
 
@@ -1419,11 +1416,7 @@ const pote = Number(
     if (!el) continue;
 
     if (!p) {
-      el.innerHTML = `
-        <div class="mobile-seat-name">Livre</div>
-        <div class="mobile-seat-meta">Fichas: -</div>
-        <div class="mobile-seat-meta">Pontos: -</div>
-      `;
+      el.innerHTML = "";
       el.classList.add("empty");
       continue;
     }
@@ -1438,12 +1431,22 @@ const pote = Number(
       p.seatIndex === s.mySeatIndex ||
       p.id === s.myPlayerId;
 
+    const avatar =
+      p?.avatar_url ||
+      p?.avatar ||
+      "/assets/avatar-default.png";
+
     el.innerHTML = `
+      <div class="mobile-seat-avatar">
+        <img src="${avatar}" />
+      </div>
+
       <div class="mobile-seat-name">
         ${getMobilePlayerName(p, i)}${isYou ? " (VOCÊ)" : ""}
       </div>
-      <div class="mobile-seat-meta">Fichas: ${getMobilePlayerChips(p)}</div>
-      <div class="mobile-seat-meta">Pontos: ${getMobilePlayerPoints(p)}</div>
+
+      <div class="mobile-seat-meta">💰 ${getMobilePlayerChips(p)}</div>
+      <div class="mobile-seat-meta">⭐ ${getMobilePlayerPoints(p)}</div>
     `;
 
     el.classList.toggle("you", !!isYou);

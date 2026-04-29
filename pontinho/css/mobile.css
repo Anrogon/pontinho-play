@@ -27,31 +27,28 @@
   }
 
   #table .table-melds-layer {
-    position: absolute !important;
-    left: 0 !important;
-    right: auto !important;
-    transform: none !important;
+  position: absolute !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
 
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    align-items: flex-start !important;
-    justify-content: flex-start !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important; /* 🔥 permite quebrar linha */
+  justify-content: center !important; /* 🔥 centraliza */
+  align-items: center !important;
 
-    gap: 10px !important;
-    width: max-content !important;
+  gap: 10px !important;
+  width: 90% !important; /* 🔥 limita e permite centralizar */
 
-    pointer-events: none !important;
+  pointer-events: none !important;
   }
 
   #table .table-melds-top {
-    top: 0 !important;
-    bottom: auto !important;
+  top: 40px !important;
   }
 
   #table .table-melds-bottom {
-    top: 175px !important;
-    bottom: auto !important;
+  top: 150px !important;
   }
 
   #table .grupo-table {
@@ -278,11 +275,11 @@
   }
 
   .mobile-seat {
-    width: 118px !important;
-    height: 34px !important;
+    width: 100px !important;
+    height: 40px !important;
     min-height: 34px !important;
     padding: 3px 6px !important;
-    border-radius: 999px !important;
+    
     display: flex !important;
     align-items: center !important;
     gap: 6px !important;
@@ -375,10 +372,10 @@
   }
 
   #mobileBottomHud {
-    width: 104px !important;
-    height: 34px !important;
+    width: 100px !important;
+    height: 40px !important;
     padding: 3px 6px !important;
-    border-radius: 999px !important;
+    border-radius: 15px !important;
 
     display: flex !important;
     align-items: center !important;
@@ -441,9 +438,13 @@
   left: 70px !important;
 }
 
+#bottomArea .sort-btn:nth-of-type(3) {
+  left: 115px !important;
+}
+
 #bottomArea .sort-btn img {
-  width: 30px !important;
-  height: 30px !important;
+  width: 25px !important;
+  height: 25px !important;
   object-fit: contain !important;
   display: block !important;
 }
@@ -477,8 +478,9 @@
     color: #fff !important;
     border: 1px solid rgba(255,255,255,0.22) !important;
     border-radius: 999px !important;
-    font-size: 13px !important;
+    font-size: 12px !important;
     font-weight: 900 !important;
+    bottom: calc(10px + env(safe-area-inset-bottom) + 80px) !important;
   }
 
   #deck-area .sb-mobile-bati-btn.is-active,
@@ -491,3 +493,33 @@
     background: linear-gradient(180deg, #e53935, #b71c1c) !important;
   }
 }
+
+@media (max-width: 520px) and (orientation: portrait) {
+  #mobilePotTop {
+    position: absolute !important;
+    left: 50% !important;
+    top: 120px !important;
+    transform: translateX(-50%) !important;
+
+    z-index: 30 !important;
+    pointer-events: none !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  #mobilePotTop img {
+    max-width: 58px !important;
+    max-height: 58px !important;
+  }
+
+  #mobilePotTop,
+  #mobilePotTop * {
+    color: #fff !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+  }
+}
+

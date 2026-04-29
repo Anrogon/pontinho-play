@@ -1430,21 +1430,19 @@ const miniAnte = Number(
 
   const mySeat = s.mySeat;
 
-  const others = players.filter(p => {
-    if (!p) return false;
-    return Number(p.seat) !== Number(mySeat);
-  });
-
-  for (let i = 0; i < 5; i++) {
-    const el = root.querySelector(`[data-seat-pos="${i + 1}"]`);
-    const p = others[i];
+    for (let seat = 1; seat <= 5; seat++) {
+    const el = root.querySelector(`[data-seat-pos="${seat}"]`);
+    const p = players.find(player => Number(player?.seat) === seat);
 
     if (!el) continue;
 
     if (!p) {
       el.innerHTML = "";
+      el.classList.add("empty");
       continue;
     }
+
+    el.classList.remove("empty");
 
     const avatar =
       p.avatarUrl ||
@@ -1466,6 +1464,49 @@ const miniAnte = Number(
   }
 
   renderMobileBottomHudClean(tableData, s);
+  moveMobilePotToTableTop();
+}
+
+function moveMobilePotToTableTop() {
+  if (!isMobilePortraitTable()) return;
+
+  const root = document.getElementById("mobileTableLayout");
+  const deckArea = document.getElementById("deck-area");
+  if (!root || !deckArea) return;
+
+  let holder = document.getElementById("mobilePotTop");
+
+  if (!holder) {
+    holder = document.createElement("div");
+    holder.id = "mobilePotTop";
+    root.appendChild(holder);
+  }
+
+  const potItems = Array.from(deckArea.children).filter(el => {
+    if (!el) return false;
+
+    if (el.id === "monte") return false;
+    if (el.id === "lixo") return false;
+    if (el.id === "mobileBottomHud") return false;
+    if (el.classList?.contains("sb-mobile-bati-btn")) return false;
+    if (el.classList?.contains("sort-btn")) return false;
+
+    const txt = String(el.textContent || "").toLowerCase();
+    const cls = String(el.className || "").toLowerCase();
+    const id = String(el.id || "").toLowerCase();
+
+    return (
+      txt.includes("pote") ||
+      cls.includes("pot") ||
+      cls.includes("pote") ||
+      cls.includes("chip") ||
+      id.includes("pot") ||
+      id.includes("pote") ||
+      id.includes("chip")
+    );
+  });
+
+  potItems.forEach(el => holder.appendChild(el));
 }
 
 function getMobileCurrentPlayerForHud() {

@@ -1219,8 +1219,27 @@ el.style.display = "";
   }
 
   const mobileBatiBtn = el.querySelector(".sb-mobile-bati-btn");
+
   if (mobileBatiBtn) {
     mobileBatiBtn.onclick = handleBatiButtonClick;
+
+    if (isMobilePortrait) {
+      const deckArea = document.getElementById("deck-area");
+
+      if (deckArea) {
+
+        // 🔥 remove qualquer botão antigo já movido
+        const old = deckArea.querySelector(".sb-mobile-bati-btn");
+        if (old && old !== mobileBatiBtn) {
+          old.remove();
+        }
+
+        // 🔥 move o atual
+        if (mobileBatiBtn.parentElement !== deckArea) {
+          deckArea.appendChild(mobileBatiBtn);
+        }
+      }
+    }
   }
 
   // =========================================================
@@ -1327,12 +1346,12 @@ function getMobilePlayerPoints(p) {
   );
 }
 
+
 function renderMobileTableLayout() {
   const s = getPublicStateSafe();
 
   const gameScreen =
     document.getElementById("gameScreen") ||
-    document.querySelector(".game-screen") ||
     document.querySelector("#game");
 
   if (!gameScreen) return;
@@ -1352,8 +1371,8 @@ function renderMobileTableLayout() {
     root.id = "mobileTableLayout";
     root.innerHTML = `
       <div class="mobile-table-topbar">
-        <span id="mobileMesaInfo">Mesa: -</span>
-        <span id="mobileAnteInfo">Ante: -</span>
+        <span id="mobileMesaInfo"></span>
+        <span id="mobileAnteInfo"></span>
       </div>
 
       <div class="mobile-seat-layer">
@@ -1362,98 +1381,203 @@ function renderMobileTableLayout() {
         <div class="mobile-seat pos3" data-seat-pos="3"></div>
         <div class="mobile-seat pos4" data-seat-pos="4"></div>
         <div class="mobile-seat pos5" data-seat-pos="5"></div>
-        <div class="mobile-seat pos6" data-seat-pos="6"></div>
       </div>
     `;
 
     gameScreen.prepend(root);
   }
 
-  const tableId = s.tableId || s.currentTableId || s.selectedTableId;
+  // ==============================
+  // DADOS DA MESA (CORRETO)
+  // ==============================
+  const tableId = s.tableId;
   const tableData = tableId && window.state?.tables
     ? window.state.tables[tableId]
     : null;
 
-const mesa =
-  tableData?.name ||
-  s.tableName ||
-  s.table?.name ||
-  s.currentTable?.name ||
-  tableId ||
-  "-";
-
-const buyIn = Number(
+  const buyInBase = Number(
   tableData?.buyIn ??
+  s.room?.buyIn ??
   s.buyIn ??
-  s.table?.buyIn ??
-  s.currentTable?.buyIn ??
-  0
+  1000
 );
 
-const ante = Math.floor(buyIn * 0.1);
+// VALOR REAL DA MESA
+const mesaValor = Number(
+  tableData?.stake ??
+  tableData?.mesaValor ??
+  tableData?.tableValue ??
+  (buyInBase * 10)
+);
 
-const pote = Number(
-  tableData?.matchPot ??
-  s.matchPot ??
-  s.pot ??
-  s.table?.matchPot ??
-  s.currentTable?.matchPot ??
-  0
+// ANTE = 5% DO VALOR DA MESA
+const miniAnte = Number(
+  tableData?.miniAnte ??
+  tableData?.ante ??
+  Math.floor(mesaValor * 0.05)
 );
 
   const mesaEl = document.getElementById("mobileMesaInfo");
   const anteEl = document.getElementById("mobileAnteInfo");
 
-  if (mesaEl) mesaEl.textContent = `Mesa: ${mesa}`;
-  if (anteEl) anteEl.textContent = `Ante: ${ante}`;
+  if (mesaEl) mesaEl.textContent = `Mesa: ${mesaValor.toLocaleString("pt-BR")}`;
+  if (anteEl) anteEl.textContent = `Ante: ${miniAnte.toLocaleString("pt-BR")}`;
 
+  // ==============================
+  // JOGADORES (SEM VOCÊ)
+  // ==============================
   const players = getPlayersForMobileTable();
 
-  for (let i = 0; i < 6; i++) {
+  const mySeat = s.mySeat;
+
+  const others = players.filter(p => {
+    if (!p) return false;
+    return Number(p.seat) !== Number(mySeat);
+  });
+
+  for (let i = 0; i < 5; i++) {
     const el = root.querySelector(`[data-seat-pos="${i + 1}"]`);
-    const p = players[i];
+    const p = others[i];
 
     if (!el) continue;
 
     if (!p) {
       el.innerHTML = "";
-      el.classList.add("empty");
       continue;
     }
 
-    el.classList.remove("empty");
-
-    const isYou =
-      p.isYou ||
-      p.me ||
-      p.isMe ||
-      p.seat === s.mySeat ||
-      p.seatIndex === s.mySeatIndex ||
-      p.id === s.myPlayerId;
-
     const avatar =
-      p?.avatar_url ||
-      p?.avatar ||
+      p.avatarUrl ||
+      p.avatar_url ||
       "/assets/avatar-default.png";
+
+    const chips = Number(p.tableChips ?? p.stack ?? 0);
+    const pts = Number(p.totalPoints ?? 0);
 
     el.innerHTML = `
       <div class="mobile-seat-avatar">
-        <img src="${avatar}" />
+        <img src="${avatar}">
       </div>
-
-      <div class="mobile-seat-name">
-        ${getMobilePlayerName(p, i)}${isYou ? " (VOCÊ)" : ""}
+      <div>
+        <div class="mobile-seat-name">${p.name || "Jogador"}</div>
+        <div class="mobile-seat-meta">${chips} · ${pts} pts</div>
       </div>
-
-      <div class="mobile-seat-meta">💰 ${getMobilePlayerChips(p)}</div>
-      <div class="mobile-seat-meta">⭐ ${getMobilePlayerPoints(p)}</div>
     `;
-
-    el.classList.toggle("you", !!isYou);
   }
-  
+
+  renderMobileBottomHudClean(tableData, s);
 }
 
+function getMobileCurrentPlayerForHud() {
+  const pl = typeof currentPlayer === "function" ? currentPlayer() : null;
+  if (pl) return pl;
+
+  const s = getPublicStateSafe();
+  const players = getPlayersForMobileTable();
+
+  const mySeat =
+    s.mySeat ||
+    s.seat ||
+    s.playerSeat ||
+    s.currentPlayerSeat ||
+    null;
+
+  return players.find(p => {
+    if (!p) return false;
+    const pSeat = Number(p.seat || p.seatIndex || 0);
+    return (
+      p.isYou ||
+      p.me ||
+      p.isMe ||
+      p.id === s.myPlayerId ||
+      pSeat === Number(mySeat)
+    );
+  }) || null;
+}
+
+
+function renderMobileBottomHudClean(tableData, s) {
+  if (!isMobilePortraitTable()) {
+    const old = document.getElementById("mobileBottomHud");
+    if (old) old.remove();
+    return;
+  }
+
+  const deckArea = document.getElementById("deck-area");
+  if (!deckArea) return;
+
+  let hud = document.getElementById("mobileBottomHud");
+
+  if (!hud) {
+    hud = document.createElement("div");
+    hud.id = "mobileBottomHud";
+    deckArea.prepend(hud);
+  }
+
+  const mySeat = s.mySeat;
+
+  const me = Array.isArray(tableData?.seats)
+    ? tableData.seats.find(p => Number(p?.seat) === Number(mySeat))
+    : null;
+
+  if (!me) {
+    hud.innerHTML = "";
+    return;
+  }
+
+  const avatar =
+    me.avatarUrl ||
+    me.avatar_url ||
+    "/assets/avatar-default.png";
+
+  const chips = Number(me.tableChips ?? me.stack ?? 0);
+  const pts = Number(me.totalPoints ?? 0);
+
+  hud.innerHTML = `
+    <div class="mobile-bottom-avatar">
+      <img src="${avatar}">
+    </div>
+
+    <div>
+      <div class="mobile-bottom-name">${me.name || "Você"}</div>
+      <div class="mobile-bottom-meta">${chips} · ${pts} pts</div>
+    </div>
+  `;
+}
+
+
+function moveMobileSortButtonsToDeckArea() {
+  if (!isMobilePortraitTable()) return;
+
+  const deckArea = document.getElementById("deck-area");
+  if (!deckArea) return;
+
+  let holder = document.getElementById("mobileSortButtonsHud");
+
+  if (!holder) {
+    holder = document.createElement("div");
+    holder.id = "mobileSortButtonsHud";
+    deckArea.appendChild(holder);
+  }
+
+  const buttons = Array.from(document.querySelectorAll("button")).filter(btn => {
+    const txt = String(btn.textContent || "").trim().toLowerCase();
+
+    return (
+      txt === "k" ||
+      txt === "♠" ||
+      txt.includes("naipe") ||
+      txt.includes("valor") ||
+      btn.id?.toLowerCase().includes("sort") ||
+      btn.className?.toString().toLowerCase().includes("sort")
+    );
+  });
+
+  buttons.forEach(btn => {
+    if (btn.closest("#mobileSortButtonsHud")) return;
+    holder.appendChild(btn);
+  });
+}
 
 // expõe para actions.js sem import (evita ciclo)
 window.__flyCard = flyCard;

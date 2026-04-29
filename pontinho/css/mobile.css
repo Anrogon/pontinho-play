@@ -97,40 +97,6 @@
   #table .grupo-table .card:nth-child(13) { top: 144px !important; z-index: 13 !important; }
 }
 
-/* DEBUG TEMPORÁRIO - remover depois */
-@media (max-width: 520px) and (orientation: portrait) {
-  #table {
-    outline: 3px solid red !important;
-    background:
-      repeating-linear-gradient(
-        to right,
-        rgba(255,255,255,0.10) 0,
-        rgba(255,255,255,0.10) 58px,
-        transparent 58px,
-        transparent 70px
-      ),
-      repeating-linear-gradient(
-        to bottom,
-        rgba(255,255,0,0.10) 0,
-        rgba(255,255,0,0.10) 250px,
-        transparent 250px,
-        transparent 270px
-      ) !important;
-  }
-
-  #table .table-melds-top {
-    outline: 3px solid cyan !important;
-  }
-
-  #table .table-melds-bottom {
-    outline: 3px solid orange !important;
-  }
-
-  #table .grupo-table {
-    outline: 2px solid magenta !important;
-    background: rgba(255, 0, 255, 0.12) !important;
-  }
-}
 @media (max-width: 768px) and (orientation: portrait) {
   body.mobile-table-mode .scoreboard,
   body.mobile-table-mode #scoreboard,
@@ -305,4 +271,223 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+@media (max-width: 768px) and (orientation: portrait) {
+  .mobile-seat.pos6 {
+    display: none !important;
+  }
+
+  .mobile-seat {
+    width: 118px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 3px 6px !important;
+    border-radius: 999px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    text-align: left !important;
+  }
+
+  .mobile-seat-avatar {
+    width: 24px !important;
+    height: 24px !important;
+    flex: 0 0 24px !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+  }
+
+  .mobile-seat-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  .mobile-seat-text {
+    min-width: 0 !important;
+  }
+
+  .mobile-seat-name {
+    font-size: 11px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    margin: 0 0 2px 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .mobile-seat-meta {
+    font-size: 8.5px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  .mobile-seat.empty {
+    display: none !important;
+  }
+
+  .mobile-seat.pos1 {
+    left: 4px !important;
+    top: 116px !important;
+  }
+
+  .mobile-seat.pos2 {
+    left: 8px !important;
+    top: 42px !important;
+  }
+
+  .mobile-seat.pos3 {
+    left: 50% !important;
+    top: 26px !important;
+    transform: translateX(-50%) !important;
+  }
+
+  .mobile-seat.pos4 {
+    right: 8px !important;
+    top: 42px !important;
+  }
+
+  .mobile-seat.pos5 {
+    right: 4px !important;
+    top: 116px !important;
+  }
+
+  #mobileTableLayout {
+    min-height: 300px !important;
+  }
+}
+@media (max-width: 520px) and (orientation: portrait) {
+  #deck-area {
+    position: fixed !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    bottom: calc(10px + env(safe-area-inset-bottom) + 118px) !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+
+    z-index: 25000 !important;
+    pointer-events: auto !important;
+  }
+
+  #mobileBottomHud {
+    width: 104px !important;
+    height: 34px !important;
+    padding: 3px 6px !important;
+    border-radius: 999px !important;
+
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+
+    background: rgba(0, 95, 145, 0.8) !important;
+    border: 1px solid rgba(120, 210, 255, 0.8) !important;
+    color: #fff !important;
+    flex: 0 0 auto !important;
+  }
+
+  .mobile-bottom-avatar {
+    width: 24px !important;
+    height: 24px !important;
+    flex: 0 0 24px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+  }
+
+  .mobile-bottom-avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  .mobile-bottom-name {
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  .mobile-bottom-meta {
+    font-size: 8px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+
+  #bottomArea .sort-btn {
+  position: fixed !important;
+  bottom: calc(10px + env(safe-area-inset-bottom) + 112px) !important;
+
+  width: 30px !important;
+  height: 30px !important;
+  padding: 0 !important;
+
+  border: none !important;
+  background: transparent !important;
+  border-radius: 50% !important;
+
+  z-index: 31000 !important;
+  pointer-events: auto !important;
+}
+
+#bottomArea .sort-btn:nth-of-type(1) {
+  left: 25px !important;
+}
+
+#bottomArea .sort-btn:nth-of-type(2) {
+  left: 70px !important;
+}
+
+#bottomArea .sort-btn img {
+  width: 30px !important;
+  height: 30px !important;
+  object-fit: contain !important;
+  display: block !important;
+}
+}
+@media (max-width: 520px) and (orientation: portrait) {
+
+  .sb-mobile-bati-btn {
+    position: fixed !important;
+
+    bottom: calc(10px + env(safe-area-inset-bottom) + 124px) !important;
+    right: 16px !important;
+
+    z-index: 31000 !important;
+
+    padding: 6px 14px !important;
+    border-radius: 999px !important;
+
+    font-size: 13px !important;
+    font-weight: 900 !important;
+
+    pointer-events: auto !important;
+  }
+
+}
+
+@media (max-width: 520px) and (orientation: portrait) {
+
+  #deck-area .sb-mobile-bati-btn,
+  .sb-mobile-bati-btn {
+    background: linear-gradient(180deg, #1a73e8, #0d47a1) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.22) !important;
+    border-radius: 999px !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+  }
+
+  #deck-area .sb-mobile-bati-btn.is-active,
+  .sb-mobile-bati-btn.is-active {
+    background: linear-gradient(180deg, #2ecc71, #27ae60) !important;
+  }
+
+  #deck-area .sb-mobile-bati-btn.is-disabled-ui,
+  .sb-mobile-bati-btn.is-disabled-ui {
+    background: linear-gradient(180deg, #e53935, #b71c1c) !important;
+  }
 }

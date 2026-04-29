@@ -145,6 +145,8 @@ if (msg.type === "joined") {
 // 3) state_public
 if (msg.type === "state_public") {
   const pub = msg.payload || {};
+  state.tableId = pub.tableId || state.tableId;
+  state.matchPot = Number(pub.matchPot) || state.matchPot || 0;
 
   // 🔥 ATUALIZA LOBBY (tables) COM ESTADO DO SERVIDOR
 if (pub.tableId) {

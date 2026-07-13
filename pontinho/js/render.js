@@ -1450,6 +1450,7 @@ function renderMobileTableLayout() {
         <div class="mobile-seat pos3" data-seat-pos="3"></div>
         <div class="mobile-seat pos4" data-seat-pos="4"></div>
         <div class="mobile-seat pos5" data-seat-pos="5"></div>
+        <div class="mobile-seat pos6" data-seat-pos="6"></div>
       </div>
     `;
 
@@ -1501,7 +1502,7 @@ const miniAnte = Number(
   const timerInfo = getMobileTurnTimerInfo(s);
   ensureMobileTurnBarTicker();
 
-    for (let seat = 1; seat <= 5; seat++) {
+    for (let seat = 1; seat <= 6; seat++) {
     const el = root.querySelector(`[data-seat-pos="${seat}"]`);
     const p = players.find(player => Number(player?.seat) === seat);
     

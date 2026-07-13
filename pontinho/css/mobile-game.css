@@ -140,7 +140,7 @@
   #hand {
     position: fixed !important;
 
-    left: 8px !important;
+    left: 30px !important;
     right: 8px !important;
     bottom: calc(10px + env(safe-area-inset-bottom)) !important;
 
@@ -152,7 +152,7 @@
     justify-content: center !important;
     gap: 0 !important;
 
-    padding: 10px 6px !important;
+    padding: 10px 2px !important;
     margin-left: 0 !important;
 
     border-radius: 3px !important;
@@ -177,10 +177,18 @@
     z-index: 1 !important;
 
     flex: 0 0 auto !important;
-    margin-left: -45px !important;
+    margin-left: -48px !important;
 
     border-radius: 5px !important;
+    border: 1px solid rgba(255,255,255,.92) !important;
 
+    box-shadow:
+      -2px 0 3px rgba(0,0,0,.28),
+      0 2px 5px rgba(0,0,0,.30) !important;
+
+    background-size:100% 100% !important;
+    background-repeat:no-repeat !important;
+    background-position:center !important;
     pointer-events: auto !important;
   }
 
@@ -256,20 +264,21 @@
 
 @media (max-width: 520px) and (orientation: portrait) {
 
-  body.mobile-table-mode #mobileBottomHud {
-    position: fixed !important;
+  body.mobile-table-mode #mobileBottomHud{
+  position:fixed !important;
 
-    left: 14px !important;
-    right: auto !important;
-    top: auto !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 155px) !important;
-    transform: none !important;
+  right:15px !important;
+  left:auto !important;
 
-    width: 100px !important;
-    height: 40px !important;
+  bottom:calc(
+    10px + env(safe-area-inset-bottom) + 122px
+  ) !important;
 
-    z-index: 36000 !important;
-  }
+  top:auto !important;
+  transform:none !important;
+
+  z-index:38000 !important;
+}
 
   body.mobile-table-mode #mobileBottomHud.is-current-turn {
     border: 1px solid #ffd700 !important;
@@ -300,37 +309,14 @@
     z-index: 37000 !important;
   }
 
-  body.mobile-table-mode #bottomArea .sort-btn {
-    position: fixed !important;
-
-    top: auto !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 115px) !important;
-    transform: none !important;
-
-    width: 30px !important;
-    height: 30px !important;
-
-    z-index: 37000 !important;
-  }
-
-  body.mobile-table-mode #bottomArea .sort-btn:nth-of-type(1) {
-    left: 38px !important;
-    right: auto !important;
-  }
-
-  body.mobile-table-mode #bottomArea .sort-btn:nth-of-type(2) {
-    left: 76px !important;
-    right: auto !important;
-  }
-
   body.mobile-table-mode #mobileBatiBtnHud,
   body.mobile-table-mode .sb-mobile-bati-btn {
     position: fixed !important;
 
     left: auto !important;
-    right: 25px !important;
+    right: 35px !important;
     top: auto !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 145px) !important;
+    bottom: calc(10px + env(safe-area-inset-bottom) + 165px) !important;
     transform: none !important;
 
     min-width: 70px !important;
@@ -434,4 +420,92 @@
 
   vertical-align: middle !important;
 }
+}
+
+/* =========================================================
+   MOBILE — PAINEL DE ORDENAÇÃO DO PONTINHO PLAY
+========================================================= */
+
+@media (max-width:700px){
+
+  body.mobile-table-mode #sortPanel{
+    position:fixed !important;
+
+    left:7px !important;
+    bottom:calc(23px + env(safe-area-inset-bottom)) !important;
+
+    display:flex !important;
+    flex-direction:column !important;
+    align-items:center !important;
+    gap:4px !important;
+
+    width:auto !important;
+    height:auto !important;
+
+    margin:0 !important;
+    padding:5px 5px 6px !important;
+
+    border-radius:9px !important;
+
+    background:rgba(0,0,0,.52) !important;
+    border:1px solid rgba(255,215,120,.34) !important;
+
+    transform:none !important;
+
+    pointer-events:auto !important;
+    z-index:99999 !important;
+  }
+
+  body.mobile-table-mode #sortPanel .sort-title{
+    position:static !important;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    color:#ffe08a;
+
+    font-size:8px !important;
+    font-weight:800;
+    line-height:1;
+
+    pointer-events:none !important;
+  }
+
+  body.mobile-table-mode #sortPanel .sort-btn{
+    position:static !important;
+
+    left:auto !important;
+    right:auto !important;
+    top:auto !important;
+    bottom:auto !important;
+
+    width:34px !important;
+    height:34px !important;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    border-width:1px !important;
+    border-radius:7px !important;
+
+    pointer-events:auto !important;
+    touch-action:manipulation !important;
+
+    transform:none !important;
+  }
+
+  body.mobile-table-mode #sortPanel .sort-btn:hover{
+    transform:none !important;
+  }
+
+  body.mobile-table-mode #sortPanel .sort-btn:active{
+    transform:scale(.93) !important;
+  }
+
+  body.mobile-table-mode #sortPanel .sort-btn img{
+    width:26px !important;
+    height:26px !important;
+
+    pointer-events:none !important;
+  }
 }

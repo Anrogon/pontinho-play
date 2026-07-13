@@ -197,23 +197,31 @@
       <div id="hand"></div>
       <div id="scoreboard"></div>
 
-      <button
-        type="button"
-        class="sort-btn"
-        title="Ordenar por valor"
-        onclick="window.setHandSort('value')"
-      >
-        <img src="./assets/image/sort-value.png" alt="Ordenar por Valor" />
-      </button>
+      <div id="sortPanel">
 
-      <button
-        type="button"
-        class="sort-btn"
-        title="Ordenar por naipe"
-        onclick="window.setHandSort('suit')"
-      >
-        <img src="./assets/image/sort-suit.png" alt="Ordenar por Naipe" />
-      </button>
+        <div class="sort-title">
+          Ordenar
+        </div>
+
+        <button
+          type="button"
+          class="sort-btn"
+          title="Ordenar por valor"
+          onclick="window.setHandSort('value')"
+        >
+          <img src="./assets/image/sort-value.png" alt="">
+        </button>
+
+        <button
+          type="button"
+          class="sort-btn"
+          title="Ordenar por naipe"
+          onclick="window.setHandSort('suit')"
+        >
+          <img src="./assets/image/sort-suit.png" alt="">
+        </button>
+
+      </div>
     </div>
   </div>
 

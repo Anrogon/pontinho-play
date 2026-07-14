@@ -4774,11 +4774,44 @@ if (msg.type === "joinTableGroup") {
 
   const s = Number(seat);
 
-  if (!(s >= 1 && s <= 6)) {
-    return send(ws, "error", { message: "Assento inválido." });
-  }
+    if (!(s >= 1 && s <= 6)) {
+      return send(ws, "error", {
+        message: "Assento inválido."
+      });
+    }
 
-  const existing = room.playersBySeat[s - 1];
+    // =====================================================
+    // IMPEDE A MESMA CONTA EM DUAS CADEIRAS DA MESMA MESA
+    // =====================================================
+
+    if (c.userId != null) {
+      const sameAccountSeatIndex = room.playersBySeat.findIndex(player =>
+        player &&
+        player.userId != null &&
+        String(player.userId) === String(c.userId)
+      );
+
+      if (sameAccountSeatIndex !== -1) {
+        const sameAccountPlayer =
+          room.playersBySeat[sameAccountSeatIndex];
+
+        const sameAccountSeat = sameAccountSeatIndex + 1;
+
+        const isLegitimateReconnect =
+          Boolean(reconnectToken) &&
+          sameAccountPlayer.reconnectToken === reconnectToken &&
+          sameAccountSeat === s;
+
+        if (!isLegitimateReconnect) {
+          return send(ws, "error", {
+            message:
+              "Você já está participando desta mesa em outra aba ou janela."
+          });
+        }
+      }
+    }
+
+    const existing = room.playersBySeat[s - 1];
 
   // ===== RECONEXÃO / ASSENTO JÁ OCUPADO =====
   if (existing) {

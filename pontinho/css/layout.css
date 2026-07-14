@@ -395,8 +395,8 @@ body{
 /* assentos */
 .seats-overlay .seat{
   position: absolute;
-  width: 45px;
-  height: 45px;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
   display: grid;
   place-items: center;
@@ -439,11 +439,6 @@ body{
   border: 2px solid rgba(0,255,120,0.6);
   box-shadow: 0 0 6px rgba(0,255,120,0.4);
 }
-
-
-
-
-
 
 /*Botão Assistir*/
 .table-actions{

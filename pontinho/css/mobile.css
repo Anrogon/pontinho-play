@@ -366,6 +366,15 @@
     box-shadow: 0 3px 10px rgba(0,0,0,0.25) !important;
   }
 
+  /* Esconde apenas a aparência dos lugares vazios */
+  body.mobile-table-mode .mobile-seat:empty{
+    background:transparent !important;
+    border-color:transparent !important;
+    box-shadow:none !important;
+
+    pointer-events:none !important;
+  }
+
   .mobile-seat.is-current-turn {
     border: 2px solid #ffd700 !important;
 

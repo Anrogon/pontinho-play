@@ -284,6 +284,8 @@ if (pub.tableId) {
   // turn/fase
   state.faseTurno = pub.phase || "WAITING";
   state.currentSeat = pub.currentSeat ?? null;
+  state.dealerSeat =
+  Number(pub.dealerSeat) || 0;
   state.variant = String(pub.variant || "CLASSIC").toUpperCase();
   state.turnEndsAt = Number(pub.turnEndsAt) || 0;
   state.buyEndsAt = Number(pub.buyEndsAt) || 0;

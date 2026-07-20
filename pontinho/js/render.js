@@ -1538,6 +1538,7 @@ const miniAnte = Number(
 
     const handCount = Number(p.handCount ?? 0);
     const isCurrentTurn = Number(s.currentSeat) === Number(p.seat);
+    const isDealer = Number(s.dealerSeat) === Number(p.seat);
 
       el.innerHTML = `
         ${isCurrentTurn && timerInfo.show ? `
@@ -1555,6 +1556,15 @@ const miniAnte = Number(
 
         <div class="mobile-seat-avatar">
           <img src="${avatar}">
+
+          ${isDealer ? `
+            <span
+              class="dealer-chip dealer-chip-mobile"
+              aria-label="Carteador"
+            >
+              D
+            </span>
+          ` : ""}
         </div>
 
         <div>
@@ -1642,6 +1652,7 @@ function renderDesktopTableLayout() {
     const pts = Number(p.totalPoints ?? 0);
 
     const isMe = Number(p.seat) === Number(s.mySeat);
+    const isDealer = Number(s.dealerSeat) === Number(p.seat);
     const handCount = Number(
     p.handCount ??
     p.cardsCount ??
@@ -1653,6 +1664,16 @@ function renderDesktopTableLayout() {
     el.innerHTML = `
       <div class="desktop-seat-avatar">
         <img src="${avatar}">
+
+        ${isDealer ? `
+          <span
+            class="dealer-chip dealer-chip-desktop"
+            title="Carteador"
+            aria-label="Carteador"
+          >
+            D
+          </span>
+        ` : ""}
       </div>
 
       <div class="desktop-seat-info">

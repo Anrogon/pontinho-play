@@ -384,6 +384,8 @@
   }
 
   .mobile-seat-avatar {
+    position: relative !important;
+    overflow: visible !important;
     width: 24px !important;
     height: 24px !important;
 
@@ -392,7 +394,6 @@
     margin: 0 !important;
 
     border-radius: 50% !important;
-    overflow: hidden !important;
 
     border: 2px solid rgba(255,255,255,0.6) !important;
   }
@@ -401,9 +402,20 @@
     width: 100% !important;
     height: 100% !important;
 
-    object-fit: cover !important;
-
     display: block !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+  }
+
+  .dealer-chip-mobile {
+    width: 16px;
+    height: 16px;
+
+    right: -7px;
+    bottom: -5px;
+
+    font-size: 9px;
+    z-index: 20;
   }
 
   .mobile-seat-text {

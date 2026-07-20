@@ -456,12 +456,13 @@ body{
 
 
 /* ✅ posições (casam com positions = ["pos1","pos2"...] do app.js)*/
-.seat.pos1 { left: 3%;  top: 52%; transform: translate(-50%, -50%); }  /* esquerda */
-.seat.pos2 { left: 20%; top: 8%; transform: translate(-50%, -50%); }  /* topo-esq */
-.seat.pos3 { left: 50%; top: 7%;  transform: translate(-50%, -50%); }  /* topo */
-.seat.pos4 { left: 80%; top: 8%; transform: translate(-50%, -50%); }  /* topo-dir */
-.seat.pos5 { left: 98%; top: 52%; transform: translate(-50%, -50%); }  /* direita */
-.seat.pos6 { left: 50%; top: 92%; transform: translate(-50%, -50%); }  /* baixo */
+.seat.pos1 { left: 50%; top: 92%; transform: translate(-50%, -50%); }  /* baixo */
+.seat.pos2 { left: 3%;  top: 52%; transform: translate(-50%, -50%); }  /* esquerda */
+.seat.pos3 { left: 20%; top: 8%; transform: translate(-50%, -50%); }  /* topo-esq */
+.seat.pos4 { left: 50%; top: 7%;  transform: translate(-50%, -50%); }  /* topo */
+.seat.pos5 { left: 80%; top: 8%; transform: translate(-50%, -50%); }  /* topo-dir */
+.seat.pos6 { left: 98%; top: 52%; transform: translate(-50%, -50%); }  /* direita */
+
 
 .table-title{ font-weight: 900; font-size: 16px; text-align: center; }
 .table-value{ font-size: 14px; opacity: 0.95; text-align: center; }

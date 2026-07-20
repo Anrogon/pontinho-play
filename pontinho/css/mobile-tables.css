@@ -174,37 +174,37 @@
   }
 
   #tablesGrid > .table-card .seat.pos1 {
+    left: 45% !important;
+    top: 80% !important;
+    transform: translateX(-50%) !important;
+  }
+
+  #tablesGrid > .table-card .seat.pos2 {
     left: -5% !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
   }
 
-  #tablesGrid > .table-card .seat.pos2 {
+  #tablesGrid > .table-card .seat.pos3 {
     left: 15% !important;
     top: 6px !important;
   }
 
-  #tablesGrid > .table-card .seat.pos3 {
+  #tablesGrid > .table-card .seat.pos4 {
     left: 45% !important;
     top: -6px !important;
     transform: translateX(-50%) !important;
   }
 
-  #tablesGrid > .table-card .seat.pos4 {
+  #tablesGrid > .table-card .seat.pos5 {
     left: 75% !important;
     top: 6px !important;
   }
 
-  #tablesGrid > .table-card .seat.pos5 {
+  #tablesGrid > .table-card .seat.pos6 {
     left: 90% !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
-  }
-
-  #tablesGrid > .table-card .seat.pos6 {
-    left: 45% !important;
-    top: 80% !important;
-    transform: translateX(-50%) !important;
   }
 
   #tablesGrid > .table-card .watch-text {

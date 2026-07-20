@@ -2278,6 +2278,7 @@ function sendState(roomId) {
     started: !!room.started,
     phase: room.phase,
     currentSeat: room.currentSeat,
+    dealerSeat: Number(room.dealerSeat) || 0,
     buyIn: room.buyIn,
     ante: Math.ceil((room.buyIn || 0) / 2),
     variant: getRoomVariant(room),
@@ -2314,8 +2315,9 @@ function sendState(roomId) {
     startAt: room.startAt || 0,
     minPlayersToStart: room.minPlayersToStart || 2,
 
-    seats: room.playersBySeat.map(p =>
+    seats: room.playersBySeat.map((p, idx) =>
       p ? {
+        seat: idx + 1,
         name: p.name,
         avatarUrl: p.avatarUrl || "/assets/avatars/avatar-01.png",
         chips: p.chips,
@@ -2961,17 +2963,6 @@ const initialTableChips = Math.max(0, stake - getBuyIn(room));
   room.deck = [];
   room.discard = [];
   room.tableMelds = [];
-/*
-  // dealer rotativo: quem compra primeiro é o próximo jogador ativo depois do dealer
-  room.dealerSeat = getNextDealerSeat(room);*/
-
-
-   for (let s = 1; s <= 6; s++) {
-    if (room.playersBySeat[s - 1]) {
-      room.currentSeat = s;
-      break;
-    }
-  }
 
   advanceDealerAndCurrentSeat(room);
 
@@ -3130,7 +3121,11 @@ function advanceDealerAndCurrentSeat(room) {
   room.dealerSeat = getNextDealerSeat(room);
 
   if (room.dealerSeat) {
-    room.currentSeat = room.dealerSeat;
+    // O primeiro comprador é o próximo jogador ativo após o dealer.
+    room.currentSeat = nextOccupiedSeat(
+      room,
+      room.dealerSeat
+    );
   } else {
     room.currentSeat = null;
   }

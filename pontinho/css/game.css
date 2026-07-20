@@ -190,20 +190,66 @@
   }
 
   .desktop-seat-avatar {
+     position: relative;
+    overflow: visible;
     width: 34px;
     height: 34px;
     flex: 0 0 34px;
     border-radius: 50%;
-    overflow: hidden;
     border: 2px solid rgba(255,255,255,0.6);
   }
 
   .desktop-seat-avatar img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
     display: block;
+    border-radius: 50%;
+    object-fit: cover;
   }
+
+  .dealer-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    position: absolute;
+    border-radius: 50%;
+
+    background:
+      radial-gradient(
+        circle at 35% 30%,
+        #8fc7ff 0%,
+        #2d7df7 48%,
+        #0d47a1 100%
+      );
+
+    border: 2px solid rgba(255, 255, 255, .88);
+
+    color: #fff;
+    font-weight: 900;
+    line-height: 1;
+
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, .7);
+
+    box-shadow:
+      0 2px 5px rgba(0, 0, 0, .55),
+      inset 0 0 0 2px rgba(255, 255, 255, .22);
+
+    pointer-events: none;
+    user-select: none;
+  }
+
+.dealer-chip-desktop {
+  width: 24px;
+  height: 24px;
+
+  right: -10px;
+  bottom: -6px;
+
+  font-size: 13px;
+  z-index: 20;
+}
 
   .desktop-seat-info {
     min-width: 0;
@@ -233,6 +279,8 @@
       0 0 0 2px rgba(255, 215, 0, 0.30),
       0 0 18px rgba(255, 215, 0, 0.85);
   }
+
+  
 
 .desktop-seat.pos1  { left: 0%; top: 80%; transform: translate(-50%, -50%); }
 

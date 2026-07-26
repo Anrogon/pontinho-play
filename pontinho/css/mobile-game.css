@@ -15,20 +15,24 @@
     display: none !important;
   }
 
+  /* Sala de Jogos Mobile */
+  /* Sala de Jogos Mobile */
   #game {
-    width: 100vw !important;
-    height: 100vh !important;
-    min-height: 100vh !important;
-    max-width: none !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      min-height: 100vh !important;
+      max-width: none !important;
 
-    margin: 0 !important;
-    padding: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
 
-    background-image: url("/assets/image/bg-g.jpg");
-    background-size: cover !important;
-    background-position: center !important;
+      background:
+          #123f73
+          url("/assets/image/bg-az.png")
+          center center / cover
+          no-repeat !important;
 
-    position: relative;
+      position: relative;
   }
 
   #tableArea {

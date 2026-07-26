@@ -22,8 +22,8 @@
   }
 
   #homeScreen .home-logo img {
-    width: 72%;
-    max-width: 260px;
+    width: 68%;
+    max-width: 245px;
     display: block;
     margin: 0 auto;
   }
@@ -34,13 +34,14 @@
 
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 7px;
     align-items: center;
   }
 
   #homeScreen .home-menu button {
     width: 100%;
     max-width: 320px;
+    min-height: 52px;
 
     display: flex;
     align-items: center;
@@ -48,15 +49,66 @@
     gap: 12px;
 
     padding: 12px 14px;
+
+    border: 1px solid rgba(255,255,255,.16);
     border-radius: 14px;
+
+    background:
+      linear-gradient(
+        180deg,
+        #4383f5 0%,
+        #2862d5 100%
+      );
+
+    color: #fff;
 
     font-size: 16px;
     font-weight: 900;
 
     white-space: nowrap;
     box-sizing: border-box;
+    cursor: pointer;
 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.16),
+      0 5px 12px rgba(13,55,130,.24);
+
+    transition:
+      transform .15s ease,
+      filter .15s ease,
+      box-shadow .15s ease;
+  }
+
+  #homeScreen .home-menu button:active {
+    transform: scale(.985);
+    filter: brightness(.96);
+  }
+
+  #homeScreen #btnClassic {
+    background:
+      linear-gradient(
+        180deg,
+        #2178de 0%,
+        #1550ad 100%
+      );
+  }
+
+  #homeScreen #btnCrazy {
+    background:
+      linear-gradient(
+        180deg,
+        #3f71e8 0%,
+        #204fc5 100%
+      );
+  }
+
+  #homeScreen #btnLogout {
+    background:
+      linear-gradient(
+        180deg,
+        #356fcf 0%,
+        #2455aa 100%
+      );
   }
 
   #homeScreen .home-menu button[style*="display:none"],
@@ -82,9 +134,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 
-    margin-top: 8px;
+    margin-top: 4px;
   }
 
   #homeScreen .home-usercard,

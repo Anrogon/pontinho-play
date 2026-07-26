@@ -1286,8 +1286,6 @@ async function validateCurrentSession() {
 
   connectWS();
   renderTablesScreen();
-  renderHomeLiveTables();
-  bindHomeLiveTables();
   showScreen("home");
 
   setTimeout(() => {
@@ -1612,105 +1610,6 @@ function bindHomeButtons() {
   }
 }
 
-
-function renderHomeLiveTables() {
-  const el = document.getElementById("homeLiveTables");
-  if (!el) return;
-
-  const tables = Object.values(state.tables || {}).slice(0, 3);
-  // Mudar para mesas reais
-
-//delete esse bloco depois
-  /*let tables = Object.values(state.tables || {}).slice(0, 3);
-
-  if (!tables.length) {
-    tables = [
-      { name: "Mesa 1", seatedCount: 2, maxSeats: 6, stake: 1000, variant: "CLASSIC" },
-      { name: "Mesa 2", seatedCount: 3, maxSeats: 6, stake: 5000, variant: "CLASSIC" },
-      { name: "Mesa 3", seatedCount: 1, maxSeats: 6, stake: 10000, variant: "CRAZY" }
-    ];
-  }*/
-  //até aqui
-  
-
-  if (!tables.length) {
-    el.innerHTML = `
-      <div class="home-live-empty">
-        Nenhuma mesa aberta no momento.
-      </div>
-    `;
-    return;
-  }
-
-  el.innerHTML = tables.map((t, index) => {
-    const seated = Number(t.seatedCount ?? t.playersCount ?? 0);
-    const max = Number(t.maxSeats ?? 6);
-    const stake = Number(
-      t.stake ??
-      t.mesaValor ??
-      t.tableValue ??
-      ((Number(t.buyIn) || 100) * 10)
-    );
-
-    const variant = String(t.variant || "CLASSIC").toUpperCase();
-    const tableName = t.name || `Mesa ${index + 1}`;
-
-    const seatsHtml = Array.from({ length: 6 }).map((_, i) => {
-      const seatNum = i + 1;
-      const occupied = seatNum <= seated;
-
-      return `
-        <div class="home-live-seat home-live-seat-${seatNum} ${occupied ? "occupied" : ""}">
-          ${occupied ? `<img src="/assets/avatars/avatar-01.png" alt="Jogador">` : ""}
-        </div>
-      `;
-    }).join("");
-
-    return `
-      <div class="home-live-card-visual" data-variant="${variant}">
-        <div class="home-live-count">👥 ${seated}/${max}</div>
-
-        <div class="home-live-table-visual">
-          <div class="home-live-table-felt"></div>
-          ${seatsHtml}
-        </div>
-
-        <div class="home-live-name">${tableName}</div>
-        <div class="home-live-stake">
-          Aposta: <strong>${stake.toLocaleString("pt-BR")}</strong>
-        </div>
-
-        <button type="button" class="home-live-watch">Assistir</button>
-      </div>
-    `;
-  }).join("");
-}
-
-function bindHomeLiveTables() {
-  const el = document.getElementById("homeLiveTables");
-  if (!el) return;
-
-  el.onclick = (ev) => {
-  const btn = ev.target.closest(".home-live-watch");
-  if (!btn) return;
-
-  const card = btn.closest(".home-live-card-visual");
-  const variant = card?.dataset?.variant || "CLASSIC";
-
-  // opcional: exigir login até para assistir
-  const user = JSON.parse(localStorage.getItem("pontinhoAuthUser") || "null");
-
-  if (!user) {
-    alert("Faça login para assistir às mesas.");
-    window.location.href = "./login.html";
-    return;
-  }
-
-  state.selectedVariant = variant;
-  renderTablesScreen();
-  showScreen("tables");
-  };
-}
 
 async function refreshHomeUser() {
   const homeUserName = document.getElementById("homeUserName");
@@ -2103,7 +2002,7 @@ export function renderTablesScreen() {
       <div class="table-title">${tableTitle}</div>
 
       <div class="table-visual">
-        <img src="./assets/image/mesa-pts.png" alt="${t.name}" onerror="this.style.display='none'">
+        <img src="./assets/image/table-pon.png" alt="${t.name}" onerror="this.style.display='none'">
 
         <div class="table-center-info">
           <div class="table-players-count">${seatedCount}/${maxSeats}</div>

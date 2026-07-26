@@ -12,8 +12,7 @@
 
 body{
   font-family: Arial, sans-serif;
-  background: #0b3d2e;
-  background-image: url("/assets/image/bg-g.png"); /* fundo verde da página de mesas */
+  background-image: url("/assets/image/bg-r.png"); /* fundo verde da página de mesas */
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
@@ -30,9 +29,8 @@ body{
 ============================= */
 #game{
   min-height: 100vh; 
-  background: #0b3d2e;
-  background-image: url("/assets/image/table-pon.png");/* fundo roxo/mesa gigante */
-  background-size: 95% 600px;
+  background-image: url("/assets/image/mesa-az.png");/* fundo roxo/mesa gigante */
+  background-size: 93% 600px;
   background-position: center top;
   background-repeat: no-repeat;  
   display: flex;/* layout */
@@ -341,10 +339,10 @@ body{
   overflow-y: auto !important;
   box-sizing: border-box !important;
 
-  /* 🎰 FUNDO PROFISSIONAL */
+  /* Tela de Mesa Classic*/
   background:
-    linear-gradient(rgba(0, 80, 0, 0.50), rgba(0, 60, 0, 0.55)),
-    url('/assets/image/bg-g.png') no-repeat center center;
+    
+    url('/assets/image/bg-blu.png') no-repeat center center;
 
   background-size: cover;
   background-attachment: fixed;
@@ -962,10 +960,14 @@ body{
 }
 
 .home-logo img{
-  max-width: 280px;
-  width: 80%;
-  height: auto;
-  margin-top: 20px;
+    max-width: 400px;
+    width: 100%;
+    height: auto;
+
+    display:block;
+    margin:0 auto;
+
+    transition:.25s;
 }
 
 .home-menu{
@@ -982,9 +984,10 @@ body{
   font-weight: 900;
   border-radius: 14px;
   border: none;
-  background: #1fb455;
+  background: linear-gradient( 180deg,#4d88ff, #2f5fd3);
   color: #fff;
   cursor: pointer;
+  transition:.20s ease;
 }
 
 .home-menu button.primary{
@@ -1048,15 +1051,22 @@ body{
   #homeScreen .home-shell{
     width: min(95%, 96vw);
     display: grid;
-    grid-template-columns: 1.2fr 0.7fr 0.6fr; /* logo | botões | status */
-    gap: 18px;
+    grid-template-columns: 1.35fr 0.7fr 0.6fr;
+    gap: 22px;
     align-items: center;
-    padding: 18px;
-    border-radius: 18px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 18px 50px rgba(0,0,0,0.10);
-  }
+    padding: 24px;
+
+    border-radius: 22px;
+
+    background: rgba(245,250,255,.96);
+
+    border: 1px solid rgba(255,255,255,.55);
+
+    box-shadow:
+        0 25px 70px rgba(0,0,0,.18);
+
+    backdrop-filter: blur(8px);
+}
 
   /* menu fica “coluna” e centralizado */
   #homeScreen .home-menu{
@@ -1066,93 +1076,207 @@ body{
     gap: 12px;
     align-items: stretch;
   }
+#homeScreen .home-menu button{
+  padding: 14px 14px;
+  border-radius: 16px;
+  border: none;
 
-  #homeScreen .home-menu button{
-    padding: 14px 14px;
-    border-radius: 16px;
-    border: none;
-    background: #21b455;
-    color: #fff;
-    font-size: 18px;
-    font-weight: 900;
-    cursor: pointer;
-  }
+  background:
+    linear-gradient(
+      180deg,
+      #4d88ff,
+      #2f5fd3
+    );
 
-  #homeScreen #btnOnline{
-    padding: 16px 14px;
-    font-size: 20px;
-  }
+  color: #fff;
+
+  font-size: 18px;
+  font-weight: 900;
+
+  cursor: pointer;
+
+  transition:
+    transform .20s ease,
+    filter .20s ease,
+    box-shadow .20s ease;
+}
 
   /* status à direita (compacto) */
-  #homeScreen .home-status{
-    border-radius: 16px;
-    padding: 14px;
-    background: rgba(0,0,0,0.04);
-    border: 1px solid rgba(0,0,0,0.06);
-    background: linear-gradient(180deg, rgba(10,70,120,1) 0%, rgba(6,52,92,1) 100%);
-  }
+  #homeScreen .home-status {
+  border-radius: 16px;
+  padding: 16px;
 
-  #homeScreen .panel-title{
-    font-weight: 900;
-    font-size: 16px;
-    margin-bottom: 10px;
-    color: #fff;
+  background:
+    linear-gradient(
+      180deg,
+      #0c5791 0%,
+      #06345c 100%
+    );
 
-  }
-/* Painel Status*/
-  #homeScreen .panel-row{
-    display:flex;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 10px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.70);
-    border: 1px solid rgba(0,0,0,0.05);
-    margin-bottom: 8px;
-    color: black;
-    
-  }
+  border: 1px solid rgba(255,255,255,0.15);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 10px 24px rgba(0,32,70,0.22);
+}
+
+#homeScreen .panel-title {
+  margin-bottom: 12px;
+
+  color: #fff;
+
+  font-size: 17px;
+  font-weight: 900;
+  text-align: center;
+
+  text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+}
+
+#homeScreen .panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  min-height: 42px;
+  margin-bottom: 8px;
+  padding: 9px 12px;
+
+  border-radius: 11px;
+
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.12);
+
+  color: rgba(255,255,255,0.92);
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#homeScreen .panel-row strong {
+  min-width: 34px;
+  padding: 4px 9px;
+
+  border-radius: 999px;
+
+  background: rgba(255,255,255,0.16);
+
+  color: #fff;
+
+  font-size: 15px;
+  font-weight: 900;
+  text-align: center;
+}
 
   /* banner */
   .home-banner {
+  position: relative;
+  overflow: hidden;
+
   width: min(95%, 96vw);
-  height: 120px;
+  min-height: 118px;
   margin: 14px auto;
-  padding: 18px 28px;
-  border-radius: 16px;
+  padding: 20px 30px;
 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 24px;
 
-  background: linear-gradient(135deg, #07351f, #041f14);
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(14, 103, 181, .96) 0%,
+      rgba(7, 68, 128, .98) 55%,
+      rgba(3, 42, 82, .98) 100%
+    );
+
+  border: 1px solid rgba(255, 255, 255, .16);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    0 14px 34px rgba(0, 28, 68, .28);
 
   color: #fff;
 }
 
+.home-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background:
+    radial-gradient(
+      circle at 18% 50%,
+      rgba(91, 174, 255, .22),
+      transparent 38%
+    );
+
+  pointer-events: none;
+}
+
+.home-banner::after {
+  content: "";
+  position: absolute;
+  top: -70%;
+  left: -20%;
+
+  width: 44%;
+  height: 240%;
+
+  background:
+    linear-gradient(
+      115deg,
+      transparent,
+      rgba(255, 255, 255, .10),
+      transparent
+    );
+
+  transform: rotate(8deg);
+  pointer-events: none;
+}
+
 .home-banner-text {
+  position: relative;
+  z-index: 1;
+
   flex: 1;
   text-align: center;
 }
 
 .home-banner-title {
-  font-size: 20px;
-  font-weight: 900;
   margin-bottom: 8px;
+
+  color: #fff;
+
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: .2px;
+
+  text-shadow: 0 2px 6px rgba(0, 0, 0, .35);
 }
 
 .home-banner-sub {
+  color: rgba(255, 255, 255, .90);
+
   font-size: 15px;
   font-weight: 700;
+  letter-spacing: .1px;
 }
 
 .home-banner-cards {
+  position: relative;
+  z-index: 1;
+
   width: 150px;
   max-width: 28%;
-  filter: drop-shadow(0 8px 14px rgba(0,0,0,0.45));
+
+  transform: rotate(2deg);
+
+  filter:
+    drop-shadow(0 10px 16px rgba(0, 0, 0, .42));
 }
 
   /* últimas mesas: 3 em uma linha */
@@ -1225,7 +1349,7 @@ body{
 }
 
 /* =============================
-   HOME DESKTOP: centralizar + background nas laterais
+   HOME DESKTOP CHEIA (portal) - FUNDO
 ============================= */
 @media (min-width: 900px){
 html, body {
@@ -1233,8 +1357,7 @@ html, body {
   margin: 0;
 
   background:
-    linear-gradient(rgba(0, 70, 25, 0.35), rgba(0, 45, 20, 0.55)),
-    url("/assets/image/bg-g.png") center / cover fixed no-repeat;
+    url("/assets/image/bg-b.png") center / cover fixed no-repeat;
 
   background-color: #063f1f;
 }
@@ -1600,10 +1723,10 @@ html, body {
 }
 /* Termina aqui*/
 
-/* Mesa Azul*/
+/* Tela de Mesa Crazy*/
 #tablesScreen.tables-crazy-mode{
   background: linear-gradient(rgba(10, 35, 70, 0.72), rgba(10, 35, 70, 0.72));
-  background-image: url("/assets/image/bg-b.jpg");
+  background-image: url("/assets/image/bg-b.png");
   background-size: cover;
   background-position: center;
 }
@@ -1856,44 +1979,8 @@ html, body {
 }
 
 /* =========================================================
-   HOME - MESAS AO VIVO / DICA / RODAPÉ
+   HOME -DICA / RODAPÉ
 ========================================================= */
-
-.home-live-section {
-  width: min(1120px, 96vw);
-  margin: 2px auto 0;
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(255,255,255,0.10);
-}
-
-.home-section-title {
-  font-size: 20px;
-  font-weight: 900;
-  margin-bottom: 14px;
-  text-align: left;
-}
-
-.home-live-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-
-.home-live-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-
-  padding: 14px;
-  border-radius: 14px;
-
-  background: rgba(0, 0, 0, 0.35);
-  border: 1px solid rgba(0,0,0,0.08);
-  color: #fff;
-}
 
 .home-tip-section {
   width: min(1120px, 96vw);
@@ -2423,43 +2510,97 @@ HOME - CARTEIRA PIX
    MENU TOPO - LOGO + LINKS
 ========================= */
 
-.top-nav{
-  width: 95%;
-  max-width: 1300px;
+/* =========================
+   MENU SUPERIOR — DESKTOP
+========================= */
+
+.top-nav {
+  width: min(95%, 1240px);
+  min-height: 54px;
   margin: 0 auto 16px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: 12px 18px;
-  background: rgba(0,0,0,.18);
-  border-radius: 0 0 8px 8px;
-}
+  padding: 7px 10px;
 
-.top-nav-right{
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 30px;
+
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(7, 61, 109, .78),
+      rgba(3, 39, 75, .82)
+    );
+
+  border: 1px solid rgba(255, 255, 255, .10);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .07),
+    0 9px 24px rgba(0, 28, 62, .20);
+
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-.top-nav-right a{
+.top-nav-right {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: #fff;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.top-nav-right a {
+  min-height: 38px;
+  padding: 7px 12px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  border-radius: 10px;
+  border: 1px solid transparent;
+
+  color: rgba(255, 255, 255, .94);
   text-decoration: none;
+
   font-size: 14px;
   font-weight: 800;
-  text-shadow: 0 2px 5px rgba(0,0,0,.6);
+
+  text-shadow: 0 1px 3px rgba(0, 0, 0, .40);
+
+  transition:
+    background .18s ease,
+    border-color .18s ease,
+    color .18s ease,
+    transform .18s ease;
 }
 
-.top-nav-right a:hover{
-  color: #ffd54a;
+.top-nav-right a:hover {
+  color: #fff;
+
+  background: rgba(255, 255, 255, .10);
+  border-color: rgba(255, 255, 255, .12);
+
+  transform: translateY(-1px);
 }
 
-.nav-icon{
-  font-size: 22px;
+.top-nav-right a:active {
+  transform: translateY(0);
+}
+
+.nav-icon {
+  width: 24px;
+  height: 24px;
+
+  display: grid;
+  place-items: center;
+
+  font-size: 19px;
   line-height: 1;
+
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35));
 }
 
 @media (max-width: 640px){

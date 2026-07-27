@@ -342,7 +342,7 @@ body{
   /* Tela de Mesa Classic*/
   background:
     
-    url('/assets/image/bg-blu.png') no-repeat center center;
+    url('/assets/image/bg-az.png') no-repeat center center;
 
   background-size: cover;
   background-attachment: fixed;
@@ -453,12 +453,13 @@ body{
 
 
 
-/* ✅ posições (casam com positions = ["pos1","pos2"...] do app.js)*/
+/*Posições dos Assentos na Sala de Mesas*/
+
 .seat.pos1 { left: 50%; top: 92%; transform: translate(-50%, -50%); }  /* baixo */
 .seat.pos2 { left: 3%;  top: 52%; transform: translate(-50%, -50%); }  /* esquerda */
-.seat.pos3 { left: 20%; top: 8%; transform: translate(-50%, -50%); }  /* topo-esq */
-.seat.pos4 { left: 50%; top: 7%;  transform: translate(-50%, -50%); }  /* topo */
-.seat.pos5 { left: 80%; top: 8%; transform: translate(-50%, -50%); }  /* topo-dir */
+.seat.pos3 { left: 20%; top: 15%; transform: translate(-50%, -50%); }  /* topo-esq */
+.seat.pos4 { left: 50%; top: 14%;  transform: translate(-50%, -50%); }  /* topo */
+.seat.pos5 { left: 80%; top: 15%; transform: translate(-50%, -50%); }  /* topo-dir */
 .seat.pos6 { left: 98%; top: 52%; transform: translate(-50%, -50%); }  /* direita */
 
 

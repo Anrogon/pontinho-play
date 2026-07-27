@@ -173,9 +173,11 @@
     border-width: 1px !important;
   }
 
+/*Posições dos assentos na visualização da mesa em mobile*/
+
   #tablesGrid > .table-card .seat.pos1 {
-    left: 45% !important;
-    top: 80% !important;
+    left: 50% !important;
+    top: 75% !important;
     transform: translateX(-50%) !important;
   }
 
@@ -186,19 +188,19 @@
   }
 
   #tablesGrid > .table-card .seat.pos3 {
-    left: 15% !important;
-    top: 6px !important;
+    left: 18% !important;
+    top: 18px !important;
   }
 
   #tablesGrid > .table-card .seat.pos4 {
-    left: 45% !important;
-    top: -6px !important;
+    left: 50% !important;
+    top: 6px !important;
     transform: translateX(-50%) !important;
   }
 
   #tablesGrid > .table-card .seat.pos5 {
-    left: 75% !important;
-    top: 6px !important;
+    left: 80% !important;
+    top: 18px !important;
   }
 
   #tablesGrid > .table-card .seat.pos6 {

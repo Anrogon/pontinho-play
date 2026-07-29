@@ -1623,6 +1623,7 @@ async function refreshHomeUser() {
   const btnLogout = document.getElementById("btnLogout");
   const btnSettings = document.getElementById("btnSettings");
   const btnProfile = document.getElementById("btnTrain");
+  const btnRewards = document.getElementById("btnRewards");
   const btnClassic = document.getElementById("btnClassic");
 
   const btnBuyChips = document.getElementById("btnBuyChips");
@@ -1643,6 +1644,7 @@ async function refreshHomeUser() {
     if (btnLogout) btnLogout.style.display = "none";
     if (btnSettings) btnSettings.style.display = "none";
     if (btnProfile) btnProfile.style.display = "none";
+    if (btnRewards) btnRewards.style.display = "none";
     if (btnBuyChips) btnBuyChips.style.display = "none";
 
     if (walletCloseBtn) {
@@ -1678,6 +1680,7 @@ async function refreshHomeUser() {
     if (btnLogout) btnLogout.style.display = "";
     if (btnSettings) btnSettings.style.display = "none";
     if (btnProfile) btnProfile.style.display = "";
+    if (btnRewards) btnRewards.style.display = "";
     if (btnBuyChips) btnBuyChips.style.display = "";
     if (btnClassic) btnClassic.style.display = "";
     if (btnCrazy) btnCrazy.style.display = "";

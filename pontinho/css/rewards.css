@@ -1,0 +1,1137 @@
+/* =========================================================
+   CLUBE PONTINHO — RECOMPENSAS
+   Arquivo exclusivo da página rewards.html
+========================================================= */
+
+:root {
+  --reward-bg-dark: #031d3d;
+  --reward-bg-mid: #074778;
+  --reward-bg-light: #0d68ad;
+
+  --reward-card-top: rgba(17, 101, 174, .96);
+  --reward-card-bottom: rgba(5, 53, 103, .98);
+
+  --reward-blue: #4387f4;
+  --reward-blue-dark: #2862d2;
+
+  --reward-gold: #ffd84b;
+  --reward-white: #ffffff;
+  --reward-muted: rgba(255,255,255,.74);
+
+  --reward-border: rgba(255,255,255,.14);
+  --reward-shadow: 0 14px 34px rgba(0, 20, 55, .30);
+}
+
+/* =========================================================
+   BASE
+========================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+
+  background:
+    linear-gradient(
+      rgba(4, 42, 85, .72),
+      rgba(2, 24, 55, .86)
+    ),
+    url("/assets/image/bg-b.png")
+    center / cover fixed no-repeat;
+
+  color: var(--reward-white);
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+}
+
+/* =========================================================
+   PÁGINA
+========================================================= */
+
+.rewards-page {
+  width: min(1120px, 96vw);
+  min-height: 100vh;
+
+  margin: 0 auto;
+  padding: 24px 0 42px;
+}
+
+/* =========================================================
+   CABEÇALHO
+========================================================= */
+
+.rewards-header {
+  position: relative;
+
+  min-height: 72px;
+  margin-bottom: 18px;
+  padding: 12px 76px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid var(--reward-border);
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(14, 103, 181, .96),
+      rgba(5, 52, 101, .98)
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    var(--reward-shadow);
+}
+
+.rewards-header-text {
+  text-align: center;
+}
+
+.rewards-back {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+
+  width: 46px;
+  height: 44px;
+
+  display: grid;
+  place-items: center;
+
+  transform: translateY(-50%);
+
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 12px;
+
+  background: rgba(0, 24, 57, .44);
+  color: #fff;
+
+  text-decoration: none;
+
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1;
+
+  transition:
+    transform .18s ease,
+    background .18s ease,
+    border-color .18s ease;
+}
+
+.rewards-back:hover {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.26);
+
+  transform:
+    translateY(-50%)
+    translateX(-2px);
+}
+
+.rewards-title {
+  margin: 0;
+
+  font-size: clamp(23px, 3vw, 31px);
+  font-weight: 900;
+  line-height: 1.1;
+
+  text-shadow: 0 2px 6px rgba(0,0,0,.36);
+}
+
+.rewards-subtitle {
+  margin: 5px 0 0;
+
+  color: var(--reward-muted);
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* =========================================================
+   RESUMO
+========================================================= */
+
+.rewards-summary {
+  margin-bottom: 17px;
+
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.rewards-summary-card {
+  min-height: 92px;
+  padding: 16px 18px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  border: 1px solid var(--reward-border);
+  border-radius: 17px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(27, 111, 190, .94),
+      rgba(7, 63, 121, .97)
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 10px 24px rgba(0, 25, 65, .24);
+}
+
+.rewards-summary-label {
+  color: var(--reward-muted);
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rewards-summary-value {
+  margin-top: 5px;
+
+  color: #fff;
+
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1.1;
+
+  word-break: break-word;
+}
+
+/* =========================================================
+   GRID DE CARTÕES
+========================================================= */
+
+.rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.reward-card {
+  position: relative;
+  overflow: hidden;
+
+  min-height: 205px;
+  padding: 18px;
+
+  border: 1px solid var(--reward-border);
+  border-radius: 19px;
+
+  background:
+    linear-gradient(
+      145deg,
+      var(--reward-card-top),
+      var(--reward-card-bottom)
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 12px 28px rgba(0,20,55,.27);
+}
+
+.reward-card::after {
+  content: "";
+
+  position: absolute;
+  right: -55px;
+  bottom: -75px;
+
+  width: 170px;
+  height: 170px;
+
+  border-radius: 50%;
+
+  background: rgba(255,255,255,.04);
+
+  pointer-events: none;
+}
+
+.reward-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.reward-card-highlight {
+  border-color: rgba(255, 215, 70, .50);
+
+  background:
+    linear-gradient(
+      145deg,
+      #176fc5,
+      #063d79
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 0 0 1px rgba(255,210,45,.10),
+    0 16px 34px rgba(0,20,55,.34);
+}
+
+/* =========================================================
+   CABEÇALHO DOS CARTÕES
+========================================================= */
+
+.reward-card-header {
+  margin-bottom: 15px;
+
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.reward-card-icon {
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+
+  background: rgba(255,255,255,.11);
+
+  font-size: 23px;
+  line-height: 1;
+
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+.reward-card-title {
+  margin: 0;
+
+  color: #fff;
+
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.reward-card-description {
+  margin: 4px 0 0;
+
+  color: var(--reward-muted);
+
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* =========================================================
+   PROGRESSO
+========================================================= */
+
+.reward-progress-info {
+  margin-bottom: 7px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  color: rgba(255,255,255,.92);
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reward-progress-info span:last-child {
+  white-space: nowrap;
+}
+
+.reward-progress {
+  width: 100%;
+  height: 11px;
+  overflow: hidden;
+
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 999px;
+
+  background: rgba(0,20,48,.56);
+
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.22);
+}
+
+.reward-progress-fill {
+  width: 0;
+  height: 100%;
+
+  border-radius: inherit;
+
+  background:
+    linear-gradient(
+      90deg,
+      #4b9cff,
+      #79c9ff
+    );
+
+  box-shadow: 0 0 10px rgba(97, 187, 255, .36);
+
+  transition: width .35s ease;
+}
+
+/* =========================================================
+   TEXTOS DOS CARTÕES
+========================================================= */
+
+.reward-value {
+  margin-top: 14px;
+
+  color: var(--reward-gold);
+
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.25;
+
+  text-shadow: 0 1px 3px rgba(0,0,0,.30);
+}
+
+.reward-status {
+  margin-top: 8px;
+
+  color: var(--reward-muted);
+
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+/* =========================================================
+   BOTÕES
+========================================================= */
+
+.reward-action {
+  width: 100%;
+  min-height: 45px;
+  margin-top: 16px;
+  padding: 10px 14px;
+
+  border: 1px solid rgba(255,255,255,.17);
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      180deg,
+      var(--reward-blue),
+      var(--reward-blue-dark)
+    );
+
+  color: #fff;
+
+  font-size: 15px;
+  font-weight: 900;
+
+  cursor: pointer;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    0 6px 14px rgba(0,20,60,.24);
+
+  transition:
+    transform .16s ease,
+    filter .16s ease,
+    box-shadow .16s ease;
+}
+
+.reward-action:not(:disabled):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.16),
+    0 9px 18px rgba(0,20,60,.30);
+}
+
+.reward-action:not(:disabled):active {
+  transform: translateY(0) scale(.99);
+}
+
+.reward-action:disabled {
+  opacity: .46;
+  cursor: default;
+  filter: grayscale(.18);
+}
+
+/* =========================================================
+   CARTA DA SORTE — RESUMO
+========================================================= */
+
+.reward-lucky-card-count {
+  margin: 12px 0 4px;
+
+  color: var(--reward-gold);
+
+  font-size: 25px;
+  font-weight: 900;
+  text-align: center;
+
+  text-shadow: 0 2px 5px rgba(0,0,0,.30);
+}
+
+/* =========================================================
+   MODAL DA CARTA DA SORTE
+========================================================= */
+
+.hidden {
+  display: none !important;
+}
+
+.lucky-card-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  padding: 18px;
+
+  display: grid;
+  place-items: center;
+
+  background: rgba(0, 12, 30, .78);
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.lucky-card-modal-content {
+  position: relative;
+
+  width: min(450px, 96vw);
+  min-height: 360px;
+  padding: 26px 22px 24px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      160deg,
+      #0e65ad,
+      #04356a 70%
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.10),
+    0 24px 70px rgba(0,0,0,.48);
+
+  color: #fff;
+}
+
+.lucky-card-close {
+  position: absolute;
+  top: 10px;
+  right: 11px;
+
+  width: 40px;
+  height: 40px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 50%;
+
+  background: rgba(0,20,48,.48);
+  color: #fff;
+
+  font-size: 27px;
+  line-height: 1;
+
+  cursor: pointer;
+}
+
+.lucky-card-title {
+  margin: 4px 0 0;
+
+  font-size: 25px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.lucky-card-subtitle {
+  margin: 7px 0 22px;
+
+  color: var(--reward-muted);
+
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* =========================================================
+   CARTA 3D
+========================================================= */
+
+/* =========================================================
+   ESCOLHA DAS TRÊS CARTAS
+========================================================= */
+
+.lucky-card-choices {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+
+  margin-top: 4px;
+}
+
+/* =========================================================
+   CARTA 3D
+========================================================= */
+
+.lucky-card-deck {
+  position: relative;
+
+  width: 110px;
+  height: 154px;
+  flex: 0 0 110px;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 12px;
+
+  background: transparent;
+
+  cursor: pointer;
+
+  perspective: 1000px;
+
+  transform-style: preserve-3d;
+
+  transition:
+    transform .22s ease,
+    opacity .22s ease,
+    filter .22s ease;
+}
+
+.lucky-card-deck:not(.is-revealed):hover {
+  transform: translateY(-7px);
+}
+
+.lucky-card-deck:disabled {
+  cursor: default;
+}
+
+.lucky-card-back,
+.lucky-card-front {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
+  transition:
+    transform .72s cubic-bezier(.2,.7,.2,1),
+    box-shadow .25s ease,
+    border-color .25s ease;
+
+  box-shadow:
+    0 14px 28px rgba(0,0,0,.38);
+}
+
+.lucky-card-back {
+  border: 4px solid #fff;
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(255,255,255,.14),
+      transparent 44%
+    ),
+    repeating-linear-gradient(
+      45deg,
+      #0a4f91 0 8px,
+      #073f78 8px 16px
+    );
+
+  color: #fff;
+
+  font-size: 48px;
+
+  transform: rotateY(0deg);
+}
+
+.lucky-card-front {
+  flex-direction: column;
+  gap: 5px;
+
+  border: 4px solid #fff;
+
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      #eef3f8
+    );
+
+  color: #111;
+
+  transform: rotateY(180deg);
+}
+
+.lucky-card-deck.is-revealed .lucky-card-back {
+  transform: rotateY(180deg);
+}
+
+.lucky-card-deck.is-revealed .lucky-card-front {
+  transform: rotateY(360deg);
+}
+
+/* Carta escolhida */
+
+.lucky-card-deck.is-selected {
+  transform: translateY(-10px) scale(1.06);
+  z-index: 3;
+}
+
+.lucky-card-deck.is-selected .lucky-card-front {
+  border-color: #ffd84b;
+
+  box-shadow:
+    0 0 0 3px rgba(255,216,75,.22),
+    0 0 28px rgba(255,216,75,.68),
+    0 18px 34px rgba(0,0,0,.42);
+}
+
+/* Cartas não escolhidas */
+
+.lucky-card-deck.is-not-selected {
+  opacity: .72;
+  filter: brightness(.80);
+  transform: scale(.94);
+}
+
+.lucky-card-value {
+  font-size: 51px;
+  font-weight: 900;
+  line-height: .9;
+}
+
+.lucky-card-suit {
+  font-size: 39px;
+  line-height: 1;
+}
+
+.lucky-card-front.is-red {
+  color: #cf1f2f;
+}
+
+.lucky-card-front.is-joker {
+  background:
+    radial-gradient(
+      circle at center,
+      #fff9bf,
+      #f4d74a 52%,
+      #c78b0a
+    );
+
+  color: #6a2f00;
+}
+
+.lucky-card-front.is-joker .lucky-card-value {
+  font-size: 55px;
+}
+
+
+/* =========================================================
+   RESULTADO DA CARTA
+========================================================= */
+
+.lucky-card-result {
+  width: 100%;
+  min-height: 120px;
+  margin-top: 18px;
+  padding: 12px 14px;
+
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 15px;
+
+  background: rgba(0, 27, 65, .30);
+
+  color: #fff;
+  text-align: center;
+
+  transition:
+    border-color .25s ease,
+    box-shadow .25s ease,
+    background .25s ease;
+}
+
+.lucky-result-title {
+  color: #fff;
+
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.1;
+
+  text-shadow: 0 2px 5px rgba(0,0,0,.35);
+}
+
+.lucky-result-card-name {
+  margin-top: 8px;
+
+  color: rgba(255,255,255,.84);
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lucky-result-card-name strong {
+  color: #fff;
+}
+
+.lucky-result-label {
+  margin-top: 11px;
+
+  color: rgba(255,255,255,.65);
+
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+
+.lucky-result-amount {
+  margin-top: 2px;
+
+  color: var(--reward-gold);
+
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.1;
+
+  text-shadow:
+    0 2px 5px rgba(0,0,0,.35),
+    0 0 14px rgba(255,216,75,.20);
+}
+
+.lucky-result-message {
+  margin-top: 9px;
+
+  color: rgba(255,255,255,.80);
+
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.lucky-result-demo {
+  margin-top: 7px;
+
+  color: rgba(255,255,255,.48);
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.lucky-card-result.is-best-choice {
+  border-color: rgba(255,216,75,.38);
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(55, 88, 112, .38),
+      rgba(0, 27, 65, .35)
+    );
+
+  box-shadow:
+    0 0 20px rgba(255,216,75,.14);
+}
+
+.lucky-card-result.is-jackpot {
+  border-color: rgba(255,216,75,.70);
+
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(255,216,75,.20),
+      rgba(0,27,65,.44) 68%
+    );
+
+  box-shadow:
+    0 0 28px rgba(255,216,75,.32);
+
+  animation: luckyJackpotPulse 1.15s ease-in-out infinite alternate;
+}
+
+.lucky-card-result.is-jackpot .lucky-result-title,
+.lucky-card-result.is-jackpot .lucky-result-amount {
+  color: #ffe56d;
+}
+
+@keyframes luckyJackpotPulse {
+  from {
+    box-shadow:
+      0 0 18px rgba(255,216,75,.20);
+  }
+
+  to {
+    box-shadow:
+      0 0 36px rgba(255,216,75,.48);
+  }
+}
+/* =========================================================
+   RESPONSIVIDADE — MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+
+  body {
+    background:
+      linear-gradient(
+        rgba(4, 40, 82, .70),
+        rgba(2, 24, 55, .88)
+      ),
+      url("/assets/image/bg-b.png")
+      center / cover fixed no-repeat;
+  }
+
+  .rewards-page {
+    width: min(100%, 430px);
+    padding: 10px 10px 28px;
+  }
+
+  .rewards-header {
+    min-height: 62px;
+    margin-bottom: 11px;
+    padding: 8px 50px;
+
+    border-radius: 15px;
+  }
+
+  .rewards-back {
+    left: 8px;
+
+    width: 39px;
+    height: 39px;
+
+    border-radius: 11px;
+
+    font-size: 21px;
+  }
+
+  .rewards-title {
+    font-size: 20px;
+  }
+
+  .rewards-subtitle {
+    margin-top: 3px;
+
+    font-size: 11px;
+    line-height: 1.2;
+  }
+
+  .rewards-summary {
+    grid-template-columns: 1fr;
+    gap: 8px;
+
+    margin-bottom: 11px;
+  }
+
+  .rewards-summary-card {
+    min-height: 70px;
+    padding: 11px 14px;
+
+    border-radius: 14px;
+  }
+
+  .rewards-summary-label {
+    font-size: 12px;
+  }
+
+  .rewards-summary-value {
+    font-size: 19px;
+  }
+
+  .rewards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  .reward-card {
+    min-height: auto;
+    padding: 15px;
+    width: 100%;
+    border-radius: 16px;
+  }
+
+  .reward-card-header {
+    margin-bottom: 12px;
+  }
+
+  .reward-card-icon {
+    width: 39px;
+    height: 39px;
+    flex-basis: 39px;
+
+    border-radius: 11px;
+
+    font-size: 21px;
+  }
+
+  .reward-card-title {
+    font-size: 17px;
+  }
+
+  .reward-card-description {
+    font-size: 11px;
+  }
+
+  .reward-value {
+    margin-top: 12px;
+
+    font-size: 15px;
+  }
+
+  .reward-status {
+    font-size: 12px;
+  }
+
+  .reward-action {
+    min-height: 43px;
+    margin-top: 13px;
+  }
+
+  .reward-lucky-card-count {
+    font-size: 21px;
+  }
+
+  .lucky-card-modal {
+    padding: 10px;
+  }
+
+  .lucky-card-modal-content {
+    min-height: 430px;
+    padding: 23px 15px 20px;
+
+    border-radius: 19px;
+  }
+
+  .lucky-card-title {
+    font-size: 22px;
+  }
+
+  .lucky-card-modal-content {
+  min-height: 330px;
+    }
+
+    .lucky-card-choices {
+    gap: 8px;
+    }
+
+    .lucky-card-deck {
+    width: 88px;
+    height: 124px;
+    flex-basis: 88px;
+    }
+
+    .lucky-card-value {
+    font-size: 41px;
+    }
+
+    .lucky-card-suit {
+    font-size: 31px;
+    }
+
+    .lucky-card-back {
+    font-size: 38px;
+    }
+
+  .lucky-card-result {
+    min-height: 110px;
+    margin-top: 15px;
+    padding: 11px 10px;
+  }
+
+  .lucky-result-title {
+    font-size: 19px;
+  }
+
+  .lucky-result-card-name {
+    font-size: 12px;
+  }
+
+  .lucky-result-amount {
+    font-size: 24px;
+  }
+
+  .lucky-result-message {
+    font-size: 12px;
+  }
+}
+
+/* =========================================================
+   TELAS MUITO PEQUENAS
+========================================================= */
+
+@media (max-width: 360px) {
+
+  .rewards-title {
+    font-size: 18px;
+  }
+
+  .rewards-subtitle {
+    display: none;
+  }
+
+  .reward-progress-info {
+    font-size: 12px;
+  }
+
+  .lucky-card-choices {
+  gap: 6px;
+}
+
+    .lucky-card-deck {
+    width: 81px;
+    height: 114px;
+    flex-basis: 81px;
+    }
+
+    .lucky-card-value {
+    font-size: 37px;
+    }
+
+    .lucky-card-suit {
+    font-size: 28px;
+    }
+}

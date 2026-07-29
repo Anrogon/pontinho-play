@@ -4520,43 +4520,6 @@ function leaveCurrentTable(clientId) {
 }
 
 
-/*
-function tryResolveRematchAfterSeatChange(room) {
-  if (!room) return;
-  if (!room.matchEnded) return;
-
-  const seatedPlayers = (room.playersBySeat || [])
-    .map((p, idx) => ({ p, seat: idx + 1 }))
-    .filter(x => !!x.p);
-
-  // só considera para revanche quem participou da partida anterior E ainda está sentado
-  const eligibleStillSeated = seatedPlayers.filter(({ p }) =>
-    Array.isArray(room.rematchEligiblePlayers) &&
-    room.rematchEligiblePlayers.includes(p.clientId)
-  );
-
-  // se ninguém elegível da partida anterior ficou sentado,
-  // a mesa precisa voltar ao estado normal de espera
-  if (eligibleStillSeated.length === 0) {
-    resetRoomForRematch(room);
-    resetStartCountdown(room);
-    broadcastRoomState(room);
-    return;
-  }
-
-  // se todos os elegíveis que ainda estão sentados aceitaram, a mesa volta para WAITING
-  const allAccepted = eligibleStillSeated.every(({ seat }) => room.rematchResponses?.[seat] === true);
-
-  if (!allAccepted) return;
-
-  resetRoomForRematch(room);
-
-  // volta para o fluxo normal de espera / countdown
-  refreshStartCountdown(room);
-  broadcastRoomState(room);
-}
-*/
-
 function sanitizeRoom(room) {
   // Precedência (quem “ganha” se tiver duplicado):
   // 1) mesa (tableMelds)

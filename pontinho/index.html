@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="css/mobile-home.css" />
   <link rel="stylesheet" href="css/mobile-tables.css" />
   <link rel="stylesheet" href="css/mobile.css" />
+  <link rel="stylesheet" href="css/rewards.css" /> <!-- Clube Pontinho -->
 </head>
 
 <body>
@@ -47,6 +48,11 @@
         <a href="#" id="navProfile">
           <span class="nav-icon">👤</span>
           <span>Perfil</span>
+        </a>
+
+        <a href="./rewards.html" id="navRewards">
+          <span class="nav-icon">🎁</span>
+          <span>Recompensas</span>
         </a>
 
         <a href="#" id="navLogout">
@@ -81,6 +87,16 @@
         <button type="button" id="btnTrain" style="display:none;">
           <span class="btn-icon">👤</span>
           <span class="btn-text">Perfil</span>
+        </button>
+
+        <button
+          type="button"
+          id="btnRewards"
+          onclick="window.location.href='./rewards.html'"
+          style="display:none;"
+        >
+          <span class="btn-icon">🎁</span>
+          <span class="btn-text">Recompensas</span>
         </button>
 
         <button type="button" id="btnBuyChips" class="primary" style="display:none;">

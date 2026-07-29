@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta name="theme-color" content="#073d73">
+
+  <title>Clube Pontinho - Recompensas</title>
+
+  <!-- CSS exclusivo da página -->
+  <link rel="stylesheet" href="./css/rewards.css">
+</head>
+
+<body>
+
+  <main class="rewards-page">
+
+    <!-- =====================================================
+         CABEÇALHO
+    ====================================================== -->
+    <header class="rewards-header">
+
+      <a
+        href="./index.html"
+        class="rewards-back"
+        aria-label="Voltar para a página inicial"
+        title="Voltar"
+      >
+        ←
+      </a>
+
+      <div class="rewards-header-text">
+        <h1 class="rewards-title">
+          🎁 Clube Pontinho
+        </h1>
+
+        <p class="rewards-subtitle">
+          Jogue, complete metas e ganhe recompensas
+        </p>
+      </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         RESUMO DO JOGADOR
+    ====================================================== -->
+    <section
+      class="rewards-summary"
+      aria-label="Resumo das recompensas"
+    >
+
+      <article class="rewards-summary-card">
+        <div class="rewards-summary-label">
+          Saldo atual
+        </div>
+
+        <div
+          class="rewards-summary-value"
+          id="rewardsBalance"
+        >
+          — fichas
+        </div>
+      </article>
+
+
+      <article class="rewards-summary-card">
+        <div class="rewards-summary-label">
+          Cartas disponíveis
+        </div>
+
+        <div
+          class="rewards-summary-value"
+          id="rewardsLuckyCards"
+        >
+          0
+        </div>
+      </article>
+
+
+      <article class="rewards-summary-card">
+        <div class="rewards-summary-label">
+          Ranking mensal
+        </div>
+
+        <div
+          class="rewards-summary-value"
+          id="rewardsRankingPosition"
+        >
+          —
+        </div>
+      </article>
+
+    </section>
+
+
+    <!-- =====================================================
+         CARTÕES DE RECOMPENSAS
+    ====================================================== -->
+    <section class="rewards-grid">
+
+
+      <!-- LOGIN DIÁRIO -->
+      <article
+        class="reward-card"
+        id="dailyLoginCard"
+      >
+
+        <div class="reward-card-header">
+
+          <div class="reward-card-icon">
+            📅
+          </div>
+
+          <div>
+            <h2 class="reward-card-title">
+              Login diário
+            </h2>
+
+            <p class="reward-card-description">
+              Entre em dias consecutivos
+            </p>
+          </div>
+
+        </div>
+
+
+        <div class="reward-progress-info">
+          <span id="dailyLoginLabel">
+            Dia 1 de 7
+          </span>
+
+          <span id="dailyLoginCounter">
+            0/7
+          </span>
+        </div>
+
+
+        <div
+          class="reward-progress"
+          role="progressbar"
+          aria-label="Progresso do login diário"
+          aria-valuemin="0"
+          aria-valuemax="7"
+          aria-valuenow="0"
+        >
+          <div
+            class="reward-progress-fill"
+            id="dailyLoginProgress"
+            style="width: 0%;"
+          ></div>
+        </div>
+
+
+        <div
+          class="reward-value"
+          id="dailyLoginReward"
+        >
+          Próxima recompensa: 100 fichas
+        </div>
+
+
+        <div class="reward-status">
+          Um dia de ausência é permitido sem perder a sequência.
+        </div>
+
+      </article>
+
+
+      <!-- MISSÃO DIÁRIA -->
+      <article
+        class="reward-card"
+        id="dailyMissionCard"
+      >
+
+        <div class="reward-card-header">
+
+          <div class="reward-card-icon">
+            🎯
+          </div>
+
+          <div>
+            <h2 class="reward-card-title">
+              Missão diária
+            </h2>
+
+            <p class="reward-card-description">
+              Reinicia todos os dias
+            </p>
+          </div>
+
+        </div>
+
+
+        <div class="reward-progress-info">
+          <span>
+            Jogue 3 partidas
+          </span>
+
+          <span id="dailyMissionCounter">
+            0/3
+          </span>
+        </div>
+
+
+        <div
+          class="reward-progress"
+          role="progressbar"
+          aria-label="Progresso da missão diária"
+          aria-valuemin="0"
+          aria-valuemax="3"
+          aria-valuenow="0"
+        >
+          <div
+            class="reward-progress-fill"
+            id="dailyMissionProgress"
+            style="width: 0%;"
+          ></div>
+        </div>
+
+
+        <div class="reward-value">
+          Recompensa: 100 fichas
+        </div>
+
+
+        <div
+          class="reward-status"
+          id="dailyMissionStatus"
+        >
+          Apenas partidas concluídas são contabilizadas.
+        </div>
+
+      </article>
+
+
+      <!-- MISSÃO SEMANAL -->
+      <article
+        class="reward-card"
+        id="weeklyMissionCard"
+      >
+
+        <div class="reward-card-header">
+
+          <div class="reward-card-icon">
+            🏆
+          </div>
+
+          <div>
+            <h2 class="reward-card-title">
+              Missão semanal
+            </h2>
+
+            <p class="reward-card-description">
+              Reinicia no início de cada semana
+            </p>
+          </div>
+
+        </div>
+
+
+        <div class="reward-progress-info">
+          <span>
+            Jogue 25 partidas
+          </span>
+
+          <span id="weeklyMissionCounter">
+            0/25
+          </span>
+        </div>
+
+
+        <div
+          class="reward-progress"
+          role="progressbar"
+          aria-label="Progresso da missão semanal"
+          aria-valuemin="0"
+          aria-valuemax="25"
+          aria-valuenow="0"
+        >
+          <div
+            class="reward-progress-fill"
+            id="weeklyMissionProgress"
+            style="width: 0%;"
+          ></div>
+        </div>
+
+
+        <div class="reward-value">
+          Recompensa: 1.000 fichas
+        </div>
+
+
+        <div
+          class="reward-status"
+          id="weeklyMissionStatus"
+        >
+          Continue jogando para completar a meta.
+        </div>
+
+      </article>
+
+
+      <!-- CARTA DA SORTE -->
+      <article
+        class="reward-card reward-card-highlight"
+        id="luckyCardRewardCard"
+      >
+
+        <div class="reward-card-header">
+
+          <div class="reward-card-icon">
+            🃏
+          </div>
+
+          <div>
+            <h2 class="reward-card-title">
+              Carta da Sorte
+            </h2>
+
+            <p class="reward-card-description">
+              Vire uma carta e descubra seu prêmio
+            </p>
+          </div>
+
+        </div>
+
+
+        <div
+          class="reward-lucky-card-count"
+          id="luckyCardCount"
+        >
+          🎴 Nenhuma carta disponível
+        </div>
+
+
+        <button
+          type="button"
+          id="openLuckyCardBtn"
+          class="reward-action"
+          disabled
+        >
+          Virar carta
+        </button>
+
+      </article>
+
+
+      <!-- RANKING MENSAL -->
+      <article
+        class="reward-card"
+        id="monthlyRankingCard"
+      >
+
+        <div class="reward-card-header">
+
+          <div class="reward-card-icon">
+            🥇
+          </div>
+
+          <div>
+            <h2 class="reward-card-title">
+              Ranking mensal
+            </h2>
+
+            <p class="reward-card-description">
+              Reinicia automaticamente todo dia 1
+            </p>
+          </div>
+
+        </div>
+
+
+        <div
+          class="reward-value"
+          id="monthlyRankingPosition"
+        >
+          Sua posição: —
+        </div>
+
+
+        <div
+          class="reward-status"
+          id="monthlyRankingReward"
+        >
+          Jogue partidas para entrar no ranking.
+        </div>
+
+
+        <button
+          type="button"
+          id="openRankingBtn"
+          class="reward-action"
+          disabled
+        >
+          Ver ranking completo
+        </button>
+
+      </article>
+
+
+      <!-- CONQUISTAS -->
+      <article
+        class="reward-card"
+        id="achievementsCard"
+      >
+
+        <div class="reward-card-header">
+
+          <div class="reward-card-icon">
+            🏅
+          </div>
+
+          <div>
+            <h2 class="reward-card-title">
+              Conquistas
+            </h2>
+
+            <p class="reward-card-description">
+              Objetivos permanentes da sua conta
+            </p>
+          </div>
+
+        </div>
+
+
+        <div class="reward-progress-info">
+          <span id="achievementLabel">
+            Ganhe 5 partidas
+          </span>
+
+          <span id="achievementCounter">
+            0/5
+          </span>
+        </div>
+
+
+        <div
+          class="reward-progress"
+          role="progressbar"
+          aria-label="Progresso da conquista"
+          aria-valuemin="0"
+          aria-valuemax="5"
+          aria-valuenow="0"
+        >
+          <div
+            class="reward-progress-fill"
+            id="achievementProgress"
+            style="width: 0%;"
+          ></div>
+        </div>
+
+
+        <div
+          class="reward-value"
+          id="achievementReward"
+        >
+          Recompensa: 500 fichas
+        </div>
+
+      </article>
+
+    </section>
+
+  </main>
+
+
+  <!-- =====================================================
+       MODAL DA CARTA DA SORTE
+  ====================================================== -->
+  <div
+    id="luckyCardModal"
+    class="lucky-card-modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="luckyCardModalTitle"
+  >
+
+    <div class="lucky-card-modal-content">
+
+      <button
+        type="button"
+        id="closeLuckyCardModalBtn"
+        class="lucky-card-close"
+        aria-label="Fechar"
+      >
+        ×
+      </button>
+
+
+      <h2
+        id="luckyCardModalTitle"
+        class="lucky-card-title"
+      >
+        🃏 Carta da Sorte
+      </h2>
+
+
+      <p class="lucky-card-subtitle">
+        Toque na carta para revelar sua recompensa.
+      </p>
+
+
+      <div
+  id="luckyCardChoices"
+  class="lucky-card-choices"
+  aria-label="Escolha uma Carta da Sorte"
+>
+
+  <!-- CARTA 1 -->
+  <button
+    type="button"
+    class="lucky-card-deck"
+    data-card-index="0"
+    aria-label="Escolher a primeira carta"
+  >
+    <div class="lucky-card-back">
+      ♠
+    </div>
+
+    <div class="lucky-card-front">
+      <span class="lucky-card-value">A</span>
+      <span class="lucky-card-suit">♠</span>
+    </div>
+  </button>
+
+
+  <!-- CARTA 2 -->
+  <button
+    type="button"
+    class="lucky-card-deck"
+    data-card-index="1"
+    aria-label="Escolher a segunda carta"
+  >
+    <div class="lucky-card-back">
+      ♠
+    </div>
+
+    <div class="lucky-card-front">
+      <span class="lucky-card-value">A</span>
+      <span class="lucky-card-suit">♠</span>
+    </div>
+  </button>
+
+
+  <!-- CARTA 3 -->
+  <button
+    type="button"
+    class="lucky-card-deck"
+    data-card-index="2"
+    aria-label="Escolher a terceira carta"
+  >
+    <div class="lucky-card-back">
+      ♠
+    </div>
+
+    <div class="lucky-card-front">
+      <span class="lucky-card-value">A</span>
+      <span class="lucky-card-suit">♠</span>
+    </div>
+  </button>
+
+</div>
+
+
+<div
+  id="luckyCardResult"
+  class="lucky-card-result"
+  aria-live="polite"
+></div>
+
+    </div>
+
+  </div>
+
+
+  <!-- JavaScript exclusivo das recompensas -->
+  <script type="module" src="./js/rewards.js"></script>
+
+</body>
+</html>

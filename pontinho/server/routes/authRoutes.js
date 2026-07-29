@@ -21,95 +21,117 @@ async function ensureRewardProgress(userId) {
 }
 
 async function processDailyLoginReward(userId) {
-  await ensureRewardProgress(userId);
+  const client = await pool.connect();
 
-  const { rows } = await pool.query(
-    `
-      SELECT *
-      FROM user_reward_progress
-      WHERE user_id = $1
-    `,
-    [userId]
-  );
+  try {
+    await client.query("BEGIN");
 
-  const progress = rows[0];
+    // Garante que o usuário tenha um registro de progresso.
+    await client.query(
+      `
+        INSERT INTO user_reward_progress (user_id)
+        VALUES ($1)
+        ON CONFLICT (user_id) DO NOTHING
+      `,
+      [userId]
+    );
 
-  const today = new Date();
-  today.setHours(0,0,0,0);
+    // Bloqueia o registro enquanto a recompensa é processada.
+    const progressResult = await client.query(
+      `
+        SELECT
+          login_streak,
+          last_login_reward_date,
+          last_login_reward_date = CURRENT_DATE AS received_today,
+          last_login_reward_date = CURRENT_DATE - 1 AS consecutive_day
+        FROM user_reward_progress
+        WHERE user_id = $1
+        FOR UPDATE
+      `,
+      [userId]
+    );
 
-  const last = progress.last_login_reward_date
-      ? new Date(progress.last_login_reward_date)
-      : null;
+    const progress = progressResult.rows[0];
 
-  if (last) {
-    last.setHours(0,0,0,0);
-  }
-
-  // já recebeu hoje
-  if (last && last.getTime() === today.getTime()) {
-    return null;
-  }
-
-  let streak = 1;
-
-  if (last) {
-    const diff = Math.round((today - last) / 86400000);
-
-    if (diff === 1) {
-      streak = progress.login_streak + 1;
+    // Já recebeu hoje: não credita novamente.
+    if (progress.received_today) {
+      await client.query("COMMIT");
+      return null;
     }
-  }
 
-  const reward =
-      LOGIN_STREAK_REWARDS[
-          Math.min(streak, LOGIN_STREAK_REWARDS.length) - 1
-      ];
+    const previousStreak = Number(progress.login_streak) || 0;
 
-  await pool.query(
-    `
-      UPDATE users
-      SET chips_balance = chips_balance + $1
-      WHERE id = $2
-    `,
-    [reward, userId]
-  );
+    let streak = 1;
 
-  await pool.query(
-    `
-      UPDATE user_reward_progress
-      SET
+    if (progress.consecutive_day) {
+      // Depois do sétimo dia, inicia novamente o ciclo em 1/7.
+      streak = previousStreak >= 7
+        ? 1
+        : previousStreak + 1;
+    }
+
+    const reward = LOGIN_STREAK_REWARDS[streak - 1];
+
+    const balanceResult = await client.query(
+      `
+        UPDATE users
+        SET
+          chips_balance = COALESCE(chips_balance, 0) + $1,
+          updated_at = NOW()
+        WHERE id = $2
+        RETURNING chips_balance
+      `,
+      [reward, userId]
+    );
+
+    await client.query(
+      `
+        UPDATE user_reward_progress
+        SET
           login_streak = $1,
           last_login_reward_date = CURRENT_DATE,
+          missed_streak_days = 0,
           updated_at = NOW()
-      WHERE user_id = $2
-    `,
-    [streak, userId]
-  );
+        WHERE user_id = $2
+      `,
+      [streak, userId]
+    );
 
-  await pool.query(
-    `
-      INSERT INTO reward_transactions
-      (
-        user_id,
-        reward_type,
-        description,
-        chips
-      )
-      VALUES
-      (
-        $1,
-        'daily_login',
-        'Login diário',
-        $2
-      )
-    `,
-    [userId, reward]
-  );
+    await client.query(
+      `
+        INSERT INTO reward_transactions (
+          user_id,
+          reward_type,
+          description,
+          chips
+        )
+        VALUES (
+          $1,
+          'daily_login',
+          $2,
+          $3
+        )
+      `,
+      [
+        userId,
+        `Login diário — dia ${streak} de 7`,
+        reward,
+      ]
+    );
 
-  return {
-    streak,
-    reward
-  };
+    await client.query("COMMIT");
+
+    return {
+      streak,
+      reward,
+      chipsBalance: Number(balanceResult.rows[0]?.chips_balance) || 0,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 

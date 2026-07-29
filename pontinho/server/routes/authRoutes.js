@@ -7,6 +7,112 @@ const { requireAuth, requireAdmin } = require("../middleware/auth");
 const router = express.Router();
 
 
+const LOGIN_STREAK_REWARDS = [100, 150, 200, 300, 400, 500, 750];
+
+async function ensureRewardProgress(userId) {
+  await pool.query(
+    `
+      INSERT INTO user_reward_progress (user_id)
+      VALUES ($1)
+      ON CONFLICT (user_id) DO NOTHING
+    `,
+    [userId]
+  );
+}
+
+async function processDailyLoginReward(userId) {
+  await ensureRewardProgress(userId);
+
+  const { rows } = await pool.query(
+    `
+      SELECT *
+      FROM user_reward_progress
+      WHERE user_id = $1
+    `,
+    [userId]
+  );
+
+  const progress = rows[0];
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const last = progress.last_login_reward_date
+      ? new Date(progress.last_login_reward_date)
+      : null;
+
+  if (last) {
+    last.setHours(0,0,0,0);
+  }
+
+  // já recebeu hoje
+  if (last && last.getTime() === today.getTime()) {
+    return null;
+  }
+
+  let streak = 1;
+
+  if (last) {
+    const diff = Math.round((today - last) / 86400000);
+
+    if (diff === 1) {
+      streak = progress.login_streak + 1;
+    }
+  }
+
+  const reward =
+      LOGIN_STREAK_REWARDS[
+          Math.min(streak, LOGIN_STREAK_REWARDS.length) - 1
+      ];
+
+  await pool.query(
+    `
+      UPDATE users
+      SET chips_balance = chips_balance + $1
+      WHERE id = $2
+    `,
+    [reward, userId]
+  );
+
+  await pool.query(
+    `
+      UPDATE user_reward_progress
+      SET
+          login_streak = $1,
+          last_login_reward_date = CURRENT_DATE,
+          updated_at = NOW()
+      WHERE user_id = $2
+    `,
+    [streak, userId]
+  );
+
+  await pool.query(
+    `
+      INSERT INTO reward_transactions
+      (
+        user_id,
+        reward_type,
+        description,
+        chips
+      )
+      VALUES
+      (
+        $1,
+        'daily_login',
+        'Login diário',
+        $2
+      )
+    `,
+    [userId, reward]
+  );
+
+  return {
+    streak,
+    reward
+  };
+}
+
+
 function sanitizeUser(user) {
   return {
     id: user.id,
@@ -138,11 +244,16 @@ router.post("/login", async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
+    const loginReward = await processDailyLoginReward(user.id);
+
     return res.json({
       ok: true,
       token,
       user: sanitizeUser(user),
+      loginReward,
     });
+
+
   } catch (err) {
     console.error("POST /login error:", err);
     return res.status(500).json({

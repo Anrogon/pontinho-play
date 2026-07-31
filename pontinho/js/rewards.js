@@ -225,6 +225,9 @@ function getRewardsElements() {
     weeklyMissionStatus:
       document.getElementById("weeklyMissionStatus"),
 
+    claimWeeklyMissionBtn:
+      document.getElementById("claimWeeklyMissionBtn"),
+
     luckyCardCount:
       document.getElementById("luckyCardCount"),
 
@@ -464,13 +467,21 @@ function applyRewardsApiData(apiRewards) {
       daily.rewardClaimed === true
   };
 
-  rewardsState.data.weeklyMission = {
+    rewardsState.data.weeklyMission = {
     current:
       Number(weekly.matches) || 0,
 
-    target: 25,
+    target:
+      Number(weekly.goal) || 25,
 
-    reward: 1000,
+    reward:
+      Number(weekly.reward) || 1000,
+
+    completed:
+      weekly.completed === true,
+
+    canClaim:
+      weekly.canClaim === true,
 
     rewardClaimed:
       weekly.rewardClaimed === true
@@ -571,6 +582,86 @@ async function claimDailyMissionReward() {
     window.alert(
       error.message ||
       "Erro ao resgatar a recompensa."
+    );
+
+    await loadRewardsStatus().catch(() => {});
+  }
+}
+
+async function claimWeeklyMissionReward() {
+  const elements = getRewardsElements();
+  const button = elements.claimWeeklyMissionBtn;
+
+  if (
+    rewardsState.data.weeklyMission.canClaim !== true ||
+    rewardsState.data.weeklyMission.rewardClaimed === true
+  ) {
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Resgatando...";
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/auth/rewards/claim-weekly-mission`,
+      {
+        method: "POST",
+        credentials: "include",
+
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        }
+      }
+    );
+
+    const result =
+      await response.json().catch(() => null);
+
+    if (!response.ok || !result?.ok) {
+      throw new Error(
+        result?.message ||
+        "Não foi possível resgatar a recompensa semanal."
+      );
+    }
+
+    rewardsState.data.balance =
+      Number(result.chipsBalance) ||
+      rewardsState.data.balance;
+
+    rewardsState.data.weeklyMission = {
+      current:
+        Number(result.weekly?.matches) || 0,
+
+      target:
+        Number(result.weekly?.goal) || 25,
+
+      reward:
+        Number(result.weekly?.reward) || 1000,
+
+      completed: true,
+      canClaim: false,
+      rewardClaimed: true
+    };
+
+    renderRewardsPage();
+
+    window.alert(
+      result.message ||
+      "Recompensa semanal recebida com sucesso!"
+    );
+  } catch (error) {
+    console.error(
+      "[REWARDS] Erro ao resgatar missão semanal:",
+      error
+    );
+
+    window.alert(
+      error.message ||
+      "Erro ao resgatar a recompensa semanal."
     );
 
     await loadRewardsStatus().catch(() => {});
@@ -801,6 +892,7 @@ function renderDailyMission(elements, missionData) {
   }
 }
 
+
 function renderWeeklyMission(elements, missionData) {
   const progress = calculateProgress(
     missionData.current,
@@ -822,17 +914,56 @@ function renderWeeklyMission(elements, missionData) {
     );
   }
 
+  const completed =
+    missionData.completed === true ||
+    progress.current >= progress.target;
+
+  const claimed =
+    missionData.rewardClaimed === true;
+
+  const canClaim =
+    missionData.canClaim === true &&
+    claimed !== true;
+
   if (elements.weeklyMissionStatus) {
-    const missing =
-      Math.max(
+    if (claimed) {
+      elements.weeklyMissionStatus.textContent =
+        "Missão concluída. Recompensa resgatada.";
+    } else if (canClaim) {
+      elements.weeklyMissionStatus.textContent =
+        "Missão concluída. Sua recompensa está disponível.";
+    } else {
+      const missing = Math.max(
         progress.target - progress.current,
         0
       );
 
-    elements.weeklyMissionStatus.textContent =
-      missing === 0
-        ? "Missão semanal concluída."
-        : `Faltam ${missing} partidas para completar a meta.`;
+      elements.weeklyMissionStatus.textContent =
+        missing === 1
+          ? "Falta 1 partida para completar a missão semanal."
+          : `Faltam ${missing} partidas para completar a missão semanal.`;
+    }
+  }
+
+  if (elements.claimWeeklyMissionBtn) {
+    elements.claimWeeklyMissionBtn.disabled =
+      !canClaim;
+
+    if (claimed) {
+      elements.claimWeeklyMissionBtn.textContent =
+        "Recompensa resgatada";
+    } else if (canClaim) {
+      elements.claimWeeklyMissionBtn.textContent =
+        `Resgatar ${formatChips(
+          missionData.reward
+        )} fichas`;
+    } else if (completed) {
+      elements.claimWeeklyMissionBtn.textContent =
+        "Recompensa indisponível";
+    } else {
+      elements.claimWeeklyMissionBtn.textContent =
+        `Complete ${progress.target} partidas`;
+    }
   }
 }
 
@@ -1414,6 +1545,11 @@ function bindRewardsEvents() {
   elements.claimDailyMissionBtn?.addEventListener(
     "click",
     claimDailyMissionReward
+  );
+
+  elements.claimWeeklyMissionBtn?.addEventListener(
+    "click",
+    claimWeeklyMissionReward
   );
 
   /* Abre o modal */

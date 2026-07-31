@@ -2239,21 +2239,34 @@ async function recordDailyMissionMatches(room) {
         `
           INSERT INTO user_reward_progress (
             user_id,
+
             daily_matches,
             daily_reference_date,
             daily_reward_claimed,
+
+            weekly_matches,
+            weekly_reference_date,
+            weekly_reward_claimed,
+
             updated_at
           )
           VALUES (
             $1,
+
             1,
             CURRENT_DATE,
             FALSE,
+
+            1,
+            DATE_TRUNC('week', CURRENT_DATE)::date,
+            FALSE,
+
             NOW()
           )
 
           ON CONFLICT (user_id)
           DO UPDATE SET
+
             daily_matches =
               CASE
                 WHEN user_reward_progress.daily_reference_date = CURRENT_DATE
@@ -2270,23 +2283,59 @@ async function recordDailyMissionMatches(room) {
                 ELSE FALSE
               END,
 
+            weekly_matches =
+              CASE
+                WHEN user_reward_progress.weekly_reference_date =
+                     DATE_TRUNC('week', CURRENT_DATE)::date
+                  THEN user_reward_progress.weekly_matches + 1
+                ELSE 1
+              END,
+
+            weekly_reference_date =
+              DATE_TRUNC('week', CURRENT_DATE)::date,
+
+            weekly_reward_claimed =
+              CASE
+                WHEN user_reward_progress.weekly_reference_date =
+                     DATE_TRUNC('week', CURRENT_DATE)::date
+                  THEN user_reward_progress.weekly_reward_claimed
+                ELSE FALSE
+              END,
+
             updated_at = NOW()
 
           RETURNING
             user_id,
+
             daily_matches,
             daily_reference_date,
-            daily_reward_claimed
+            daily_reward_claimed,
+
+            weekly_matches,
+            weekly_reference_date,
+            weekly_reward_claimed
         `,
         [userId]
       );
 
-      console.log("[DAILY MISSION] Partida registrada:", {
+      const progress = result.rows[0];
+
+      console.log("[REWARD MISSIONS] Partida registrada:", {
         tableId: room.id,
         matchId: room.matchId,
         userId,
-        dailyMatches: result.rows[0]?.daily_matches,
-        referenceDate: result.rows[0]?.daily_reference_date
+
+        dailyMatches:
+          Number(progress?.daily_matches) || 0,
+
+        weeklyMatches:
+          Number(progress?.weekly_matches) || 0,
+
+        dailyReferenceDate:
+          progress?.daily_reference_date,
+
+        weeklyReferenceDate:
+          progress?.weekly_reference_date
       });
     }
 
@@ -2296,7 +2345,7 @@ async function recordDailyMissionMatches(room) {
     room.dailyMissionRecorded = false;
 
     console.error(
-      "[DAILY MISSION] Erro ao registrar partidas:",
+      "[REWARD MISSIONS] Erro ao registrar partidas:",
       err
     );
 

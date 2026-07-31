@@ -12,6 +12,9 @@ const LOGIN_STREAK_REWARDS = [100, 150, 200, 300, 400, 500, 750];
 const DAILY_MISSION_GOAL = 3;
 const DAILY_MISSION_REWARD = 100;
 
+const WEEKLY_MISSION_GOAL = 25;
+const WEEKLY_MISSION_REWARD = 1000;
+
 async function ensureRewardProgress(userId) {
   await pool.query(
     `
@@ -211,6 +214,208 @@ async function claimDailyMissionReward(userId) {
 }
 
 
+async function claimWeeklyMissionReward(userId) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    await client.query(
+      `
+        INSERT INTO user_reward_progress (user_id)
+        VALUES ($1)
+        ON CONFLICT (user_id) DO NOTHING
+      `,
+      [userId]
+    );
+
+    const progressResult = await client.query(
+      `
+        SELECT
+          weekly_matches,
+          weekly_reference_date,
+          weekly_reward_claimed,
+
+          weekly_reference_date =
+            DATE_TRUNC('week', CURRENT_DATE)::date
+            AS mission_is_current_week
+
+        FROM user_reward_progress
+
+        WHERE user_id = $1
+
+        FOR UPDATE
+      `,
+      [userId]
+    );
+
+    const progress = progressResult.rows[0];
+
+    if (!progress) {
+      await client.query("ROLLBACK");
+
+      return {
+        ok: false,
+        status: 404,
+        message: "Progresso da missão semanal não encontrado.",
+      };
+    }
+
+    if (!progress.mission_is_current_week) {
+      await client.query(
+        `
+          UPDATE user_reward_progress
+          SET
+            weekly_matches = 0,
+            weekly_reference_date =
+              DATE_TRUNC('week', CURRENT_DATE)::date,
+            weekly_reward_claimed = FALSE,
+            updated_at = NOW()
+          WHERE user_id = $1
+        `,
+        [userId]
+      );
+
+      await client.query("COMMIT");
+
+      return {
+        ok: false,
+        status: 400,
+        message: "A missão semanal atual ainda não foi concluída.",
+      };
+    }
+
+    const weeklyMatches =
+      Number(progress.weekly_matches) || 0;
+
+    if (weeklyMatches < WEEKLY_MISSION_GOAL) {
+      await client.query("ROLLBACK");
+
+      return {
+        ok: false,
+        status: 400,
+
+        message:
+          `Jogue ${WEEKLY_MISSION_GOAL} partidas para concluir a missão semanal.`,
+
+        matches: weeklyMatches,
+        goal: WEEKLY_MISSION_GOAL,
+      };
+    }
+
+    if (progress.weekly_reward_claimed === true) {
+      await client.query("ROLLBACK");
+
+      return {
+        ok: false,
+        status: 409,
+        message: "A recompensa da missão semanal já foi resgatada.",
+      };
+    }
+
+    const claimResult = await client.query(
+      `
+        UPDATE user_reward_progress
+
+        SET
+          weekly_reward_claimed = TRUE,
+          updated_at = NOW()
+
+        WHERE
+          user_id = $1
+
+          AND weekly_reference_date =
+              DATE_TRUNC('week', CURRENT_DATE)::date
+
+          AND weekly_matches >= $2
+          AND weekly_reward_claimed = FALSE
+
+        RETURNING user_id
+      `,
+      [userId, WEEKLY_MISSION_GOAL]
+    );
+
+    if (claimResult.rowCount !== 1) {
+      await client.query("ROLLBACK");
+
+      return {
+        ok: false,
+        status: 409,
+        message: "Esta recompensa não está mais disponível para resgate.",
+      };
+    }
+
+    const balanceResult = await client.query(
+      `
+        UPDATE users
+        SET
+          chips_balance =
+            COALESCE(chips_balance, 0) + $1,
+
+          updated_at = NOW()
+
+        WHERE id = $2
+
+        RETURNING chips_balance
+      `,
+      [WEEKLY_MISSION_REWARD, userId]
+    );
+
+    if (balanceResult.rowCount !== 1) {
+      throw new Error(
+        `Usuário ${userId} não encontrado ao creditar missão semanal.`
+      );
+    }
+
+    await client.query(
+      `
+        INSERT INTO reward_transactions (
+          user_id,
+          reward_type,
+          description,
+          chips
+        )
+        VALUES (
+          $1,
+          'weekly_mission',
+          $2,
+          $3
+        )
+      `,
+      [
+        userId,
+        `Missão semanal — jogar ${WEEKLY_MISSION_GOAL} partidas`,
+        WEEKLY_MISSION_REWARD,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      ok: true,
+      reward: WEEKLY_MISSION_REWARD,
+      matches: weeklyMatches,
+      goal: WEEKLY_MISSION_GOAL,
+      rewardClaimed: true,
+
+      chipsBalance:
+        Number(balanceResult.rows[0]?.chips_balance) || 0,
+    };
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error(
+        "[WEEKLY MISSION] Erro no rollback:",
+        rollbackError
+      );
+    }
+
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 
 
 async function processDailyLoginReward(userId) {
@@ -586,9 +791,26 @@ router.get("/rewards/status", requireAuth, async (req, res) => {
             ELSE FALSE
           END AS daily_reward_claimed,
 
-          urp.weekly_matches,
-          urp.weekly_reference_date,
-          urp.weekly_reward_claimed,
+          CASE
+            WHEN urp.weekly_reference_date =
+                DATE_TRUNC('week', CURRENT_DATE)::date
+              THEN urp.weekly_matches
+            ELSE 0
+          END AS weekly_matches,
+
+          CASE
+            WHEN urp.weekly_reference_date =
+                DATE_TRUNC('week', CURRENT_DATE)::date
+              THEN urp.weekly_reference_date
+            ELSE DATE_TRUNC('week', CURRENT_DATE)::date
+          END AS weekly_reference_date,
+
+          CASE
+            WHEN urp.weekly_reference_date =
+                DATE_TRUNC('week', CURRENT_DATE)::date
+              THEN urp.weekly_reward_claimed
+            ELSE FALSE
+          END AS weekly_reward_claimed,
 
           urp.lucky_cards_available,
           urp.achievements_json,
@@ -657,12 +879,30 @@ router.get("/rewards/status", requireAuth, async (req, res) => {
         },
 
         weekly: {
-          matches: Number(progress.weekly_matches) || 0,
-          referenceDate:
-            progress.weekly_reference_date || null,
-          rewardClaimed:
-            progress.weekly_reward_claimed === true,
-        },
+            matches:
+              Number(progress.weekly_matches) || 0,
+
+            goal:
+              WEEKLY_MISSION_GOAL,
+
+            reward:
+              WEEKLY_MISSION_REWARD,
+
+            referenceDate:
+              progress.weekly_reference_date || null,
+
+            rewardClaimed:
+              progress.weekly_reward_claimed === true,
+
+            canClaim:
+              Number(progress.weekly_matches) >=
+                WEEKLY_MISSION_GOAL &&
+              progress.weekly_reward_claimed !== true,
+
+            completed:
+              Number(progress.weekly_matches) >=
+                WEEKLY_MISSION_GOAL,
+          },
 
         luckyCard: {
           available:
@@ -747,6 +987,69 @@ router.post(
         ok: false,
         message:
           "Erro interno ao resgatar a recompensa da missão diária.",
+      });
+    }
+  }
+);
+
+
+router.post(
+  "/rewards/claim-weekly-mission",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+
+      const result =
+        await claimWeeklyMissionReward(userId);
+
+      if (!result.ok) {
+        return res
+          .status(result.status || 400)
+          .json(result);
+      }
+
+      console.log(
+        "[WEEKLY MISSION] Recompensa resgatada:",
+        {
+          userId,
+          reward: result.reward,
+          chipsBalance: result.chipsBalance,
+        }
+      );
+
+      return res.json({
+        ok: true,
+
+        message:
+          `${result.reward.toLocaleString("pt-BR")} fichas recebidas com sucesso!`,
+
+        reward: {
+          type: "weekly_mission",
+          chips: result.reward,
+        },
+
+        weekly: {
+          matches: result.matches,
+          goal: result.goal,
+          reward: result.reward,
+          completed: true,
+          canClaim: false,
+          rewardClaimed: true,
+        },
+
+        chipsBalance: result.chipsBalance,
+      });
+    } catch (error) {
+      console.error(
+        "[WEEKLY MISSION] Erro ao resgatar recompensa:",
+        error
+      );
+
+      return res.status(500).json({
+        ok: false,
+        message:
+          "Erro interno ao resgatar a recompensa da missão semanal.",
       });
     }
   }

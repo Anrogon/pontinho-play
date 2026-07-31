@@ -9,6 +9,9 @@ const router = express.Router();
 
 const LOGIN_STREAK_REWARDS = [100, 150, 200, 300, 400, 500, 750];
 
+const DAILY_MISSION_GOAL = 3;
+const DAILY_MISSION_REWARD = 100;
+
 async function ensureRewardProgress(userId) {
   await pool.query(
     `
@@ -19,6 +22,196 @@ async function ensureRewardProgress(userId) {
     [userId]
   );
 }
+
+async function claimDailyMissionReward(userId) {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // Garante que o usuário possua registro de progresso.
+    await client.query(
+      `
+        INSERT INTO user_reward_progress (user_id)
+        VALUES ($1)
+        ON CONFLICT (user_id) DO NOTHING
+      `,
+      [userId]
+    );
+
+    // Bloqueia o progresso durante todo o resgate.
+    const progressResult = await client.query(
+      `
+        SELECT
+          daily_matches,
+          daily_reference_date,
+          daily_reward_claimed,
+          daily_reference_date = CURRENT_DATE AS mission_is_today
+        FROM user_reward_progress
+        WHERE user_id = $1
+        FOR UPDATE
+      `,
+      [userId]
+    );
+
+    const progress = progressResult.rows[0];
+
+    if (!progress) {
+      await client.query("ROLLBACK");
+
+      return {
+        ok: false,
+        status: 404,
+        message: "Progresso da missão diária não encontrado.",
+      };
+    }
+
+    // Um contador de outro dia não vale para a missão atual.
+    if (!progress.mission_is_today) {
+      await client.query(
+        `
+          UPDATE user_reward_progress
+          SET
+            daily_matches = 0,
+            daily_reference_date = CURRENT_DATE,
+            daily_reward_claimed = FALSE,
+            updated_at = NOW()
+          WHERE user_id = $1
+        `,
+        [userId]
+      );
+
+      await client.query("COMMIT");
+
+      return {
+        ok: false,
+        status: 400,
+        message: "A missão diária atual ainda não foi concluída.",
+      };
+    }
+
+    const dailyMatches = Number(progress.daily_matches) || 0;
+
+    if (dailyMatches < DAILY_MISSION_GOAL) {
+      await client.query("ROLLBACK");
+
+      return {
+        ok: false,
+        status: 400,
+        message:
+          `Jogue ${DAILY_MISSION_GOAL} partidas para concluir a missão diária.`,
+        matches: dailyMatches,
+        goal: DAILY_MISSION_GOAL,
+      };
+    }
+
+    if (progress.daily_reward_claimed === true) {
+      await client.query("ROLLBACK");
+
+      return {
+        ok: false,
+        status: 409,
+        message: "A recompensa da missão diária já foi resgatada.",
+      };
+    }
+
+    // Marca primeiro como resgatada dentro da mesma transação.
+    const claimResult = await client.query(
+      `
+        UPDATE user_reward_progress
+        SET
+          daily_reward_claimed = TRUE,
+          updated_at = NOW()
+        WHERE
+          user_id = $1
+          AND daily_reference_date = CURRENT_DATE
+          AND daily_matches >= $2
+          AND daily_reward_claimed = FALSE
+        RETURNING user_id
+      `,
+      [userId, DAILY_MISSION_GOAL]
+    );
+
+    if (claimResult.rowCount !== 1) {
+      await client.query("ROLLBACK");
+
+      return {
+        ok: false,
+        status: 409,
+        message: "Esta recompensa não está mais disponível para resgate.",
+      };
+    }
+
+    const balanceResult = await client.query(
+      `
+        UPDATE users
+        SET
+          chips_balance =
+            COALESCE(chips_balance, 0) + $1,
+          updated_at = NOW()
+        WHERE id = $2
+        RETURNING chips_balance
+      `,
+      [DAILY_MISSION_REWARD, userId]
+    );
+
+    if (balanceResult.rowCount !== 1) {
+      throw new Error(
+        `Usuário ${userId} não encontrado ao creditar missão diária.`
+      );
+    }
+
+    await client.query(
+      `
+        INSERT INTO reward_transactions (
+          user_id,
+          reward_type,
+          description,
+          chips
+        )
+        VALUES (
+          $1,
+          'daily_mission',
+          $2,
+          $3
+        )
+      `,
+      [
+        userId,
+        `Missão diária — jogar ${DAILY_MISSION_GOAL} partidas`,
+        DAILY_MISSION_REWARD,
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      ok: true,
+      reward: DAILY_MISSION_REWARD,
+      matches: dailyMatches,
+      goal: DAILY_MISSION_GOAL,
+      rewardClaimed: true,
+      chipsBalance:
+        Number(balanceResult.rows[0]?.chips_balance) || 0,
+    };
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error(
+        "[DAILY MISSION] Erro no rollback:",
+        rollbackError
+      );
+    }
+
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+
+
 
 async function processDailyLoginReward(userId) {
   const client = await pool.connect();
@@ -268,6 +461,10 @@ router.post("/login", async (req, res) => {
 
     const loginReward = await processDailyLoginReward(user.id);
 
+    if (loginReward) {
+      user.chips_balance = loginReward.chipsBalance;
+    }
+
     return res.json({
       ok: true,
       token,
@@ -354,7 +551,206 @@ router.patch("/settings", requireAuth, async (req, res) => {
   }
 });
 
+// =========================================================
+// RECOMPENSAS — PROGRESSO DO JOGADOR
+// GET /api/auth/rewards/status
+// =========================================================
 
+router.get("/rewards/status", requireAuth, async (req, res) => {
+  try {
+    const userId = req.auth.userId;
+
+    await ensureRewardProgress(userId);
+
+    const result = await pool.query(
+      `
+        SELECT
+          urp.login_streak,
+          urp.last_login_reward_date,
+
+          CASE
+            WHEN urp.daily_reference_date = CURRENT_DATE
+              THEN urp.daily_matches
+            ELSE 0
+          END AS daily_matches,
+
+          CASE
+            WHEN urp.daily_reference_date = CURRENT_DATE
+              THEN urp.daily_reference_date
+            ELSE CURRENT_DATE
+          END AS daily_reference_date,
+
+          CASE
+            WHEN urp.daily_reference_date = CURRENT_DATE
+              THEN urp.daily_reward_claimed
+            ELSE FALSE
+          END AS daily_reward_claimed,
+
+          urp.weekly_matches,
+          urp.weekly_reference_date,
+          urp.weekly_reward_claimed,
+
+          urp.lucky_cards_available,
+          urp.achievements_json,
+
+          u.chips_balance
+
+        FROM user_reward_progress urp
+
+        INNER JOIN users u
+          ON u.id = urp.user_id
+
+        WHERE urp.user_id = $1
+      `,
+      [userId]
+    );
+
+    const progress = result.rows[0];
+
+    if (!progress) {
+      return res.status(404).json({
+        ok: false,
+        message: "Progresso de recompensas não encontrado.",
+      });
+    }
+
+    const loginStreak = Number(progress.login_streak) || 0;
+
+    const loginRewards = LOGIN_STREAK_REWARDS.map(
+      (reward, index) => ({
+        day: index + 1,
+        reward,
+        completed: index + 1 <= loginStreak,
+        current: index + 1 === loginStreak,
+      })
+    );
+
+    return res.json({
+      ok: true,
+
+      rewards: {
+        login: {
+          streak: loginStreak,
+          totalDays: LOGIN_STREAK_REWARDS.length,
+          lastRewardDate:
+            progress.last_login_reward_date || null,
+          rewards: loginRewards,
+        },
+
+        daily: {
+          matches: Number(progress.daily_matches) || 0,
+          goal: DAILY_MISSION_GOAL,
+          reward: DAILY_MISSION_REWARD,
+
+          referenceDate:
+            progress.daily_reference_date || null,
+
+          rewardClaimed:
+            progress.daily_reward_claimed === true,
+
+          canClaim:
+            Number(progress.daily_matches) >= DAILY_MISSION_GOAL &&
+            progress.daily_reward_claimed !== true,
+
+          completed:
+            Number(progress.daily_matches) >= DAILY_MISSION_GOAL,
+        },
+
+        weekly: {
+          matches: Number(progress.weekly_matches) || 0,
+          referenceDate:
+            progress.weekly_reference_date || null,
+          rewardClaimed:
+            progress.weekly_reward_claimed === true,
+        },
+
+        luckyCard: {
+          available:
+            Number(progress.lucky_cards_available) || 0,
+        },
+
+        achievements:
+          progress.achievements_json &&
+          typeof progress.achievements_json === "object"
+            ? progress.achievements_json
+            : {},
+
+        chipsBalance:
+          Number(progress.chips_balance) || 0,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "[REWARDS] Erro ao carregar progresso:",
+      error
+    );
+
+    return res.status(500).json({
+      ok: false,
+      message: "Erro interno ao carregar recompensas.",
+    });
+  }
+});
+
+
+router.post(
+  "/rewards/claim-daily-mission",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+
+      const result =
+        await claimDailyMissionReward(userId);
+
+      if (!result.ok) {
+        return res.status(result.status || 400).json(result);
+      }
+
+      console.log(
+        "[DAILY MISSION] Recompensa resgatada:",
+        {
+          userId,
+          reward: result.reward,
+          chipsBalance: result.chipsBalance,
+        }
+      );
+
+      return res.json({
+        ok: true,
+        message:
+          `${result.reward} fichas recebidas com sucesso!`,
+
+        reward: {
+          type: "daily_mission",
+          chips: result.reward,
+        },
+
+        daily: {
+          matches: result.matches,
+          goal: result.goal,
+          reward: result.reward,
+          completed: true,
+          canClaim: false,
+          rewardClaimed: true,
+        },
+
+        chipsBalance: result.chipsBalance,
+      });
+    } catch (error) {
+      console.error(
+        "[DAILY MISSION] Erro ao resgatar recompensa:",
+        error
+      );
+
+      return res.status(500).json({
+        ok: false,
+        message:
+          "Erro interno ao resgatar a recompensa da missão diária.",
+      });
+    }
+  }
+);
 
 
 router.get("/me", requireAuth, async (req, res) => {
@@ -508,63 +904,6 @@ router.post("/me/avatar", requireAuth, async (req, res) => {
   }
 });
 
-/*
-router.post("/change-password-required", requireAuth, async (req, res) => {
-  try {
-    const currentUser = await findUserById(req.auth.userId);
-
-    if (!currentUser) {
-      return res.status(404).json({
-        ok: false,
-        message: "Usuário não encontrado.",
-      });
-    }
-
-    const newPassword = String(req.body?.newPassword || "").trim();
-    const confirmPassword = String(req.body?.confirmPassword || "").trim();
-
-    if (!newPassword || newPassword.length < 4) {
-      return res.status(400).json({
-        ok: false,
-        message: "A nova senha deve ter pelo menos 4 caracteres.",
-      });
-    }
-
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({
-        ok: false,
-        message: "A confirmação de senha não confere.",
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-
-    await pool.query(
-      `
-      UPDATE users
-      SET
-        password_hash = $2,
-        must_reset_password = false,
-        session_version = COALESCE(session_version, 1) + 1,
-        updated_at = NOW()
-      WHERE id = $1
-      `,
-      [currentUser.id, passwordHash]
-    );
-
-    return res.json({
-      ok: true,
-      message: "Senha alterada com sucesso. Faça login novamente.",
-    });
-  } catch (err) {
-    console.error("POST /change-password-required error:", err);
-    return res.status(500).json({
-      ok: false,
-      message: "Erro ao alterar senha.",
-    });
-  }
-});
-*/
 
 router.post("/me/change-password", requireAuth, async (req, res) => {
   try {

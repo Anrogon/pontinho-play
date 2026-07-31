@@ -8,33 +8,43 @@
    - ainda não salva missões ou recompensas no banco.
 ========================================================= */
 
-const REWARDS_DEMO_DATA = {
-  balance: 5000,
+const API_BASE =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3001/api"
+    : "/api";
 
-  luckyCardsAvailable: 1,
+const REWARDS_INITIAL_DATA = {
+  balance: 0,
 
-  rankingPosition: 38,
+  luckyCardsAvailable: 0,
+
+  rankingPosition: 0,
 
   dailyLogin: {
-    currentDay: 3,
+    currentDay: 0,
     totalDays: 7,
-    nextReward: 250
+    nextReward: 0
   },
 
   dailyMission: {
-    current: 2,
+    current: 0,
     target: 3,
-    reward: 100
+    reward: 100,
+    completed: false,
+    canClaim: false,
+    rewardClaimed: false
   },
 
   weeklyMission: {
-    current: 14,
+    current: 0,
     target: 25,
-    reward: 1000
+    reward: 1000,
+    rewardClaimed: false
   },
 
   achievement: {
-    current: 3,
+    current: 0,
     target: 5,
     reward: 500,
     label: "Ganhe 5 partidas"
@@ -153,7 +163,7 @@ const CARD_SUITS = [
 ========================================================= */
 
 const rewardsState = {
-  data: structuredClone(REWARDS_DEMO_DATA),
+  data: structuredClone(REWARDS_INITIAL_DATA),
 
   cardOptions: [],
 
@@ -202,6 +212,9 @@ function getRewardsElements() {
 
     dailyMissionStatus:
       document.getElementById("dailyMissionStatus"),
+
+    claimDailyMissionBtn:
+      document.getElementById("claimDailyMissionBtn"),
 
     weeklyMissionCounter:
       document.getElementById("weeklyMissionCounter"),
@@ -353,20 +366,229 @@ function getUserBalance(user) {
 
 
 /* =========================================================
+   API DE RECOMPENSAS
+========================================================= */
+
+async function loadRewardsStatus() {
+  const response = await fetch(
+    `${API_BASE}/auth/rewards/status`,
+    {
+      method: "GET",
+      credentials: "include",
+      headers: {
+        Accept: "application/json"
+      }
+    }
+  );
+
+  const result = await response.json().catch(() => null);
+
+  if (!response.ok || !result?.ok) {
+    if (response.status === 401) {
+      window.location.href = "./login.html";
+      return false;
+    }
+
+    throw new Error(
+      result?.message ||
+      "Não foi possível carregar as recompensas."
+    );
+  }
+
+  applyRewardsApiData(result.rewards);
+
+  return true;
+}
+
+
+function applyRewardsApiData(apiRewards) {
+  const login =
+    apiRewards?.login || {};
+
+  const daily =
+    apiRewards?.daily || {};
+
+  const weekly =
+    apiRewards?.weekly || {};
+
+  const luckyCard =
+    apiRewards?.luckyCard || {};
+
+  const achievements =
+    apiRewards?.achievements || {};
+
+  const loginRewards =
+    Array.isArray(login.rewards)
+      ? login.rewards
+      : [];
+
+  const nextLoginReward =
+    loginRewards.find(
+      item => item.completed !== true
+    );
+
+  rewardsState.data.balance =
+    Number(apiRewards?.chipsBalance) || 0;
+
+  rewardsState.data.luckyCardsAvailable =
+    Number(luckyCard.available) || 0;
+
+  rewardsState.data.dailyLogin = {
+    currentDay:
+      Number(login.streak) || 0,
+
+    totalDays:
+      Number(login.totalDays) || 7,
+
+    nextReward:
+      Number(nextLoginReward?.reward) || 0
+  };
+
+  rewardsState.data.dailyMission = {
+    current:
+      Number(daily.matches) || 0,
+
+    target:
+      Number(daily.goal) || 3,
+
+    reward:
+      Number(daily.reward) || 100,
+
+    completed:
+      daily.completed === true,
+
+    canClaim:
+      daily.canClaim === true,
+
+    rewardClaimed:
+      daily.rewardClaimed === true
+  };
+
+  rewardsState.data.weeklyMission = {
+    current:
+      Number(weekly.matches) || 0,
+
+    target: 25,
+
+    reward: 1000,
+
+    rewardClaimed:
+      weekly.rewardClaimed === true
+  };
+
+  rewardsState.data.achievement = {
+    current:
+      Number(
+        achievements.matchesWon ??
+        achievements.wins ??
+        achievements.current
+      ) || 0,
+
+    target:
+      Number(achievements.target) || 5,
+
+    reward:
+      Number(achievements.reward) || 500,
+
+    label:
+      achievements.label || "Ganhe 5 partidas"
+  };
+
+  renderRewardsPage();
+}
+
+
+async function claimDailyMissionReward() {
+  const elements = getRewardsElements();
+  const button = elements.claimDailyMissionBtn;
+
+  if (
+    rewardsState.data.dailyMission.canClaim !== true ||
+    rewardsState.data.dailyMission.rewardClaimed === true
+  ) {
+    return;
+  }
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Resgatando...";
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/auth/rewards/claim-daily-mission`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        }
+      }
+    );
+
+    const result =
+      await response.json().catch(() => null);
+
+    if (!response.ok || !result?.ok) {
+      throw new Error(
+        result?.message ||
+        "Não foi possível resgatar a recompensa."
+      );
+    }
+
+    rewardsState.data.balance =
+      Number(result.chipsBalance) ||
+      rewardsState.data.balance;
+
+    rewardsState.data.dailyMission = {
+      current:
+        Number(result.daily?.matches) || 0,
+
+      target:
+        Number(result.daily?.goal) || 3,
+
+      reward:
+        Number(result.daily?.reward) || 100,
+
+      completed: true,
+      canClaim: false,
+      rewardClaimed: true
+    };
+
+    renderRewardsPage();
+
+    window.alert(
+      result.message ||
+      "Recompensa recebida com sucesso!"
+    );
+  } catch (error) {
+    console.error(
+      "[REWARDS] Erro ao resgatar missão diária:",
+      error
+    );
+
+    window.alert(
+      error.message ||
+      "Erro ao resgatar a recompensa."
+    );
+
+    await loadRewardsStatus().catch(() => {});
+  }
+}
+
+
+/* =========================================================
    RENDERIZAÇÃO DA PÁGINA
 ========================================================= */
 
 function renderRewardsPage() {
   const elements = getRewardsElements();
   const data = rewardsState.data;
-  const user = getStoredUser();
-
-  const displayedBalance =
-    getUserBalance(user);
 
   if (elements.rewardsBalance) {
     elements.rewardsBalance.textContent =
-      `${formatChips(displayedBalance)} fichas`;
+      `${formatChips(data.balance)} fichas`;
   }
 
   renderLuckyCardSummary(elements, data);
@@ -526,11 +748,56 @@ function renderDailyMission(elements, missionData) {
     );
   }
 
+  const completed =
+    missionData.completed === true ||
+    progress.current >= progress.target;
+
+  const claimed =
+    missionData.rewardClaimed === true;
+
+  const canClaim =
+    missionData.canClaim === true &&
+    claimed !== true;
+
   if (elements.dailyMissionStatus) {
-    elements.dailyMissionStatus.textContent =
-      progress.current >= progress.target
-        ? "Missão concluída. Recompensa recebida."
-        : "Apenas partidas concluídas são contabilizadas.";
+    if (claimed) {
+      elements.dailyMissionStatus.textContent =
+        "Missão concluída. Recompensa resgatada.";
+    } else if (canClaim) {
+      elements.dailyMissionStatus.textContent =
+        "Missão concluída. Sua recompensa está disponível.";
+    } else {
+      const missing = Math.max(
+        progress.target - progress.current,
+        0
+      );
+
+      elements.dailyMissionStatus.textContent =
+        missing === 1
+          ? "Falta 1 partida para completar a missão."
+          : `Faltam ${missing} partidas para completar a missão.`;
+    }
+  }
+
+  if (elements.claimDailyMissionBtn) {
+    elements.claimDailyMissionBtn.disabled =
+      !canClaim;
+
+    if (claimed) {
+      elements.claimDailyMissionBtn.textContent =
+        "Recompensa resgatada";
+    } else if (canClaim) {
+      elements.claimDailyMissionBtn.textContent =
+        `Resgatar ${formatChips(
+          missionData.reward
+        )} fichas`;
+    } else if (completed) {
+      elements.claimDailyMissionBtn.textContent =
+        "Recompensa indisponível";
+    } else {
+      elements.claimDailyMissionBtn.textContent =
+        `Complete ${progress.target} partidas`;
+    }
   }
 }
 
@@ -1144,6 +1411,11 @@ function applyVisualTestReward(card) {
 function bindRewardsEvents() {
   const elements = getRewardsElements();
 
+  elements.claimDailyMissionBtn?.addEventListener(
+    "click",
+    claimDailyMissionReward
+  );
+
   /* Abre o modal */
   elements.openLuckyCardBtn?.addEventListener(
     "click",
@@ -1200,13 +1472,33 @@ function bindRewardsEvents() {
    INICIALIZAÇÃO
 ========================================================= */
 
-function initRewardsPage() {
+async function initRewardsPage() {
   console.log(
     "[REWARDS] Página de recompensas carregada."
   );
 
-  renderRewardsPage();
   bindRewardsEvents();
+  renderRewardsPage();
+
+  try {
+    await loadRewardsStatus();
+
+    console.log(
+      "[REWARDS] Dados reais carregados com sucesso."
+    );
+  } catch (error) {
+    console.error(
+      "[REWARDS] Erro ao carregar dados reais:",
+      error
+    );
+
+    const elements = getRewardsElements();
+
+    if (elements.dailyMissionStatus) {
+      elements.dailyMissionStatus.textContent =
+        "Não foi possível carregar as recompensas.";
+    }
+  }
 }
 
 if (document.readyState === "loading") {

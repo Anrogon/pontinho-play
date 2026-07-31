@@ -1128,6 +1128,9 @@ function resetRoomForRematch(room) {
   room.matchWinnerSeat = null;
   room.keepSeatVotes = {};
 
+  room.dailyMissionRecorded = false;
+  room.dailyMissionRecording = false;
+
   room.deck = [];
   room.discard = [];
   room.tableMelds = [];
@@ -2211,6 +2214,100 @@ async function persistMatchStats(room) {
   }
 }
 
+async function recordDailyMissionMatches(room) {
+  if (!room) return;
+
+  // Impede que os vários caminhos de encerramento contem
+  // a mesma partida mais de uma vez.
+  if (room.dailyMissionRecorded === true) return;
+  if (room.dailyMissionRecording === true) return;
+
+  room.dailyMissionRecording = true;
+
+  try {
+    const userIds = [
+      ...new Set(
+        (room.playersBySeat || [])
+          .filter(p => p && p.userId)
+          .map(p => Number(p.userId))
+          .filter(Number.isInteger)
+      )
+    ];
+
+    for (const userId of userIds) {
+      const result = await pool.query(
+        `
+          INSERT INTO user_reward_progress (
+            user_id,
+            daily_matches,
+            daily_reference_date,
+            daily_reward_claimed,
+            updated_at
+          )
+          VALUES (
+            $1,
+            1,
+            CURRENT_DATE,
+            FALSE,
+            NOW()
+          )
+
+          ON CONFLICT (user_id)
+          DO UPDATE SET
+            daily_matches =
+              CASE
+                WHEN user_reward_progress.daily_reference_date = CURRENT_DATE
+                  THEN user_reward_progress.daily_matches + 1
+                ELSE 1
+              END,
+
+            daily_reference_date = CURRENT_DATE,
+
+            daily_reward_claimed =
+              CASE
+                WHEN user_reward_progress.daily_reference_date = CURRENT_DATE
+                  THEN user_reward_progress.daily_reward_claimed
+                ELSE FALSE
+              END,
+
+            updated_at = NOW()
+
+          RETURNING
+            user_id,
+            daily_matches,
+            daily_reference_date,
+            daily_reward_claimed
+        `,
+        [userId]
+      );
+
+      console.log("[DAILY MISSION] Partida registrada:", {
+        tableId: room.id,
+        matchId: room.matchId,
+        userId,
+        dailyMatches: result.rows[0]?.daily_matches,
+        referenceDate: result.rows[0]?.daily_reference_date
+      });
+    }
+
+    room.dailyMissionRecorded = true;
+  } catch (err) {
+    // Permite nova tentativa caso a gravação tenha falhado.
+    room.dailyMissionRecorded = false;
+
+    console.error(
+      "[DAILY MISSION] Erro ao registrar partidas:",
+      err
+    );
+
+    throw err;
+  } finally {
+    room.dailyMissionRecording = false;
+  }
+}
+
+
+
 function finalizeMatchEconomy(room) {
   const winnerSeat = room.matchWinnerSeat;
   const winner = room.playersBySeat?.[winnerSeat - 1];
@@ -2232,6 +2329,13 @@ function finalizeMatchEconomy(room) {
   }
 
   persistMatchStats(room);
+
+  recordDailyMissionMatches(room).catch(err => {
+    console.error(
+      "[DAILY MISSION] Falha no processamento da partida:",
+      err
+    );
+  });
 
   room.economicLogs = room.economicLogs || [];
   room.economicLogs.push({
@@ -4437,15 +4541,6 @@ case "playMeld": {
   break;
 }
 
-/*
-case "debugHand": {
-  if (!player) return { ok: false };
-
-  debugSetHand(room, playerSeat, action.payload?.cards || []);
-  return null;
-}
-
-*/
 
 case "discard": {
   const err = handleDiscardAction(room, player, playerSeat, action);

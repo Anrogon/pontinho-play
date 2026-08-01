@@ -69,7 +69,6 @@ const rewardsState = {
 
   allCardsRevealed: false,
 
-  testRewardReceived: false
 };
 
 
@@ -929,42 +928,6 @@ function updateProgressAccessibility(
 
 
 /* =========================================================
-   SORTEIO DA CARTA
-========================================================= */
-
-
-function createDrawnCard(cardReward) {
-  if (cardReward.value === "JOKER") {
-    return {
-      ...cardReward,
-      suit: null,
-      isJoker: true,
-      isRed: false,
-      displayValue: "🃏",
-      fullName: "Coringa"
-    };
-  }
-
-  const suit =
-    CARD_SUITS[
-      Math.floor(
-        Math.random() * CARD_SUITS.length
-      )
-    ];
-
-  return {
-    ...cardReward,
-    suit,
-    isJoker: false,
-    isRed: suit.red,
-    displayValue: cardReward.value,
-    fullName:
-      `${cardReward.label || cardReward.value} de ${suit.name}`
-  };
-}
-
-
-/* =========================================================
    MODAL DAS TRÊS CARTAS
 ========================================================= */
 
@@ -1086,10 +1049,10 @@ function resetLuckyCardModal() {
   const elements = getRewardsElements();
 
   rewardsState.cardOptions = [];
+  rewardsState.luckyCardSessionId = null;
   rewardsState.selectedCardIndex = null;
   rewardsState.selectionLocked = false;
   rewardsState.allCardsRevealed = false;
-  rewardsState.testRewardReceived = false;
 
   elements.luckyCardDecks.forEach((deck) => {
     deck.classList.remove(
@@ -1102,6 +1065,13 @@ function resetLuckyCardModal() {
 
     const front =
       deck.querySelector(".lucky-card-front");
+
+      if (front) {
+        front.style.backgroundImage = "";
+        front.style.backgroundSize = "";
+        front.style.backgroundPosition = "";
+        front.style.backgroundRepeat = "";
+      }
 
     const value =
       deck.querySelector(".lucky-card-value");
@@ -1211,7 +1181,101 @@ function prepareLuckyCardFaces(elements) {
   );
 }
 
+function getLuckyCardImagePath(card) {
+  if (!card) return "";
 
+  if (card.isJoker === true) {
+    return "./assets/cards/joker.png";
+  }
+
+  const suitFileNames = {
+    hearts: "copas",
+    diamonds: "ouros",
+    clubs: "paus",
+    spades: "espadas"
+  };
+
+  const suitKey =
+    typeof card.suit === "object"
+      ? card.suit.key
+      : card.suit;
+
+  const suitName = suitFileNames[suitKey];
+
+  if (!card.rank || !suitName) {
+    return "";
+  }
+
+  return `./assets/cards/${card.rank}_${suitName}.png`;
+}
+
+function renderLuckyCardFace(deck, card) {
+  if (!deck || !card) {
+    return;
+  }
+
+  const front =
+    deck.querySelector(".lucky-card-front");
+
+  const value =
+    deck.querySelector(".lucky-card-value");
+
+  const suit =
+    deck.querySelector(".lucky-card-suit");
+
+  if (!front) {
+    return;
+  }
+
+  const imagePath =
+    getLuckyCardImagePath(card);
+
+  front.classList.remove(
+    "is-red",
+    "is-joker"
+  );
+
+  if (card.isJoker === true) {
+    front.classList.add("is-joker");
+  } else if (card.isRed === true) {
+    front.classList.add("is-red");
+  }
+
+  /*
+   * A frente agora usa a imagem real da carta.
+   */
+  front.style.backgroundImage =
+    imagePath
+      ? `url("${imagePath}")`
+      : "";
+
+  front.style.backgroundSize = "contain";
+  front.style.backgroundPosition = "center";
+  front.style.backgroundRepeat = "no-repeat";
+
+  /*
+   * Remove os símbolos antigos, pois eles já fazem
+   * parte da imagem da carta.
+   */
+  if (value) {
+    value.textContent = "";
+  }
+
+  if (suit) {
+    suit.textContent = "";
+  }
+
+  deck.setAttribute(
+    "aria-label",
+    card.isJoker
+      ? "Coringa"
+      : card.fullName
+  );
+}
+
+
+
+/*
 function renderLuckyCardFace(deck, card) {
   if (!deck || !card) {
     return;
@@ -1260,7 +1324,7 @@ function renderLuckyCardFace(deck, card) {
   }
 }
 
-
+*/
 /* =========================================================
    ESCOLHA DO JOGADOR
 ========================================================= */
@@ -1572,42 +1636,10 @@ function showFinalComparison(
     </div>
 
     <div class="lucky-result-demo">
-      Demonstração visual — saldo real não alterado.
+      ${formatChips(selectedReward)} fichas foram adicionadas à sua conta.
     </div>
   `;
 }
-
-
-/* =========================================================
-   RECOMPENSA VISUAL DE TESTE
-========================================================= */
-
-function applyVisualTestReward(card) {
-  if (
-    !card ||
-    rewardsState.testRewardReceived
-  ) {
-    return;
-  }
-
-  rewardsState.testRewardReceived = true;
-
-  /*
-   * Somente demonstração visual.
-   * Não altera saldo, banco ou servidor.
-   */
-  rewardsState.data.luckyCardsAvailable =
-    Math.max(
-      Number(
-        rewardsState.data
-          .luckyCardsAvailable
-      ) - 1,
-      0
-    );
-
-  renderRewardsPage();
-}
-
 
 /* =========================================================
    EVENTOS

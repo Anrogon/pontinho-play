@@ -5,6 +5,7 @@ const pool = require("../config/db");
 const { findUserByEmail, findUserById, createUser, logAdminAction } = require("../services/userService");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const router = express.Router();
+const { startLuckyCardSession, chooseLuckyCard} = require("../services/luckyCardService");
 
 
 const LOGIN_STREAK_REWARDS = [100, 150, 200, 300, 400, 500, 750];
@@ -14,6 +15,7 @@ const DAILY_MISSION_REWARD = 100;
 
 const WEEKLY_MISSION_GOAL = 25;
 const WEEKLY_MISSION_REWARD = 1000;
+
 
 async function ensureRewardProgress(userId) {
   await pool.query(
@@ -932,6 +934,7 @@ router.get("/rewards/status", requireAuth, async (req, res) => {
   }
 });
 
+/* Rota para resgatar a recompensa da missão diária */
 
 router.post(
   "/rewards/claim-daily-mission",
@@ -992,6 +995,7 @@ router.post(
   }
 );
 
+/* Rota para resgatar a recompensa da missão semanal */
 
 router.post(
   "/rewards/claim-weekly-mission",
@@ -1055,6 +1059,117 @@ router.post(
   }
 );
 
+/* Rota para iniciar uma sessão da Carta da Sorte */
+
+router.post(
+  "/rewards/lucky-card/start",
+  requireAuth,
+  async (req, res) => {
+    try {
+      const userId = req.auth.userId;
+
+      const result = await startLuckyCardSession(userId);
+
+      if (!result.ok) {
+        return res
+          .status(result.status || 400)
+          .json(result);
+      }
+
+      return res.json({
+        ok: true,
+        resumed: result.resumed,
+        sessionId: result.sessionId,
+        expiresAt: result.expiresAt,
+        cards: result.cards
+      });
+
+    } catch (error) {
+
+      console.error(
+        "[LUCKY CARD] Erro ao iniciar sessão:",
+        error
+      );
+
+      return res.status(500).json({
+        ok: false,
+        message:
+          "Erro interno ao iniciar a Carta da Sorte."
+      });
+    }
+  }
+);
+
+/* Rota para escolher uma carta da Carta da Sorte */
+
+router.post(
+  "/rewards/lucky-card/choose",
+  requireAuth,
+  async (req, res) => {
+
+    try {
+
+      const userId = req.auth.userId;
+
+      const {
+        sessionId,
+        chosenIndex
+      } = req.body || {};
+
+      const result =
+        await chooseLuckyCard(
+          userId,
+          sessionId,
+          Number(chosenIndex)
+        );
+
+      if (!result.ok) {
+        return res
+          .status(result.status || 400)
+          .json(result);
+      }
+
+      console.log(
+        "[LUCKY CARD] Carta aberta:",
+        {
+          userId,
+          reward: result.reward,
+          card: result.chosenCard
+        }
+      );
+
+      return res.json({
+        ok: true,
+
+        reward: result.reward,
+
+        chosenCard: result.chosenCard,
+
+        cards: result.cards,
+
+        chipsBalance:
+          result.chipsBalance,
+
+        luckyCardsAvailable:
+          result.luckyCardsAvailable
+      });
+
+    } catch (error) {
+
+      console.error(
+        "[LUCKY CARD] Erro ao abrir carta:",
+        error
+      );
+
+      return res.status(500).json({
+        ok: false,
+        message:
+          "Erro interno ao abrir a Carta da Sorte."
+      });
+    }
+
+  }
+);
 
 router.get("/me", requireAuth, async (req, res) => {
   try {

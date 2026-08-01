@@ -53,112 +53,6 @@ const REWARDS_INITIAL_DATA = {
 
 
 /* =========================================================
-   CONFIGURAÇÃO DA CARTA DA SORTE
-========================================================= */
-
-const LUCKY_CARD_REWARDS = [
-  {
-    value: "2",
-    reward: 200,
-    weight: 14
-  },
-  {
-    value: "3",
-    reward: 300,
-    weight: 13
-  },
-  {
-    value: "4",
-    reward: 400,
-    weight: 12
-  },
-  {
-    value: "5",
-    reward: 500,
-    weight: 11
-  },
-  {
-    value: "6",
-    reward: 600,
-    weight: 10
-  },
-  {
-    value: "7",
-    reward: 700,
-    weight: 9
-  },
-  {
-    value: "8",
-    reward: 800,
-    weight: 8
-  },
-  {
-    value: "9",
-    reward: 900,
-    weight: 7
-  },
-  {
-    value: "10",
-    reward: 1000,
-    weight: 6
-  },
-  {
-    value: "J",
-    label: "Valete",
-    reward: 1200,
-    weight: 4
-  },
-  {
-    value: "Q",
-    label: "Dama",
-    reward: 1400,
-    weight: 3
-  },
-  {
-    value: "K",
-    label: "Rei",
-    reward: 1600,
-    weight: 2
-  },
-  {
-    value: "A",
-    label: "Ás",
-    reward: 2000,
-    weight: 1.5
-  },
-  {
-    value: "JOKER",
-    label: "Coringa",
-    reward: 5000,
-    weight: 0.5
-  }
-];
-
-const CARD_SUITS = [
-  {
-    symbol: "♠",
-    name: "Espadas",
-    red: false
-  },
-  {
-    symbol: "♣",
-    name: "Paus",
-    red: false
-  },
-  {
-    symbol: "♥",
-    name: "Copas",
-    red: true
-  },
-  {
-    symbol: "♦",
-    name: "Ouros",
-    red: true
-  }
-];
-
-
-/* =========================================================
    ESTADO LOCAL DA TELA
 ========================================================= */
 
@@ -166,6 +60,8 @@ const rewardsState = {
   data: structuredClone(REWARDS_INITIAL_DATA),
 
   cardOptions: [],
+
+  luckyCardSessionId: null,
 
   selectedCardIndex: null,
 
@@ -1036,29 +932,6 @@ function updateProgressAccessibility(
    SORTEIO DA CARTA
 ========================================================= */
 
-function drawWeightedLuckyCard() {
-  const totalWeight =
-    LUCKY_CARD_REWARDS.reduce(
-      (total, card) =>
-        total + Number(card.weight || 0),
-      0
-    );
-
-  let random =
-    Math.random() * totalWeight;
-
-  for (const card of LUCKY_CARD_REWARDS) {
-    random -= Number(card.weight || 0);
-
-    if (random <= 0) {
-      return createDrawnCard(card);
-    }
-  }
-
-  return createDrawnCard(
-    LUCKY_CARD_REWARDS[0]
-  );
-}
 
 function createDrawnCard(cardReward) {
   if (cardReward.value === "JOKER") {
@@ -1092,14 +965,10 @@ function createDrawnCard(cardReward) {
 
 
 /* =========================================================
-   MODAL DA CARTA
-========================================================= */
-
-/* =========================================================
    MODAL DAS TRÊS CARTAS
 ========================================================= */
 
-function openLuckyCardModal() {
+async function openLuckyCardModal() {
   const elements = getRewardsElements();
 
   if (
@@ -1110,23 +979,82 @@ function openLuckyCardModal() {
 
   resetLuckyCardModal();
 
-  /*
-   * Na versão definitiva estas três cartas serão
-   * geradas e registradas pelo servidor.
-   */
-  rewardsState.cardOptions = [
-    drawWeightedLuckyCard(),
-    drawWeightedLuckyCard(),
-    drawWeightedLuckyCard()
-  ];
+  if (elements.openLuckyCardBtn) {
+    elements.openLuckyCardBtn.disabled = true;
+    elements.openLuckyCardBtn.textContent =
+      "Preparando cartas...";
+  }
 
-  prepareLuckyCardFaces(elements);
+  try {
+    const response = await fetch(
+      `${API_BASE}/auth/rewards/lucky-card/start`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        }
+      }
+    );
 
-  elements.luckyCardModal?.classList.remove(
-    "hidden"
-  );
+    const result =
+      await response.json().catch(() => null);
 
-  document.body.style.overflow = "hidden";
+    if (!response.ok || !result?.ok) {
+      throw new Error(
+        result?.message ||
+        "Não foi possível iniciar a Carta da Sorte."
+      );
+    }
+
+    rewardsState.luckyCardSessionId =
+      result.sessionId;
+
+    /*
+     * O servidor não revela as cartas neste momento.
+     * Guardamos apenas as três posições fechadas.
+     */
+    rewardsState.cardOptions =
+      Array.isArray(result.cards)
+        ? result.cards
+        : [
+            { index: 0, hidden: true },
+            { index: 1, hidden: true },
+            { index: 2, hidden: true }
+          ];
+
+    elements.luckyCardModal?.classList.remove(
+      "hidden"
+    );
+
+    document.body.style.overflow = "hidden";
+  } catch (error) {
+    console.error(
+      "[REWARDS] Erro ao iniciar Carta da Sorte:",
+      error
+    );
+
+    window.alert(
+      error.message ||
+      "Erro ao iniciar a Carta da Sorte."
+    );
+
+    await loadRewardsStatus().catch(() => {});
+  } finally {
+    if (elements.openLuckyCardBtn) {
+      const available =
+        Number(
+          rewardsState.data.luckyCardsAvailable
+        ) || 0;
+
+      elements.openLuckyCardBtn.disabled =
+        available <= 0;
+
+      elements.openLuckyCardBtn.textContent =
+        "Virar carta";
+    }
+  }
 }
 
 
@@ -1210,6 +1138,68 @@ function resetLuckyCardModal() {
    PREPARAR AS FACES DAS CARTAS
 ========================================================= */
 
+function normalizeLuckyCard(card) {
+  if (!card) return null;
+
+  const suitMap = {
+    spades: {
+      key: "spades",
+      name: "Espadas",
+      symbol: "♠",
+      red: false
+    },
+
+    hearts: {
+      key: "hearts",
+      name: "Copas",
+      symbol: "♥",
+      red: true
+    },
+
+    diamonds: {
+      key: "diamonds",
+      name: "Ouros",
+      symbol: "♦",
+      red: true
+    },
+
+    clubs: {
+      key: "clubs",
+      name: "Paus",
+      symbol: "♣",
+      red: false
+    }
+  };
+
+  if (card.isJoker === true) {
+    return {
+      ...card,
+      isJoker: true,
+      isRed: false,
+      displayValue: "🃏",
+      fullName: "Coringa"
+    };
+  }
+
+  const suit =
+    suitMap[card.suit] || {
+      key: card.suit,
+      name: "",
+      symbol: card.symbol || "",
+      red: false
+    };
+
+  return {
+    ...card,
+    suit,
+    isJoker: false,
+    isRed: suit.red,
+    displayValue: card.rank,
+    fullName: `${card.rank} de ${suit.name}`
+  };
+}
+
+
 function prepareLuckyCardFaces(elements) {
   elements.luckyCardDecks.forEach(
     (deck, index) => {
@@ -1275,13 +1265,13 @@ function renderLuckyCardFace(deck, card) {
    ESCOLHA DO JOGADOR
 ========================================================= */
 
-function selectLuckyCard(event) {
-  const selectedDeck =
-    event.currentTarget;
+async function selectLuckyCard(event) {
+  const selectedDeck = event.currentTarget;
 
   if (
     rewardsState.selectionLocked ||
-    !selectedDeck
+    !selectedDeck ||
+    !rewardsState.luckyCardSessionId
   ) {
     return;
   }
@@ -1289,10 +1279,11 @@ function selectLuckyCard(event) {
   const selectedIndex =
     Number(selectedDeck.dataset.cardIndex);
 
-  const selectedCard =
-    rewardsState.cardOptions[selectedIndex];
-
-  if (!selectedCard) {
+  if (
+    !Number.isInteger(selectedIndex) ||
+    selectedIndex < 0 ||
+    selectedIndex > 2
+  ) {
     return;
   }
 
@@ -1303,7 +1294,7 @@ function selectLuckyCard(event) {
     selectedIndex;
 
   /*
-   * Bloqueia todas as cartas para impedir dois cliques.
+   * Bloqueia as três cartas para impedir clique duplo.
    */
   elements.luckyCardDecks.forEach(
     (deck, index) => {
@@ -1315,34 +1306,117 @@ function selectLuckyCard(event) {
     }
   );
 
-  /*
-   * Primeiro vira somente a carta escolhida.
-   */
-  selectedDeck.classList.add(
-    "is-revealed"
-  );
+  if (elements.luckyCardResult) {
+    elements.luckyCardResult.innerHTML =
+      "Revelando sua carta...";
+  }
 
-  window.setTimeout(() => {
-    renderSelectedCardResult(
-      elements,
-      selectedCard
+  try {
+    const response = await fetch(
+      `${API_BASE}/auth/rewards/lucky-card/choose`,
+      {
+        method: "POST",
+        credentials: "include",
+
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json"
+        },
+
+        body: JSON.stringify({
+          sessionId:
+            rewardsState.luckyCardSessionId,
+
+          chosenIndex:
+            selectedIndex
+        })
+      }
     );
 
-    applyVisualTestReward(
-      selectedCard
-    );
-  }, 740);
+    const result =
+      await response.json().catch(() => null);
 
-  /*
-   * Depois de o jogador ver seu prêmio,
-   * as outras duas cartas são reveladas.
-   */
-  window.setTimeout(() => {
-    revealRemainingCards(
-      elements,
-      selectedIndex
+    if (!response.ok || !result?.ok) {
+      throw new Error(
+        result?.message ||
+        "Não foi possível revelar a Carta da Sorte."
+      );
+    }
+
+    /*
+     * Agora sim o navegador recebe as três cartas reais.
+     */
+    rewardsState.cardOptions =
+      Array.isArray(result.cards)
+        ? result.cards.map(normalizeLuckyCard)
+        : [];
+
+    rewardsState.data.balance =
+      Number(result.chipsBalance) ||
+      rewardsState.data.balance;
+
+    rewardsState.data.luckyCardsAvailable =
+      Number(result.luckyCardsAvailable) || 0;
+
+    prepareLuckyCardFaces(elements);
+
+    const selectedCard =
+      rewardsState.cardOptions[selectedIndex];
+
+    if (!selectedCard) {
+      throw new Error(
+        "A carta escolhida não foi retornada pelo servidor."
+      );
+    }
+
+    /*
+     * Primeiro vira somente a carta escolhida.
+     */
+    selectedDeck.classList.add(
+      "is-revealed"
     );
-  }, 1950);
+
+    window.setTimeout(() => {
+      renderSelectedCardResult(
+        elements,
+        selectedCard
+      );
+
+      renderRewardsPage();
+    }, 740);
+
+    /*
+     * Depois revela as outras duas cartas.
+     */
+    window.setTimeout(() => {
+      revealRemainingCards(
+        elements,
+        selectedIndex
+      );
+    }, 1950);
+
+  } catch (error) {
+    console.error(
+      "[REWARDS] Erro ao escolher Carta da Sorte:",
+      error
+    );
+
+    rewardsState.selectionLocked = false;
+    rewardsState.selectedCardIndex = null;
+
+    elements.luckyCardDecks.forEach((deck) => {
+      deck.disabled = false;
+      deck.classList.remove("is-selected");
+    });
+
+    if (elements.luckyCardResult) {
+      elements.luckyCardResult.innerHTML =
+        error.message ||
+        "Erro ao revelar a Carta da Sorte.";
+    }
+
+    await loadRewardsStatus().catch(() => {});
+  }
 }
 
 

@@ -6,6 +6,8 @@ const { findUserByEmail, findUserById, createUser, logAdminAction } = require(".
 const { requireAuth, requireAdmin } = require("../middleware/auth");
 const router = express.Router();
 const { startLuckyCardSession, chooseLuckyCard} = require("../services/luckyCardService");
+const { getUserAchievementsStatus} = require("../services/achievementService");
+const { getMonthlyRankingStatus} = require("../services/monthlyRankingService");
 
 
 const LOGIN_STREAK_REWARDS = [100, 150, 200, 300, 400, 500, 750];
@@ -838,6 +840,10 @@ router.get("/rewards/status", requireAuth, async (req, res) => {
       });
     }
 
+    const achievementStatus = await getUserAchievementsStatus(userId);
+
+    const monthlyRankingStatus = await getMonthlyRankingStatus(userId);
+
     const loginStreak = Number(progress.login_streak) || 0;
 
     const loginRewards = LOGIN_STREAK_REWARDS.map(
@@ -881,41 +887,33 @@ router.get("/rewards/status", requireAuth, async (req, res) => {
         },
 
         weekly: {
-            matches:
-              Number(progress.weekly_matches) || 0,
+          matches:
+            Number(progress.weekly_matches) || 0,
 
-            goal:
+          referenceDate:
+            progress.weekly_reference_date || null,
+
+          rewardClaimed:
+            progress.weekly_reward_claimed === true,
+
+          canClaim:
+            Number(progress.weekly_matches) >=
+              WEEKLY_MISSION_GOAL &&
+            progress.weekly_reward_claimed !== true,
+
+          completed:
+            Number(progress.weekly_matches) >=
               WEEKLY_MISSION_GOAL,
+        },
 
-            reward:
-              WEEKLY_MISSION_REWARD,
-
-            referenceDate:
-              progress.weekly_reference_date || null,
-
-            rewardClaimed:
-              progress.weekly_reward_claimed === true,
-
-            canClaim:
-              Number(progress.weekly_matches) >=
-                WEEKLY_MISSION_GOAL &&
-              progress.weekly_reward_claimed !== true,
-
-            completed:
-              Number(progress.weekly_matches) >=
-                WEEKLY_MISSION_GOAL,
-          },
+        monthlyRanking: monthlyRankingStatus,
 
         luckyCard: {
           available:
             Number(progress.lucky_cards_available) || 0,
         },
 
-        achievements:
-          progress.achievements_json &&
-          typeof progress.achievements_json === "object"
-            ? progress.achievements_json
-            : {},
+        achievements: achievementStatus,
 
         chipsBalance:
           Number(progress.chips_balance) || 0,

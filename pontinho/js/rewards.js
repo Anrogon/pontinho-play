@@ -309,6 +309,9 @@ function applyRewardsApiData(apiRewards) {
   const weekly =
     apiRewards?.weekly || {};
 
+  const monthlyRanking =
+    apiRewards?.monthlyRanking || {};
+
   const luckyCard =
     apiRewards?.luckyCard || {};
 
@@ -331,7 +334,34 @@ function applyRewardsApiData(apiRewards) {
   rewardsState.data.luckyCardsAvailable =
     Number(luckyCard.available) || 0;
 
-  rewardsState.data.dailyLogin = {
+  rewardsState.data.rankingPosition =
+  Number(monthlyRanking.position) || 0;
+
+  rewardsState.data.monthlyRanking = {
+    position:
+      Number(monthlyRanking.position) || 0,
+
+    totalPlayers:
+      Number(monthlyRanking.totalPlayers) || 0,
+
+    matchesPlayed:
+      Number(monthlyRanking.matchesPlayed) || 0,
+
+    wins:
+      Number(monthlyRanking.wins) || 0,
+
+    losses:
+      Number(monthlyRanking.losses) || 0,
+
+    winRate:
+      Number(monthlyRanking.winRate) || 0,
+
+    displayPoints:
+      Number(monthlyRanking.displayPoints) || 0
+  };
+  
+  
+    rewardsState.data.dailyLogin = {
     currentDay:
       Number(login.streak) || 0,
 
@@ -382,23 +412,80 @@ function applyRewardsApiData(apiRewards) {
       weekly.rewardClaimed === true
   };
 
-  rewardsState.data.achievement = {
-    current:
-      Number(
-        achievements.matchesWon ??
-        achievements.wins ??
-        achievements.current
-      ) || 0,
+  const achievementList =
+    Array.isArray(achievements.achievements)
+      ? achievements.achievements
+      : [];
 
-    target:
-      Number(achievements.target) || 5,
+  const currentAchievement =
+    achievementList.find(
+      achievement => achievement.claimed !== true
+    ) ||
+    achievementList[
+      achievementList.length - 1
+    ] ||
+    null;
 
-    reward:
-      Number(achievements.reward) || 500,
+  rewardsState.data.achievement =
+    currentAchievement
+      ? {
+          key:
+            currentAchievement.key,
 
-    label:
-      achievements.label || "Ganhe 5 partidas"
-  };
+          current:
+            Number(
+              currentAchievement.currentWins
+            ) || 0,
+
+          target:
+            Number(
+              currentAchievement.winsRequired
+            ) || 5,
+
+          label:
+            `Ganhe ${
+              Number(
+                currentAchievement.winsRequired
+              ) || 5
+            } vitórias`,
+
+          rewardType:
+            currentAchievement.rewardType,
+
+          chips:
+            Number(
+              currentAchievement.chips
+            ) || 0,
+
+          luckyCards:
+            Number(
+              currentAchievement.luckyCards
+            ) || 0,
+
+          completed:
+            currentAchievement.completed === true,
+
+          claimed:
+            currentAchievement.claimed === true,
+
+          allCompleted:
+            achievementList.length > 0 &&
+            achievementList.every(
+              achievement =>
+                achievement.claimed === true
+            )
+        }
+      : {
+          current: 0,
+          target: 5,
+          label: "Ganhe 5 vitórias",
+          rewardType: "lucky_card",
+          chips: 0,
+          luckyCards: 1,
+          completed: false,
+          claimed: false,
+          allCompleted: false
+        };
 
   renderRewardsPage();
 }
@@ -650,30 +737,30 @@ function getRankingRewardLabel(position) {
   }
 
   if (position === 1) {
-    return "Prêmio atual: 20.000 fichas";
+    return "Prêmio atual: 50.000 fichas";
   }
 
   if (position === 2) {
-    return "Prêmio atual: 15.000 fichas";
+    return "Prêmio atual: 30.000 fichas";
   }
 
   if (position === 3) {
-    return "Prêmio atual: 10.000 fichas";
+    return "Prêmio atual: 20.000 fichas";
   }
 
   if (position <= 10) {
-    return "Prêmio atual: 5.000 fichas";
+    return "Prêmio atual: 10.000 fichas";
   }
 
   if (position <= 50) {
-    return "Prêmio atual: 2.000 fichas";
+    return "Prêmio atual: 5.000 fichas";
   }
 
   if (position <= 100) {
-    return "Prêmio atual: Carta da Sorte";
+    return "Prêmio atual: 1 Carta da Sorte";
   }
 
-  return "Suba no ranking para conquistar um prêmio.";
+  return "Entre no Top 100 para conquistar um prêmio.";
 }
 
 function renderDailyLogin(elements, loginData) {
@@ -862,7 +949,10 @@ function renderWeeklyMission(elements, missionData) {
   }
 }
 
-function renderAchievement(elements, achievementData) {
+function renderAchievement(
+  elements,
+  achievementData
+) {
   const progress = calculateProgress(
     achievementData.current,
     achievementData.target
@@ -870,8 +960,10 @@ function renderAchievement(elements, achievementData) {
 
   if (elements.achievementLabel) {
     elements.achievementLabel.textContent =
-      achievementData.label ||
-      `Ganhe ${progress.target} partidas`;
+      achievementData.allCompleted === true
+        ? "Todas as conquistas concluídas"
+        : achievementData.label ||
+          `Ganhe ${progress.target} vitórias`;
   }
 
   if (elements.achievementCounter) {
@@ -890,12 +982,32 @@ function renderAchievement(elements, achievementData) {
   }
 
   if (elements.achievementReward) {
-    elements.achievementReward.textContent =
-      `Recompensa: ${formatChips(
-        achievementData.reward
-      )} fichas`;
+    if (achievementData.allCompleted === true) {
+      elements.achievementReward.textContent =
+        "Você conquistou todas as recompensas.";
+    } else if (
+      achievementData.rewardType ===
+      "lucky_card"
+    ) {
+      const amount =
+        Number(
+          achievementData.luckyCards
+        ) || 1;
+
+      elements.achievementReward.textContent =
+        amount === 1
+          ? "Recompensa: 1 Carta da Sorte"
+          : `Recompensa: ${amount} Cartas da Sorte`;
+    } else {
+      elements.achievementReward.textContent =
+        `Recompensa: ${formatChips(
+          achievementData.chips
+        )} fichas`;
+    }
   }
 }
+
+
 
 function updateProgressAccessibility(
   fillElement,

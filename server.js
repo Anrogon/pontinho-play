@@ -7,6 +7,8 @@ const express = require("express");
 const http = require("http");
 const { WebSocketServer } = require("ws");
 const { randomUUID } = require("crypto");
+const { processUserAchievements} = require("./pontinho/server/services/achievementService");
+const { processMonthlyRankingResult} = require("./pontinho/server/services/monthlyRankingService");
 
 
 function isJoker(card) {
@@ -2208,6 +2210,73 @@ async function persistMatchStats(room) {
           lossToAdd,
         ]
       );
+
+      try {
+        const achievementResult =
+          await processUserAchievements(p.userId);
+
+        if (achievementResult?.unlocked?.length) {
+          console.log(
+            "[MATCH STATS] Conquistas processadas:",
+            {
+              userId: p.userId,
+              wins: achievementResult.wins,
+              unlocked:
+                achievementResult.unlocked.map(
+                  achievement => achievement.key
+                )
+            }
+          );
+        }
+      } catch (error) {
+        /*
+         * Uma falha nas conquistas não deve impedir
+         * o salvamento das estatísticas da partida.
+         */
+        console.error(
+          "[MATCH STATS] Erro ao processar conquistas:",
+          {
+            userId: p.userId,
+            error
+          }
+        );
+      }
+      
+      try {
+        const rankingResult =
+          await processMonthlyRankingResult({
+            userId: p.userId,
+            isWinner
+          });
+
+        if (rankingResult?.ok) {
+          console.log(
+            "[MATCH STATS] Ranking mensal processado:",
+            {
+              userId: p.userId,
+              matchesPlayed:
+                rankingResult.matchesPlayed,
+              wins:
+                rankingResult.wins,
+              displayPoints:
+                rankingResult.displayPoints
+            }
+          );
+        }
+      } catch (error) {
+        /*
+         * Uma falha no ranking mensal não deve impedir
+         * o salvamento das estatísticas da partida.
+         */
+        console.error(
+          "[MATCH STATS] Erro ao processar ranking mensal:",
+          {
+            userId: p.userId,
+            error
+          }
+        );
+      }
+
     }
   } catch (err) {
     console.error("persistMatchStats error:", err);

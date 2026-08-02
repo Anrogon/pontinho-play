@@ -22,6 +22,45 @@ const MONTHLY_RANKING_GAME_CODE = "PONTINHO";
 const MONTHLY_RANKING_SCORE_SCALE = 1000;
 
 
+const MONTHLY_RANKING_PRIZES = [
+  {
+    from: 1,
+    to: 1,
+    chips: 50000,
+    luckyCards: 0
+  },
+  {
+    from: 2,
+    to: 2,
+    chips: 30000,
+    luckyCards: 0
+  },
+  {
+    from: 3,
+    to: 3,
+    chips: 20000,
+    luckyCards: 0
+  },
+  {
+    from: 4,
+    to: 10,
+    chips: 10000,
+    luckyCards: 0
+  },
+  {
+    from: 11,
+    to: 50,
+    chips: 5000,
+    luckyCards: 0
+  },
+  {
+    from: 51,
+    to: 100,
+    chips: 0,
+    luckyCards: 1
+  }
+];
+
 /* =========================================================
    UTILITÁRIOS
 ========================================================= */
@@ -37,6 +76,86 @@ function getCurrentRankingMonth() {
   return `${year}-${month}-01`;
 }
 
+function normalizeRankingMonth(value) {
+  const text = String(value || "").trim();
+
+  if (!/^\d{4}-\d{2}-01$/.test(text)) {
+    throw new Error(
+      `Mês de ranking inválido: ${text}`
+    );
+  }
+
+  return text;
+}
+
+
+function getPreviousRankingMonth() {
+  const now = new Date();
+
+  const previousMonth = new Date(
+    now.getFullYear(),
+    now.getMonth() - 1,
+    1
+  );
+
+  const year =
+    previousMonth.getFullYear();
+
+  const month = String(
+    previousMonth.getMonth() + 1
+  ).padStart(2, "0");
+
+  return `${year}-${month}-01`;
+}
+
+
+function getMonthlyRankingPrize(position) {
+  const numericPosition =
+    Number(position) || 0;
+
+  const prize = MONTHLY_RANKING_PRIZES.find(
+    item =>
+      numericPosition >= item.from &&
+      numericPosition <= item.to
+  );
+
+  return {
+    chips:
+      Number(prize?.chips) || 0,
+
+    luckyCards:
+      Number(prize?.luckyCards) || 0
+  };
+}
+
+
+function getMonthlyRankingPrizeDescription({
+  position,
+  rankingMonth,
+  chips,
+  luckyCards
+}) {
+  const monthLabel =
+    String(rankingMonth)
+      .slice(0, 7)
+      .split("-")
+      .reverse()
+      .join("/");
+
+  if (luckyCards > 0) {
+    return (
+      `Ranking mensal ${monthLabel} — ` +
+      `${position}º lugar — ` +
+      `${luckyCards} Carta da Sorte`
+    );
+  }
+
+  return (
+    `Ranking mensal ${monthLabel} — ` +
+    `${position}º lugar — ` +
+    `${Number(chips).toLocaleString("pt-BR")} fichas`
+  );
+}
 
 function calculateMonthlyRankingPoints(
   wins,
@@ -556,14 +675,547 @@ async function getMonthlyRankingLeaderboard({
 }
 
 
+/* =========================================================
+   FECHAR E PAGAR UM MÊS DO RANKING
+========================================================= */
+
+async function finalizeMonthlyRankingMonth({
+  rankingMonth,
+  gameCode = MONTHLY_RANKING_GAME_CODE
+}) {
+  const normalizedRankingMonth =
+    normalizeRankingMonth(rankingMonth);
+
+  const normalizedGameCode =
+    String(
+      gameCode ||
+      MONTHLY_RANKING_GAME_CODE
+    )
+      .trim()
+      .toUpperCase();
+
+  /*
+   * Impede que o mês atual seja fechado por engano.
+   */
+  if (
+    normalizedRankingMonth ===
+    getCurrentRankingMonth()
+  ) {
+    return {
+      ok: false,
+      status: 409,
+      message:
+        "O ranking do mês atual ainda não pode ser fechado."
+    };
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    /*
+     * Bloqueia todos os registros ainda não pagos
+     * do mês que será fechado.
+     */
+    const rankingResult = await client.query(
+      `
+        SELECT
+          ranked.id,
+          ranked.user_id,
+          ranked.matches_played,
+          ranked.wins,
+          ranked.ranking_points,
+          ranked.position
+
+        FROM (
+          SELECT
+            mr.id,
+            mr.user_id,
+            mr.matches_played,
+            mr.wins,
+            mr.ranking_points,
+
+            ROW_NUMBER() OVER (
+              ORDER BY
+                mr.ranking_points DESC,
+                mr.wins DESC,
+                (
+                  mr.matches_played -
+                  mr.wins
+                ) ASC,
+                mr.updated_at ASC,
+                mr.user_id ASC
+            ) AS position
+
+          FROM monthly_ranking mr
+
+          WHERE
+            mr.game_code = $1
+            AND mr.ranking_month = $2
+        ) ranked
+
+        INNER JOIN monthly_ranking locked_row
+          ON locked_row.id = ranked.id
+
+        WHERE locked_row.prize_paid = FALSE
+
+        ORDER BY ranked.position ASC
+
+        FOR UPDATE OF locked_row
+      `,
+      [
+        normalizedGameCode,
+        normalizedRankingMonth
+      ]
+    );
+
+    const rankingRows =
+      rankingResult.rows || [];
+
+    if (!rankingRows.length) {
+      await client.query("COMMIT");
+
+      return {
+        ok: true,
+        rankingMonth:
+          normalizedRankingMonth,
+        gameCode:
+          normalizedGameCode,
+        processedPlayers: 0,
+        rewardedPlayers: 0,
+        totalChipsPaid: 0,
+        totalLuckyCardsPaid: 0,
+        message:
+          "Nenhum prêmio pendente para este mês."
+      };
+    }
+
+    let rewardedPlayers = 0;
+    let totalChipsPaid = 0;
+    let totalLuckyCardsPaid = 0;
+
+    const paidPlayers = [];
+
+    for (const row of rankingRows) {
+      const position =
+        Number(row.position) || 0;
+
+      const userId =
+        Number(row.user_id);
+
+      const prize =
+        getMonthlyRankingPrize(position);
+
+      const chips =
+        Number(prize.chips) || 0;
+
+      const luckyCards =
+        Number(prize.luckyCards) || 0;
+
+      /*
+       * Garante o registro de progresso,
+       * necessário para creditar Carta da Sorte.
+       */
+      await client.query(
+        `
+          INSERT INTO user_reward_progress (
+            user_id
+          )
+          VALUES ($1)
+          ON CONFLICT (user_id) DO NOTHING
+        `,
+        [userId]
+      );
+
+      if (chips > 0) {
+        const chipsResult =
+          await client.query(
+            `
+              UPDATE users
+              SET
+                chips_balance =
+                  COALESCE(
+                    chips_balance,
+                    0
+                  ) + $1,
+
+                updated_at = NOW()
+
+              WHERE id = $2
+
+              RETURNING chips_balance
+            `,
+            [
+              chips,
+              userId
+            ]
+          );
+
+        if (chipsResult.rowCount !== 1) {
+          throw new Error(
+            `Usuário ${userId} não encontrado ao pagar o ranking mensal.`
+          );
+        }
+      }
+
+      if (luckyCards > 0) {
+        await client.query(
+          `
+            UPDATE user_reward_progress
+            SET
+              lucky_cards_available =
+                COALESCE(
+                  lucky_cards_available,
+                  0
+                ) + $1,
+
+              updated_at = NOW()
+
+            WHERE user_id = $2
+          `,
+          [
+            luckyCards,
+            userId
+          ]
+        );
+      }
+
+      /*
+       * Registra no histórico apenas quem ganhou
+       * fichas ou Carta da Sorte.
+       */
+      if (chips > 0 || luckyCards > 0) {
+        await client.query(
+          `
+            INSERT INTO reward_transactions (
+              user_id,
+              reward_type,
+              description,
+              chips
+            )
+            VALUES (
+              $1,
+              $2,
+              $3,
+              $4
+            )
+          `,
+          [
+            userId,
+
+            luckyCards > 0
+              ? "monthly_ranking_lucky_card"
+              : "monthly_ranking_chips",
+
+            getMonthlyRankingPrizeDescription({
+              position,
+              rankingMonth:
+                normalizedRankingMonth,
+              chips,
+              luckyCards
+            }),
+
+            chips
+          ]
+        );
+
+        rewardedPlayers += 1;
+        totalChipsPaid += chips;
+        totalLuckyCardsPaid +=
+          luckyCards;
+
+        paidPlayers.push({
+          userId,
+          position,
+          chips,
+          luckyCards
+        });
+      }
+
+      /*
+       * Todos os participantes são marcados como
+       * processados, inclusive os que ficaram fora
+       * das faixas premiadas.
+       */
+      await client.query(
+        `
+          UPDATE monthly_ranking
+          SET
+            prize_chips = $1,
+            prize_lucky_cards = $2,
+            prize_paid = TRUE,
+            updated_at = NOW()
+
+          WHERE
+            id = $3
+            AND prize_paid = FALSE
+        `,
+        [
+          chips,
+          luckyCards,
+          row.id
+        ]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    const result = {
+      ok: true,
+
+      rankingMonth:
+        normalizedRankingMonth,
+
+      gameCode:
+        normalizedGameCode,
+
+      processedPlayers:
+        rankingRows.length,
+
+      rewardedPlayers,
+
+      totalChipsPaid,
+
+      totalLuckyCardsPaid,
+
+      paidPlayers
+    };
+
+    console.log(
+      "[MONTHLY RANKING] Fechamento concluído:",
+      result
+    );
+
+    return result;
+
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error(
+        "[MONTHLY RANKING] Erro no rollback do fechamento:",
+        rollbackError
+      );
+    }
+
+    throw error;
+
+  } finally {
+    client.release();
+  }
+}
+
+
+/* =========================================================
+   FECHAR O MÊS ANTERIOR
+========================================================= */
+
+async function finalizePreviousMonthlyRanking(
+  gameCode = MONTHLY_RANKING_GAME_CODE
+) {
+  return finalizeMonthlyRankingMonth({
+    rankingMonth:
+      getPreviousRankingMonth(),
+
+    gameCode
+  });
+}
+
+
+/* =========================================================
+   FECHAR TODOS OS MESES ANTERIORES PENDENTES
+========================================================= */
+
+async function finalizePendingMonthlyRankings(
+  gameCode = MONTHLY_RANKING_GAME_CODE
+) {
+  const normalizedGameCode =
+    String(
+      gameCode ||
+      MONTHLY_RANKING_GAME_CODE
+    )
+      .trim()
+      .toUpperCase();
+
+  const currentRankingMonth =
+    getCurrentRankingMonth();
+
+  /*
+   * Procura meses anteriores que ainda tenham
+   * pelo menos um participante não processado.
+   */
+  const pendingResult = await pool.query(
+    `
+      SELECT DISTINCT
+        ranking_month
+
+      FROM monthly_ranking
+
+      WHERE
+        game_code = $1
+        AND ranking_month < $2
+        AND prize_paid = FALSE
+
+      ORDER BY ranking_month ASC
+    `,
+    [
+      normalizedGameCode,
+      currentRankingMonth
+    ]
+  );
+
+  const pendingMonths =
+    pendingResult.rows.map(row => {
+      const value = row.ranking_month;
+
+      /*
+       * O PostgreSQL pode devolver DATE como objeto Date.
+       * Convertemos sempre para YYYY-MM-01.
+       */
+      if (value instanceof Date) {
+        const year =
+          value.getFullYear();
+
+        const month = String(
+          value.getMonth() + 1
+        ).padStart(2, "0");
+
+        return `${year}-${month}-01`;
+      }
+
+      return String(value).slice(0, 10);
+    });
+
+  if (!pendingMonths.length) {
+    return {
+      ok: true,
+      processedMonths: 0,
+      results: [],
+      message:
+        "Nenhum ranking mensal pendente."
+    };
+  }
+
+  const results = [];
+
+  /*
+   * Fecha um mês por vez. Se um fechamento falhar,
+   * o erro é lançado e os meses seguintes não são
+   * processados silenciosamente.
+   */
+  for (const rankingMonth of pendingMonths) {
+    const result =
+      await finalizeMonthlyRankingMonth({
+        rankingMonth,
+        gameCode: normalizedGameCode
+      });
+
+    if (
+      Number(result.processedPlayers) > 0 ||
+      Number(result.rewardedPlayers) > 0
+    ) {
+      results.push(result);
+    }
+  }
+
+  const summary = {
+    ok: true,
+
+    processedMonths:
+      results.length,
+
+    processedPlayers:
+      results.reduce(
+        (total, result) =>
+          total +
+          (
+            Number(
+              result.processedPlayers
+            ) || 0
+          ),
+        0
+      ),
+
+    rewardedPlayers:
+      results.reduce(
+        (total, result) =>
+          total +
+          (
+            Number(
+              result.rewardedPlayers
+            ) || 0
+          ),
+        0
+      ),
+
+    totalChipsPaid:
+      results.reduce(
+        (total, result) =>
+          total +
+          (
+            Number(
+              result.totalChipsPaid
+            ) || 0
+          ),
+        0
+      ),
+
+    totalLuckyCardsPaid:
+      results.reduce(
+        (total, result) =>
+          total +
+          (
+            Number(
+              result.totalLuckyCardsPaid
+            ) || 0
+          ),
+        0
+      ),
+
+    results
+  };
+
+  console.log(
+    "[MONTHLY RANKING] Verificação de pendências concluída:",
+    {
+      processedMonths:
+        summary.processedMonths,
+
+      processedPlayers:
+        summary.processedPlayers,
+
+      rewardedPlayers:
+        summary.rewardedPlayers,
+
+      totalChipsPaid:
+        summary.totalChipsPaid,
+
+      totalLuckyCardsPaid:
+        summary.totalLuckyCardsPaid
+    }
+  );
+
+  return summary;
+}
+
+
 module.exports = {
   MONTHLY_RANKING_GAME_CODE,
   MONTHLY_RANKING_SCORE_SCALE,
+  MONTHLY_RANKING_PRIZES,
 
   calculateMonthlyRankingPoints,
   formatMonthlyRankingPoints,
 
   processMonthlyRankingResult,
   getMonthlyRankingStatus,
-  getMonthlyRankingLeaderboard
+  getMonthlyRankingLeaderboard,
+
+  getPreviousRankingMonth,
+  getMonthlyRankingPrize,
+
+  finalizeMonthlyRankingMonth,
+  finalizePreviousMonthlyRanking,
+  finalizePendingMonthlyRankings
 };

@@ -105,9 +105,34 @@ async function doLogin() {
     }
 
     if (data.user?.avatarUrl) {
-      localStorage.setItem("pontinhoAvatarUrl", data.user.avatarUrl);
+      localStorage.setItem(
+        "pontinhoAvatarUrl",
+        data.user.avatarUrl
+      );
     } else {
-      localStorage.removeItem("pontinhoAvatarUrl");
+      localStorage.removeItem(
+        "pontinhoAvatarUrl"
+      );
+    }
+
+    if (
+      data.loginReward &&
+      Number(data.loginReward.reward) > 0
+    ) {
+      sessionStorage.setItem(
+        "pontinhoLoginReward",
+        JSON.stringify({
+          reward:
+            Number(data.loginReward.reward) || 0,
+
+          streak:
+            Number(data.loginReward.streak) || 1
+        })
+      );
+    } else {
+      sessionStorage.removeItem(
+        "pontinhoLoginReward"
+      );
     }
 
     showMessage("Login realizado com sucesso.");

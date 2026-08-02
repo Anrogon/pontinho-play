@@ -1278,9 +1278,15 @@ async function validateCurrentSession() {
 (async function bootstrapApp() {
   if (enforceForcedPasswordChange()) return;
 
-  const raw = localStorage.getItem("pontinhoAuthUser");
+  const raw =
+    localStorage.getItem(
+      "pontinhoAuthUser"
+    );
+
   if (raw) {
-    const ok = await validateCurrentSession();
+    const ok =
+      await validateCurrentSession();
+
     if (!ok) return;
   }
 
@@ -1288,12 +1294,63 @@ async function validateCurrentSession() {
   renderTablesScreen();
   showScreen("home");
 
+  window.setTimeout(() => {
+    try {
+      const rawReward =
+        sessionStorage.getItem(
+          "pontinhoLoginReward"
+        );
+
+      if (!rawReward) return;
+
+      sessionStorage.removeItem(
+        "pontinhoLoginReward"
+      );
+
+      const loginReward =
+        JSON.parse(rawReward);
+
+      const reward =
+        Number(loginReward?.reward) || 0;
+
+      const streak =
+        Number(loginReward?.streak) || 1;
+
+      if (reward <= 0) return;
+
+      const formattedReward =
+        reward.toLocaleString("pt-BR");
+
+      const message =
+        streak === 1
+          ? `🎁 Você recebeu ${formattedReward} fichas pelo Login Diário!`
+          : `🎁 Você recebeu ${formattedReward} fichas pelo ${streak}º dia consecutivo!`;
+
+      window.showGameNotice?.(
+        message,
+        "success"
+      );
+    } catch (error) {
+      console.error(
+        "[LOGIN REWARD] Erro ao exibir recompensa:",
+        error
+      );
+
+      sessionStorage.removeItem(
+        "pontinhoLoginReward"
+      );
+    }
+  }, 500);
+
   setTimeout(() => {
-    if (typeof ensureHomeStatusFeed === "function") {
+    if (
+      typeof ensureHomeStatusFeed ===
+      "function"
+    ) {
       ensureHomeStatusFeed();
     }
   }, 100);
-  })();
+})();
 
 
 // ===== BOTÕES DA HOME =====

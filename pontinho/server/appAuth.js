@@ -9,6 +9,8 @@ const pool = require("./config/db");
 const app = express();
 const walletRoutes = require("./routes/wallet");
 const adminFinanceRoutes = require("./routes/adminFinance");
+const { finalizePendingMonthlyRankings} = require("./services/monthlyRankingService"
+);
 
 app.use(cors({
   origin: true,
@@ -30,10 +32,61 @@ app.get("/api/health", async (req, res) => {
   }
 });
 
+async function checkPendingMonthlyRankings() {
+  try {
+    const result =
+      await finalizePendingMonthlyRankings(
+        "PONTINHO"
+      );
+
+    if (
+      Number(result.rewardedPlayers) > 0
+    ) {
+      console.log(
+        "[AUTH] Rankings mensais pendentes processados:",
+        {
+          processedMonths:
+            result.processedMonths,
+
+          processedPlayers:
+            result.processedPlayers,
+
+          rewardedPlayers:
+            result.rewardedPlayers,
+
+          totalChipsPaid:
+            result.totalChipsPaid,
+
+          totalLuckyCardsPaid:
+            result.totalLuckyCardsPaid
+        }
+      );
+    } else {
+      console.log(
+        "[AUTH] Nenhum ranking mensal pendente."
+      );
+    }
+  } catch (error) {
+    /*
+     * O Auth Server deve continuar funcionando mesmo
+     * se o fechamento mensal falhar. O sistema tentará
+     * novamente na próxima reinicialização.
+     */
+    console.error(
+      "[AUTH] Erro ao verificar rankings mensais pendentes:",
+      error
+    );
+  }
+}
+
 app.use("/api/auth", authRoutes);
 
-const port = Number(process.env.PORT) || 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
-app.listen(port, () => {
-  console.log(`Auth server rodando em http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(
+    `Auth server rodando em http://localhost:${PORT}`
+  );
+
+  checkPendingMonthlyRankings();
 });

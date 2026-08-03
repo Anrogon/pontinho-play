@@ -933,9 +933,31 @@ button {
   .rewards-header {
     min-height: 62px;
     margin-bottom: 11px;
-    padding: 8px 50px;
+    padding: 8px 60px;
 
     border-radius: 15px;
+  }
+
+  .rewards-info-link {
+    position: absolute !important;
+
+    top: 50% !important;
+    right: 8px !important;
+
+    width: auto !important;
+    min-height: 39px;
+    margin: 0 !important;
+    padding: 0 12px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    transform: translateY(-50%) !important;
+  }
+
+  .rewards-info-link:hover {
+    transform: translateY(-50%) !important;
   }
 
   .rewards-back {
@@ -950,7 +972,7 @@ button {
   }
 
   .rewards-title {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .rewards-subtitle {
@@ -1145,10 +1167,10 @@ button {
   align-items:center;
   justify-content:center;
 
-  padding:9px 13px;
+  padding:9px 8px;
 
   color:#fff;
-  font-size:14px;
+  font-size:12px;
   font-weight:800;
   text-decoration:none;
   white-space:nowrap;

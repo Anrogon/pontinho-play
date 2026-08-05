@@ -316,7 +316,15 @@ export function createCardElement(card, { selectable = false } = {}) {
       }
 
       toggleSelectCard(card.id);
-      renderAll();
+
+      /*
+      * Atualiza apenas a carta tocada.
+      * Não redesenha a mesa inteira.
+      */
+      div.classList.toggle(
+        "selected",
+        state.selectedCards.includes(card.id)
+      );
     };
   }
   return div;

@@ -148,8 +148,8 @@
   #hand {
     position: fixed !important;
 
-    left: 30px !important;
-    right: 8px !important;
+    left: 58px !important;
+    right: 6px !important;
     bottom: calc(10px + env(safe-area-inset-bottom)) !important;
 
     width: auto !important;
@@ -178,8 +178,8 @@
   }
 
   #hand .card {
-    width: 70px !important;
-    height: 100px !important;
+    width: 57px !important;
+    height: 89px !important;
 
     position: relative !important;
     z-index: 1 !important;

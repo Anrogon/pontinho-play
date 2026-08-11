@@ -1,0 +1,905 @@
+/* =========================================================
+   MOBILE LANDSCAPE — BASE
+========================================================= */
+
+@media
+  (orientation: landscape)
+  and (max-width: 1024px)
+  and (max-height: 600px) {
+
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+  }
+
+  body.mobile-landscape-table-mode #scoreboard {
+    display: none;
+  }
+
+  body.mobile-landscape-table-mode #game {
+    position: fixed;
+    inset: 0;
+
+    width: 100vw;
+    height: 100vh;
+    min-width: 0;
+    min-height: 0;
+    max-width: none;
+    max-height: none;
+
+    margin: 0;
+    padding: 0;
+    gap: 0;
+
+    display: block;
+    overflow: hidden;
+
+    background: url("/assets/image/mesa-landscape.png")
+      center / cover no-repeat;
+  }
+  body.mobile-landscape-table-mode
+  #mobileLandscapeTableLayout {
+    position: fixed;
+    inset: 0;
+
+    width: 100vw;
+    height: 100vh;
+
+    overflow: hidden;
+
+    z-index: 50000;
+    pointer-events: none;
+
+    background: transparent;
+  }
+
+  /* =======================================================
+     TOPO
+  ======================================================= */
+
+  .landscape-topbar {
+    position: absolute;
+
+    top: calc(5px + env(safe-area-inset-top));
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    z-index: 20;
+  }
+
+  .landscape-table-info,
+  .landscape-ante-info {
+    padding: 4px 12px;
+
+    border: 1px solid rgba(255,255,255,.28);
+    border-radius: 999px;
+
+    color: #fff;
+    background: rgba(0,0,0,.48);
+
+    font-size: 11px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+
+  /* =======================================================
+     CAMADA DOS SEIS JOGADORES
+  ======================================================= */
+
+  .landscape-seat-layer {
+    position: absolute;
+    inset: 0;
+
+    z-index: 30;
+    pointer-events: none;
+  }
+
+  .landscape-seat {
+    position: absolute;
+
+    width: 126px;
+    min-height: 44px;
+
+    color: #fff;
+
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .landscape-seat.empty {
+    display: none;
+  }
+
+  .landscape-seat-hud {
+    position: relative;
+
+    min-height: 42px;
+    padding: 5px 9px 5px 45px;
+
+    display: flex;
+    align-items: center;
+
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 999px;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(10, 58, 104, .94),
+        rgba(3, 27, 61, .94)
+      );
+
+    box-shadow:
+      0 4px 10px rgba(0,0,0,.38),
+      inset 0 1px 0 rgba(255,255,255,.10);
+  }
+
+  .landscape-seat-avatar {
+    position: absolute;
+
+    left: 4px;
+    top: 50%;
+
+    width: 34px;
+    height: 34px;
+
+    transform: translateY(-50%);
+
+    border: 2px solid rgba(255,255,255,.70);
+    border-radius: 50%;
+
+    overflow: visible;
+    background: #092c51;
+  }
+
+  .landscape-seat-avatar img {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+    object-fit: cover;
+
+    border-radius: 50%;
+  }
+
+  .landscape-seat-content {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .landscape-seat-name {
+    overflow: hidden;
+
+    color: #fff;
+
+    font-size: 11px;
+    font-weight: 900;
+
+    line-height: 1.05;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .landscape-seat-meta {
+    margin-top: 2px;
+
+    color: rgba(255,255,255,.82);
+
+    font-size: 9px;
+    font-weight: 700;
+
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .landscape-seat-offline {
+    margin-left: 3px;
+
+    color: #ff5f5f;
+
+    font-size: 8px;
+    font-weight: 900;
+  }
+
+  .landscape-dealer-chip {
+    position: absolute;
+
+    right: -5px;
+    bottom: -4px;
+
+    width: 16px;
+    height: 16px;
+
+    display: grid;
+    place-items: center;
+
+    border: 1px solid #fff;
+    border-radius: 50%;
+
+    color: #fff;
+    background: #176fd0;
+
+    font-size: 9px;
+    font-weight: 900;
+  }
+
+
+  .landscape-seat-cards {
+    position: absolute;
+
+    left: 50%;
+    bottom: calc(100% - 4px);
+
+    width: 68px;
+    height: 24px;
+
+    transform: translateX(-50%);
+  }
+
+  .landscape-mini-card {
+    position: absolute;
+
+    left: 50%;
+    bottom: 0;
+
+    width: 16px;
+    height: 23px;
+
+    border: 1px solid rgba(255,255,255,.88);
+    border-radius: 2px;
+
+    background:
+      url("/assets/image/card-back.png")
+      center / cover no-repeat;
+
+    transform-origin: 50% 100%;
+  }
+
+  .landscape-mini-card:nth-child(1) {
+    transform:
+      translateX(-50%)
+      translateX(-22px)
+      rotate(-20deg);
+  }
+
+  .landscape-mini-card:nth-child(2) {
+    transform:
+      translateX(-50%)
+      translateX(-15px)
+      rotate(-14deg);
+  }
+
+  .landscape-mini-card:nth-child(3) {
+    transform:
+      translateX(-50%)
+      translateX(-8px)
+      rotate(-8deg);
+  }
+
+  .landscape-mini-card:nth-child(4) {
+    transform:
+      translateX(-50%)
+      rotate(-2deg);
+  }
+
+  .landscape-mini-card:nth-child(5) {
+    transform:
+      translateX(-50%)
+      translateX(8px)
+      rotate(6deg);
+  }
+
+  .landscape-mini-card:nth-child(6) {
+    transform:
+      translateX(-50%)
+      translateX(16px)
+      rotate(13deg);
+  }
+
+  .landscape-mini-card:nth-child(n+7) {
+    display: none;
+  }
+
+  .landscape-seat.is-current-turn
+  .landscape-seat-hud {
+    border-color: #ffe100;
+
+    box-shadow:
+      0 0 12px rgba(255,225,0,.85),
+      inset 0 1px 0 rgba(255,255,255,.14);
+  }
+
+  .landscape-seat-timebar {
+    height: 3px;
+    margin: 3px 9px 0;
+
+    overflow: hidden;
+
+    border-radius: 999px;
+    background: rgba(0,0,0,.45);
+  }
+
+  .landscape-seat-timebar-fill {
+    width: 100%;
+    height: 100%;
+
+    border-radius: inherit;
+    background: #ffd400;
+  }
+
+
+  /*
+   * Distribuição Assentos:
+   */
+
+  .landscape-seat.pos1 { left: 10%;  top: 62%; transform: translate(-50%, -50%); }
+  .landscape-seat.pos2 { left: 9%;  top: 34%; transform: translate(-50%, -50%); }
+  .landscape-seat.pos3 { left: 32%; top: 14%; transform: translate(-50%, -50%); }
+  .landscape-seat.pos4 { left: 68%; top: 14%; transform: translate(-50%, -50%); }
+  .landscape-seat.pos5 { left: 91%; top: 34%; transform: translate(-50%, -50%); }
+  .landscape-seat.pos6 { left: 90%; top: 62%; transform: translate(-50%, -50%); }
+
+
+  /* =======================================================
+     ÁREA CENTRAL DA MESA
+  ======================================================= */
+
+  .landscape-table-center {
+    position: absolute;
+
+    left: 140px;
+    right: 140px;
+
+    top: 82px;
+    bottom: 92px;
+
+    display: flex;
+    flex-direction: column;
+
+    border: 1px dashed rgba(255,215,0,.62);
+    border-radius: 22px;
+
+    background: rgba(0,30,70,.18);
+
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .landscape-melds-area {
+    position: absolute;
+
+    left: 4px;
+    right: 4px;
+
+    top: 4px;
+    bottom: 76px;
+
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+
+    overflow: hidden;
+
+    pointer-events: auto;
+  }
+
+  /*O #table exclusivo do landscape*/
+
+  body.mobile-landscape-table-mode
+  #mobileLandscapeTableLayout
+  .landscape-melds-area #table {
+    position: relative;
+
+    width: 100%;
+    height: 100%;
+
+    margin: 0;
+    padding: 4px;
+
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+
+    align-content: flex-start;
+    align-items: flex-start;
+    justify-content: center;
+
+    gap: 6px 8px;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    background: transparent;
+
+    pointer-events: auto;
+  }
+
+  /*Cada jogo baixado*/
+
+  body.mobile-landscape-table-mode
+  #mobileLandscapeTableLayout
+  .landscape-melds-area
+  #table > .grupo-table {
+    position: relative;
+
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+
+    width: auto;
+    height: 54px;
+
+    margin: 1px;
+    padding: 0;
+
+    overflow: visible;
+
+    background: transparent;
+
+    pointer-events: auto;
+  }
+
+
+  /*Cartas dos jogos baixados*/
+
+  body.mobile-landscape-table-mode
+  #mobileLandscapeTableLayout
+  .landscape-melds-area
+  #table > .grupo-table > .card {
+    position: relative;
+
+    width: 32px;
+    height: 50px;
+
+    flex: 0 0 32px;
+
+    margin: 0 0 0 -25px;
+
+    border-radius: 3px;
+
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    pointer-events: auto;
+  }
+
+  body.mobile-landscape-table-mode
+  #mobileLandscapeTableLayout
+  .landscape-melds-area
+  #table > .grupo-table > .card:first-child {
+    margin-left: 2px;
+  }
+
+  .landscape-center-controls {
+    position: absolute;
+
+    left: 50%;
+    bottom: 2px;
+
+    transform: translateX(-50%);
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 8px;
+
+    pointer-events: auto;
+  }
+
+  body.mobile-landscape-table-mode
+  .landscape-center-controls #monte,
+  body.mobile-landscape-table-mode
+  .landscape-center-controls #lixo {
+    position: relative;
+
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
+
+    height: 52px;
+    min-height: 52px;
+    max-height: 52px;
+
+    flex: 0 0 34px;
+
+    margin: 0;
+    padding: 0;
+    border-radius: 5px;
+
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  body.mobile-landscape-table-mode
+  .landscape-center-controls #monte .card,
+  body.mobile-landscape-table-mode
+  .landscape-center-controls #lixo .card,
+  body.mobile-landscape-table-mode
+  .landscape-center-controls #monte img,
+  body.mobile-landscape-table-mode
+  .landscape-center-controls #lixo img {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+    margin: 0;
+
+    object-fit: fill;
+    border-radius: inherit;
+  }
+
+  .landscape-center-controls #pot-area {
+    position: relative;
+
+    width: 62px;
+    height: 82px;
+
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .landscape-center-controls #pot-area .chip-stack {
+    width: 58px;
+    height: 64px;
+  }
+
+  .landscape-center-controls #pot-area .chip {
+    width: 30px;
+    height: 30px;
+  }
+
+  .landscape-center-controls #pot-area .pot-label {
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+
+
+  /* =======================================================
+     ÁREA INFERIOR — LANDSCAPE
+     Ordenar | Mão | BATI
+  ======================================================= */
+
+  .landscape-bottom-area {
+    position: absolute;
+
+    left: 6px;
+    right: 6px;
+    bottom: -8px;
+
+    height: 0;
+
+    display: grid;
+    grid-template-columns: 35px minmax(0, 1fr) 50px;
+    align-items: end;
+    gap: 4px;
+
+    z-index: 40;
+    pointer-events: none;
+  }
+
+  .landscape-sort-area {
+    position: relative;
+
+    width: 45px;
+    height: 62px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-18px);
+  }
+
+  .landscape-sort-label {
+    margin-bottom: 1px;
+
+    color: #ffd95a;
+
+    font-size: 8px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .landscape-sort-btn {
+    width: 34px;
+    height: 25px;
+
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(255,255,255,.55);
+    border-radius: 6px;
+
+    color: #fff;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(23, 78, 128, .96),
+        rgba(5, 36, 75, .96)
+      );
+
+    box-shadow:
+      0 2px 5px rgba(0,0,0,.35),
+      inset 0 1px 0 rgba(255,255,255,.12);
+
+    font-size: 16px;
+    font-weight: 900;
+
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .landscape-sort-btn:active {
+    transform: translateY(1px);
+  }
+
+  .landscape-bati-area {
+    width: 84px;
+    height: 56px;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .landscape-bati-btn {
+    width: auto;
+    min-width: 46px;
+    min-height: 30px;
+
+    margin: 0;
+    padding: 0 8px;
+
+    white-space: nowrap;
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: 1px solid rgba(255,255,255,.45);
+    border-radius: 15px;
+
+    color: #fff;
+
+    background:
+      linear-gradient(
+        180deg,
+        #2f8cff,
+        #1262c7
+      );
+
+    box-shadow:
+      0 3px 7px rgba(0,0,0,.35),
+      inset 0 1px 0 rgba(255,255,255,.18);
+
+    font-size: 11px;
+    font-weight: 900;
+
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .landscape-bati-btn:active {
+    transform: scale(.95);
+  }
+
+  .landscape-bati-btn.is-active {
+    background:
+      linear-gradient(
+        180deg,
+        #ff9f2f,
+        #d96b00
+      );
+  }
+
+  .landscape-bati-btn.is-burned {
+    background:
+      linear-gradient(
+        180deg,
+        #d94141,
+        #9e2020
+      );
+
+    color: #fff;
+  }
+
+.landscape-bati-btn.is-disabled-ui {
+  opacity: .65;
+}
+
+  .landscape-hand-area {
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+
+    pointer-events: auto;
+  }
+
+  /*
+   * MÃO — LANDSCAPE
+   *
+   * A mão real continua sendo #hand para manter toda a lógica
+   * de seleção, compra, descarte, ordenação e animações.
+   *
+   * O visual abaixo é exclusivo do modo landscape.
+   */
+  body.mobile-landscape-table-mode
+  #mobileLandscapeTableLayout
+  .landscape-hand-area
+  #hand {
+    width: auto;
+    max-width: 100%;
+
+    margin: 0;
+    padding: 0;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+
+    gap: 2px;
+    flex-wrap: nowrap;
+    overflow: visible;
+
+    transform: none;
+
+    pointer-events: auto;
+  }
+
+  /*
+   * CARTAS DA MÃO — LANDSCAPE
+   *
+   * Referência do baralho: 57 x 89.
+   * 36 x 56 mantém praticamente a mesma proporção.
+   *
+   * Máximo no Pontinho Play: 10 cartas.
+   * 10 x 36 + 9 x 2 = 378px.
+   */
+  body.mobile-landscape-table-mode
+  #mobileLandscapeTableLayout
+  .landscape-hand-area
+  #hand > .card {
+    position: relative;
+
+    width: 36px;
+    height: 56px;
+
+    flex: 0 0 36px;
+
+    margin: 0;
+    padding: 0;
+
+    border-radius: 3px;
+
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    pointer-events: auto;
+    touch-action: manipulation;
+
+    transition:
+      transform 90ms ease,
+      filter 90ms ease;
+  }
+
+  body.mobile-landscape-table-mode
+  #mobileLandscapeTableLayout
+  .landscape-hand-area
+  #hand > .card.selected {
+    transform: translateY(-6px);
+
+    outline: 2px solid #ffd400;
+    outline-offset: -1px;
+
+    filter: brightness(1.08);
+  }
+
+  body.mobile-landscape-table-mode
+  #mobileLandscapeTableLayout
+  .landscape-hand-area
+  #hand > .card.touch-dragging {
+    transform: translateY(-6px) scale(1.04);
+  }
+
+  body.mobile-landscape-table-mode
+  #mobileLandscapeTableLayout
+  .landscape-hand-area
+  #hand > .card.touch-drop-target {
+    outline: 2px solid rgba(255,255,255,.95);
+    outline-offset: 1px;
+  }
+
+  /*
+   * O painel Ordenar antigo pertence aos outros layouts.
+   * No landscape usaremos a área própria quando chegarmos
+   * à etapa dos controles.
+   */
+  body.mobile-landscape-table-mode #sortPanel {
+    display: none;
+  }
+
+/* =========================================================
+   VOLTAR ÀS MESAS — LANDSCAPE
+========================================================= */
+
+  .landscape-back-tables {
+    position: absolute;
+
+    top: calc(8px + env(safe-area-inset-top));
+    right: calc(12px + env(safe-area-inset-right));
+
+    margin: 0;
+    padding: 4px 8px;
+
+    border: 1px solid rgba(255,255,255,.28);
+    border-radius: 10px;
+
+    background: rgba(0,0,0,.35);
+
+    color: #fff;
+
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+
+    white-space: nowrap;
+
+    box-shadow:
+      0 2px 5px rgba(0,0,0,.30),
+      inset 0 1px 0 rgba(255,255,255,.08);
+
+    z-index: 50;
+
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+  }
+
+  .landscape-back-tables:hover {
+    background: rgba(0,0,0,.50);
+    border-color: rgba(255,255,255,.42);
+  }
+
+  .landscape-back-tables:active {
+    transform: translateY(1px);
+  }
+
+  body.mobile-landscape-table-mode #btnMobileBackToTables {
+    display: none;
+  }
+
+}

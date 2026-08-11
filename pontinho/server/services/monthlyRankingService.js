@@ -1175,7 +1175,7 @@ async function finalizePendingMonthlyRankings(
 
     results
   };
-
+/*
   console.log(
     "[MONTHLY RANKING] Verificação de pendências concluída:",
     {
@@ -1194,7 +1194,7 @@ async function finalizePendingMonthlyRankings(
       totalLuckyCardsPaid:
         summary.totalLuckyCardsPaid
     }
-  );
+  );*/
 
   return summary;
 }

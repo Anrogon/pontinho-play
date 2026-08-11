@@ -27,13 +27,10 @@ body{
 /* =============================
    GAME (container)
 ============================= */
-#game{
-  min-height: 100vh; 
-  background-image: url("/assets/image/mesa-az.png");/* fundo roxo/mesa gigante */
-  background-size: 93% 600px;
-  background-position: center top;
-  background-repeat: no-repeat;  
-  display: flex;/* layout */
+#game {
+  min-height: 100vh;
+
+  display: flex;
   flex-direction: column;
   gap: var(--ui-gap);
   padding: 14px 16px;
@@ -43,7 +40,6 @@ body{
 @media (max-width: 900px){
   #game{
     padding: 12px 10px;
-    background-size: 110% 560px;
   }
 }
 
@@ -153,7 +149,7 @@ body{
 
 /* =============================
    HAND
-============================= */
+============================= 
 #hand{
   width: 100% !important;
   max-width: 980px !important;
@@ -164,9 +160,9 @@ body{
   flex-wrap: nowrap !important;
   overflow-x: auto !important;
   padding: 6px 8px !important;
-  transform: translateY(-16px) !important; /* Sobe a mão - ajuste fino: -12px a -30px */
+  transform: translateY(-16px) !important;  Sobe a mão - ajuste fino: -12px a -30px 
 }
-
+*/
 
 #hand::-webkit-scrollbar{ height: 10px; }
 #hand::-webkit-scrollbar-thumb{
@@ -175,14 +171,14 @@ body{
   border: 1px solid rgba(255,255,255,0.10);
 }
 
-/* Responsivo: HAND */
+/* Responsivo: HAND 
 @media (max-width: 900px){
   #hand{
     justify-content: flex-start;
     padding: 8px 6px;
   }
 }
-
+*/
 /* =============================
    SCOREBOARD
 ============================= */
@@ -230,9 +226,12 @@ body{
     overflow: visible !important;
     margin-top: 10px !important;
   }
+
+  /*
   #hand{
     transform: none !important;
   }
+    */
 }
 
 /* =============================

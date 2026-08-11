@@ -246,19 +246,12 @@ export function dealInitialCards(qtd = 9) {
     for (let i = 0; i < qtd; i++) {
       const card = state.deck.pop();
       if (!card) break;
+
       player.hand.push(card);
     }
   });
-  function playDealBurst(n = 9) {
-  let i = 0;
-  const t = setInterval(() => {
-    playCardSound("deal");
-    i++;
-    if (i >= n) clearInterval(t);
-  }, 35);
-}
-playDealBurst(9);
 
+  playDealBurst(9);
 }
 
 
@@ -560,10 +553,16 @@ export function layDownSelectedSet() {
   console.log("[CLIENT] playMeld -> cardIds:", cardIds);
 
   const cardSnapshots = cardIds.map((id) => {
-  const el = document.querySelector(`.card[data-card-id="${String(id)}"]`);
-  const rect = el?.getBoundingClientRect?.();
+    const el = document.querySelector(
+      `.card[data-card-id="${String(id)}"]`
+    );
+
+    const rect =
+      el?.getBoundingClientRect?.();
+
     return {
       id: String(id),
+
       rect: rect
         ? {
             left: rect.left,
@@ -571,7 +570,12 @@ export function layDownSelectedSet() {
             width: rect.width,
             height: rect.height
           }
-        : null
+        : null,
+
+      backgroundImage:
+        el
+          ? getComputedStyle(el).backgroundImage
+          : ""
     };
   });
 
@@ -930,21 +934,32 @@ const cardIds = state.selectedCards.slice();
 
 console.log("[CLIENT] addToMeld -> meldIndex:", meldIndex, "cardIds:", cardIds);
 
-const cardSnapshots = cardIds.map((id) => {
-const el = document.querySelector(`.card[data-card-id="${String(id)}"]`);
-const rect = el?.getBoundingClientRect?.();
-  return {
-    id: String(id),
-    rect: rect
-      ? {
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height
-        }
-      : null
-  };
-});
+  const cardSnapshots = cardIds.map((id) => {
+    const el = document.querySelector(
+      `.card[data-card-id="${String(id)}"]`
+    );
+
+    const rect =
+      el?.getBoundingClientRect?.();
+
+    return {
+      id: String(id),
+
+      rect: rect
+        ? {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height
+          }
+        : null,
+
+      backgroundImage:
+        el
+          ? getComputedStyle(el).backgroundImage
+          : ""
+    };
+  });
 
 state.pendingAddToTable = {
   cardIds: [...cardIds],
@@ -2193,7 +2208,6 @@ export function removeChips(playerId, amount) {
 }
 
 
-/*distribuir cartas uma a uma*/
 /* distribuir cartas uma a uma */
 export async function dealInitialCardsAnimated(qtd = 9) {
   for (let i = 0; i < qtd; i++) {

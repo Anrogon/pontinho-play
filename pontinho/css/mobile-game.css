@@ -15,7 +15,7 @@
     display: none !important;
   }
 
-  /* Sala de Jogos Mobile */
+  
   /* Sala de Jogos Mobile */
   #game {
       width: 100vw !important;
@@ -178,14 +178,14 @@
   }
 
   #hand .card {
-    width: 57px !important;
-    height: 89px !important;
+    width: 42px !important;
+    height: 66px !important;
 
     position: relative !important;
     z-index: 1 !important;
 
     flex: 0 0 auto !important;
-    margin-left: -45px !important;
+    margin-left: -25px !important;
 
     border-radius: 5px !important;
     border: 1px solid rgba(255,255,255,.92) !important;
@@ -249,27 +249,28 @@
     pointer-events: auto !important;
   }
 
-  .pile-slot,
-  #monte,
-  #lixo {
-    width: 60px !important;
-    height: 86px !important;
-    border-radius: 5px !important;
+  body.mobile-table-mode .pile-slot,
+  body.mobile-table-mode #monte,
+  body.mobile-table-mode #lixo {
+    width: 45px;
+    height: 70px;
+    border-radius: 5px;
   }
 
-  #monte,
-  #lixo {
-    position: relative !important;
-    z-index: 25001 !important;
-    pointer-events: auto !important;
+  body.mobile-table-mode #monte,
+  body.mobile-table-mode #lixo {
+    position: relative;
+    z-index: 25001;
+    pointer-events: auto;
   }
-  #monte .card,
-    #lixo .card,
-    #monte img,
-    #lixo img {
-    width: 60px !important;
-    height: 86px !important;
-    }
+
+  body.mobile-table-mode #monte .card,
+  body.mobile-table-mode #lixo .card,
+  body.mobile-table-mode #monte img,
+  body.mobile-table-mode #lixo img {
+    width: 42px;
+    height: 66px;
+  }
 }
 
 /* =========================================================

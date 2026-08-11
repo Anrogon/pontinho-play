@@ -183,7 +183,8 @@ function playRoundWinSfxOnce(summary) {
 /**
  * Faz uma carta “voar” do elemento fromEl até toEl
  */
-export function flyCard({ fromEl, toEl, card, sfx = null, duration = 280 }) {
+export function flyCard({  fromEl,  toEl,  card,  sfx = null,  duration = 280}) {
+
   if (!fromEl || !toEl || !card) return;
 
   const from = fromEl.getBoundingClientRect();
@@ -195,40 +196,415 @@ export function flyCard({ fromEl, toEl, card, sfx = null, duration = 280 }) {
   clone.className = "flying-card";
   clone.style.backgroundImage = `url('${img}')`;
 
-  // posição inicial
-  clone.style.left = `${from.left}px`;
-  clone.style.top = `${from.top}px`;
+  const cloneWidth = 60;
+  const cloneHeight = 90;
 
-  // delta até o destino
-  const dx = (to.left - from.left);
-  const dy = (to.top - from.top);
+  const startX =
+    from.left + (from.width / 2) - (cloneWidth / 2);
+
+  const startY =
+    from.top + (from.height / 2) - (cloneHeight / 2);
+
+  const endX =
+    to.left + (to.width / 2) - (cloneWidth / 2);
+
+  const endY =
+    to.top + (to.height / 2) - (cloneHeight / 2);
+
+  clone.style.left = `${startX}px`;
+  clone.style.top = `${startY}px`;
+
+  const dx = endX - startX;
+  const dy = endY - startY;
 
   clone.style.setProperty("--dx", `${dx}px`);
   clone.style.setProperty("--dy", `${dy}px`);
 
-  // aplica mesma duração no CSS (opcional)
   clone.style.transitionDuration = `${duration}ms`;
 
   document.body.appendChild(clone);
 
-  // som sincronizado no START
-  // durante DEALING usamos o mp3 do overlay, então não toca o beep "deal" aqui
-  if (sfx && !(sfx === "deal" && state.faseTurno === "DEALING")) {
+  if (
+    sfx &&
+    !(sfx === "deal" && state.faseTurno === "DEALING")
+  ) {
     playSfx(sfx);
   }
 
-  // dispara animação no próximo frame
   requestAnimationFrame(() => {
     clone.classList.add("done");
-    clone.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(.95)`;
+
+    clone.style.transform =
+      `translate3d(${dx}px, ${dy}px, 0) scale(.95)`;
   });
 
-  // remove no fim
   setTimeout(() => {
     clone.remove();
   }, duration + 50);
 }
 
+function getHudCardsTargetBySeat(seat) {
+  const seatNum = Number(seat);
+
+  if (!seatNum) return null;
+
+  // Landscape
+  if (isMobileLandscapeTable()) {
+    return document.querySelector(
+      `#mobileLandscapeTableLayout
+       [data-landscape-seat="${seatNum}"]
+       .landscape-seat-cards`
+    );
+  }
+
+  // Portrait
+  if (isMobilePortraitTable()) {
+    return document.querySelector(
+      `#mobileTableLayout
+       [data-seat-pos="${seatNum}"]
+       .mobile-seat-cards`
+    );
+  }
+
+  // Desktop
+  return document.querySelector(
+    `#desktopTableLayout
+     [data-seat-pos="${seatNum}"]
+     .desktop-seat-cards`
+  );
+}
+
+function animateHudCardMovement({
+  fromEl,
+  toEl,
+  card,
+  duration = 650,
+  faceDown = false,
+  onComplete = null
+}) {
+  if (!fromEl || !toEl) return;
+
+  const from = fromEl.getBoundingClientRect();
+  const to = toEl.getBoundingClientRect();
+
+  if (
+    from.width <= 0 ||
+    from.height <= 0 ||
+    to.width <= 0 ||
+    to.height <= 0
+  ) {
+    return;
+  }
+
+  const ghost = document.createElement("div");
+  ghost.className = "hud-card-flight";
+
+  ghost.style.backgroundImage = faceDown
+    ? "url('./assets/cards/back.png')"
+    : `url('${getCardImage(card)}')`;
+
+  // procura uma mini-carta real dentro do HUD
+  const sourceCard =
+    fromEl.querySelector?.(
+      ".mini-card, .mobile-mini-card, .landscape-mini-card"
+    );
+
+  const sourceRect =
+    sourceCard?.getBoundingClientRect?.();
+
+  // tamanho inicial = mini-carta real
+  const startWidth =
+    sourceRect?.width || 22;
+
+  const startHeight =
+    sourceRect?.height || 34;
+
+  // tamanho final = tamanho real do lixo
+  const endWidth =
+    to.width;
+
+  const endHeight =
+    to.height;
+
+  const startX =
+    from.left +
+    from.width / 2 -
+    startWidth / 2;
+
+  const startY =
+    from.top +
+    from.height / 2 -
+    startHeight / 2;
+
+  const endX =
+    to.left +
+    to.width / 2 -
+    endWidth / 2;
+
+  const endY =
+    to.top +
+    to.height / 2 -
+    endHeight / 2;
+
+  ghost.style.left = `${startX}px`;
+  ghost.style.top = `${startY}px`;
+
+  ghost.style.width = `${startWidth}px`;
+  ghost.style.height = `${startHeight}px`;
+
+  document.body.appendChild(ghost);
+
+  // importante para Firefox
+  ghost.getBoundingClientRect();
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      ghost.style.left = `${endX}px`;
+      ghost.style.top = `${endY}px`;
+
+      ghost.style.width = `${endWidth}px`;
+      ghost.style.height = `${endHeight}px`;
+    });
+  });
+
+  setTimeout(() => {
+    ghost.remove();
+
+    if (typeof onComplete === "function") {
+      onComplete();
+    }
+  }, duration + 50);
+}
+
+
+export function playPendingHudDiscardAnimation() {
+  const fx = state.pendingHudDiscardAnim;
+
+  if (!fx?.seat || !fx?.card) return;
+
+  const fromEl =
+    getHudCardsTargetBySeat(fx.seat);
+
+  const lixoEl =
+    document.getElementById("lixo");
+
+  state.pendingHudDiscardAnim = null;
+
+  if (!fromEl || !lixoEl) return;
+
+  // =========================================================
+  // ESCONDE A CARTA REAL DO LIXO DURANTE A ANIMAÇÃO
+  // A classe fica no container, portanto sobrevive a renderAll()
+  // =========================================================
+  lixoEl.classList.add("hud-discard-arriving");
+
+  animateHudCardMovement({
+    fromEl,
+    toEl: lixoEl,
+    card: fx.card,
+    duration: 650,
+    faceDown: false,
+
+    onComplete: () => {
+      lixoEl.classList.remove(
+        "hud-discard-arriving"
+      );
+    }
+  });
+}
+
+
+export function playPendingHudDrawAnimation() {
+  const fx = state.pendingHudDrawAnim;
+
+  if (!fx?.seat || !fx?.source) return;
+
+  const toEl =
+    getHudCardsTargetBySeat(fx.seat);
+
+  if (!toEl) {
+    state.pendingHudDrawAnim = null;
+    return;
+  }
+
+  const source =
+    String(fx.source).toUpperCase();
+
+  let fromEl = null;
+  let faceDown = true;
+  let card = null;
+
+  // =========================================================
+  // COMPRA DO MONTE
+  // =========================================================
+  if (source === "DECK") {
+    fromEl =
+      document.getElementById("monte");
+
+    faceDown = true;
+  }
+
+  // =========================================================
+  // COMPRA DO LIXO
+  // =========================================================
+  else if (source === "DISCARD") {
+    fromEl =
+      document.getElementById("lixo");
+
+    faceDown = false;
+
+    card = fx.card || null;
+  }
+
+  // origem inválida
+  if (!fromEl) {
+    state.pendingHudDrawAnim = null;
+    return;
+  }
+
+  // na compra do lixo precisamos conhecer a carta
+  if (source === "DISCARD" && !card) {
+    state.pendingHudDrawAnim = null;
+    return;
+  }
+
+  state.pendingHudDrawAnim = null;
+
+  animateHudCardMovement({
+    fromEl,
+    toEl,
+    card,
+    duration: 650,
+    faceDown
+  });
+}
+
+let dealHudAnimationToken = 0;
+
+export function playDealToHudAnimation() {
+  const isDealing =
+    state.faseTurno === "DEALING" &&
+    Number(state.dealEndsAt || 0) > Date.now();
+
+  if (!isDealing) return;
+
+  const dealEndsAt =
+    Number(state.dealEndsAt) || 0;
+
+  // =========================================================
+  // GARANTE UMA ÚNICA ANIMAÇÃO PARA ESTA DISTRIBUIÇÃO
+  // =========================================================
+  const dealKey =
+    `${dealEndsAt}`;
+
+  if (state._lastDealHudAnimationKey === dealKey) {
+    return;
+  }
+
+  state._lastDealHudAnimationKey = dealKey;
+
+  // invalida timers de uma distribuição anterior
+  dealHudAnimationToken++;
+
+  const myToken =
+    dealHudAnimationToken;
+
+  const monteEl =
+    document.getElementById("monte");
+
+  if (!monteEl) return;
+
+  // =========================================================
+  // JOGADORES QUE ESTÃO NA MESA
+  // =========================================================
+  const players =
+    Array.isArray(state.players)
+      ? state.players.filter(p =>
+          p &&
+          !p.eliminated &&
+          Number(p.seat) > 0
+        )
+      : [];
+
+  if (!players.length) return;
+
+  players.sort(
+    (a, b) =>
+      Number(a.seat) - Number(b.seat)
+  );
+
+  const qtd = 9;
+
+  const totalAnimations =
+    players.length * qtd;
+
+  const dealMs =
+    Number(state.dealMs) || 2200;
+
+  // distribui os movimentos pelo tempo disponível
+  const stepMs =
+    Math.max(
+      55,
+      Math.min(
+        110,
+        Math.floor(
+          dealMs / Math.max(1, totalAnimations)
+        )
+      )
+    );
+
+  let sequenceIndex = 0;
+
+  // =========================================================
+  // 9 VOLTAS PELA MESA
+  // =========================================================
+  for (let cardIndex = 0; cardIndex < qtd; cardIndex++) {
+    for (const player of players) {
+      const seat =
+        Number(player.seat);
+
+      const delay =
+        sequenceIndex * stepMs;
+
+      sequenceIndex++;
+
+      setTimeout(() => {
+        if (
+          myToken !== dealHudAnimationToken
+        ) {
+          return;
+        }
+
+        const stillDealing =
+          state.faseTurno === "DEALING" &&
+          Number(state.dealEndsAt || 0) >
+            Date.now();
+
+        if (!stillDealing) return;
+
+        const toEl =
+          getHudCardsTargetBySeat(seat);
+
+        const currentMonte =
+          document.getElementById("monte");
+
+        if (!currentMonte || !toEl) return;
+
+        animateHudCardMovement({
+          fromEl: currentMonte,
+          toEl,
+          card: null,
+          duration: Math.max(
+            220,
+            stepMs * 2
+          ),
+          faceDown: true
+        });
+
+      }, delay);
+    }
+  }
+}
 
 export function renderNextPlayerButton() {
   const btn = document.getElementById("nextPlayer");
@@ -343,23 +719,6 @@ export function renderHand() {
     Number(state.dealEndsAt || 0) > Date.now();
 
   if (isDealing) {
-    const total = player.hand.length;
-    const dealMs = Number(state.dealMs) || 2200;
-    const endAt = Number(state.dealEndsAt) || 0;
-    const elapsed = Math.max(0, dealMs - Math.max(0, endAt - Date.now()));
-    const stepMs = total > 0 ? Math.max(70, Math.floor(dealMs / total)) : 120;
-    const visibleCount = Math.min(total, Math.floor(elapsed / stepMs));
-
-    for (let i = 0; i < visibleCount; i++) {
-      const div = document.createElement("div");
-      div.className = "card";
-      div.style.backgroundImage = "url('assets/cards/back.png')";
-      div.style.opacity = "0.98";
-      div.style.transform = "translateY(-6px)";
-      div.style.transition = "transform 120ms ease";
-      handEl.appendChild(div);
-    }
-
     return;
   }
 
@@ -667,86 +1026,307 @@ export function renderTable() {
 
 }
 
-let pendingDrawAnimTimer = null;
 
-export function playPendingDrawAnimation() {
-  const fx = state.pendingDeckToHandAnim;
-  if (!fx?.cardId) return;
+function getPlayerCardsAnimationTarget(seat) {
+  const seatNum = Number(seat);
 
-  const monteEl = document.getElementById("monte");
-  const toEl = document.querySelector(`.card[data-card-id="${String(fx.cardId)}"]`);
+  if (!seatNum) return null;
 
-  if (!monteEl || !toEl) return;
+  // =========================================================
+  // MOBILE LANDSCAPE
+  // =========================================================
+  if (isMobileLandscapeTable()) {
+    const seatEl = document.querySelector(
+      `[data-landscape-seat="${seatNum}"]`
+    );
 
-  const player = currentPlayer?.();
-  const card =
-    Array.isArray(player?.hand)
-      ? player.hand.find(c => String(c.id) === String(fx.cardId))
-      : null;
+    if (!seatEl) return null;
 
-  if (!card) return;
+    return (
+      seatEl.querySelector(".landscape-seat-cards") ||
+      seatEl.querySelector(".landscape-seat-hud") ||
+      null
+    );
+  }
 
-  clearTimeout(pendingDrawAnimTimer);
+  // =========================================================
+  // MOBILE PORTRAIT
+  // =========================================================
+  if (isMobilePortraitTable()) {
+    const seatEl = document.querySelector(
+      `#mobileTableLayout [data-seat-pos="${seatNum}"]`
+    );
 
-  // evita repetir a mesma animação
-  state.pendingDeckToHandAnim = null;
+    if (!seatEl) return null;
 
-  // pequena espera para garantir layout pronto
-  pendingDrawAnimTimer = setTimeout(() => {
-    flyCard({
-      fromEl: monteEl,
-      toEl,
-      card,
-      sfx: "draw",
-      duration: 400
-    });
-/*
-    toEl.classList.add("pop-in");
-    setTimeout(() => toEl.classList.remove("pop-in"), 220);*/
-  }, 30);
+    return (
+      seatEl.querySelector(".mobile-seat-cards") ||
+      seatEl
+    );
+  }
+
+  // =========================================================
+  // DESKTOP
+  // =========================================================
+  const seatEl =
+    document.querySelector(
+      `#desktopTableLayout .desktop-seat.pos${seatNum}`
+    ) ||
+    document.querySelector(
+      `.desktop-seat.pos${seatNum}`
+    );
+
+  if (!seatEl) return null;
+
+  return (
+    seatEl.querySelector(".desktop-seat-cards") ||
+    seatEl
+  );
 }
 
-let pendingDiscardAnimTimer = null;
+function animateDrawToPlayerHud({
+  seat,
+  fromEl,
+  duration = 420
+}) {
+  if (!fromEl) return;
 
-export function playPendingDiscardDrawAnimation() {
-  const fx = state.pendingDiscardToHandAnim;
-  if (!fx?.cardId) return;
+  const toEl =
+    getPlayerCardsAnimationTarget(seat);
 
-  const lixoEl = document.getElementById("lixo");
-  const toEl = document.querySelector(`.card[data-card-id="${String(fx.cardId)}"]`);
+  if (!toEl) return;
 
-  if (!lixoEl || !toEl) return;
+  const fakeBackCard = {
+    id: `anim-back-${Date.now()}`,
+    image: "assets/cards/back.png"
+  };
 
-  const player = currentPlayer?.();
-  const card =
-    Array.isArray(player?.hand)
-      ? player.hand.find(c => String(c.id) === String(fx.cardId))
-      : null;
-
-  if (!card) return;
-
-  clearTimeout(pendingDiscardAnimTimer);
-
-  // evita repetir
-  state.pendingDiscardToHandAnim = null;
-
-  pendingDiscardAnimTimer = setTimeout(() => {
-    flyCard({
-      fromEl: lixoEl,
-      toEl,
-      card,
-      sfx: "draw",
-      duration: 400
-    });
-/*
-    toEl.classList.add("pop-in");
-    setTimeout(() => toEl.classList.remove("pop-in"), 240);*/
-  }, 30);
+  flyCard({
+    fromEl,
+    toEl,
+    card: fakeBackCard,
+    sfx: "draw",
+    duration
+  });
 }
 
+
+function animateDiscardFromPlayerHud({
+  seat,
+  card,
+  duration = 420
+}) {
+  if (!card) return;
+
+  const fromEl =
+    getPlayerCardsAnimationTarget(seat);
+
+  const lixoEl =
+    document.getElementById("lixo");
+
+  if (!fromEl || !lixoEl) return;
+
+  flyCard({
+    fromEl,
+    toEl: lixoEl,
+    card,
+    sfx: null,
+    duration
+  });
+}
 
 let pendingHandToTableTimer = null;
 
+export function playPendingHandToTableAnimation() {
+  const fx = state.pendingHandToTableAnim;
+
+  if (!fx?.cardIds?.length) return;
+
+  clearTimeout(pendingHandToTableTimer);
+
+  const ids =
+    fx.cardIds.map(String);
+
+  const snapshots =
+    Array.isArray(fx.cardSnapshots)
+      ? fx.cardSnapshots
+      : [];
+
+  const targetMeldIndex =
+    Number.isInteger(fx.targetMeldIndex)
+      ? fx.targetMeldIndex
+      : null;
+
+  // limpa antes para não repetir em outro render
+  state.pendingHandToTableAnim = null;
+
+  pendingHandToTableTimer = setTimeout(() => {
+    let tableEl = null;
+
+    // =====================================================
+    // TENTA LOCALIZAR O JOGO EXATO QUE RECEBEU AS CARTAS
+    // =====================================================
+    if (targetMeldIndex != null) {
+      tableEl = document.querySelector(
+        `.grupo-table[data-meld-index="${targetMeldIndex}"]`
+      );
+    }
+
+    // fallback
+    if (!tableEl) {
+      tableEl =
+        document.querySelector(".table-melds") ||
+        document.getElementById("tableMelds") ||
+        document.getElementById("table") ||
+        document.getElementById("game");
+    }
+
+    if (!tableEl) return;
+
+
+    // =====================================================
+    // ANIMA CADA CARTA INDIVIDUALMENTE
+    // =====================================================
+    ids.forEach((id, i) => {
+      const snap =
+        snapshots.find(
+          s => String(s.id) === String(id)
+        );
+
+      if (!snap?.rect) return;
+
+      // ===================================================
+      // PROCURA A POSIÇÃO REAL DA CARTA NO JOGO BAIXADO
+      // ===================================================
+      const targetCard =
+        tableEl.querySelector(
+          `.card[data-card-id="${String(id)}"]`
+        );
+
+      const targetRect =
+        targetCard?.getBoundingClientRect?.() ||
+        tableEl.getBoundingClientRect();
+
+      if (
+        !targetRect ||
+        targetRect.width <= 0 ||
+        targetRect.height <= 0
+      ) {
+        return;
+      }
+
+      // ===================================================
+      // CRIA GHOST DA CARTA
+      // ===================================================
+      const ghost =
+        document.createElement("div");
+
+      ghost.className = "card";
+
+      ghost.style.position = "fixed";
+
+      ghost.style.left =
+        `${snap.rect.left}px`;
+
+      ghost.style.top =
+        `${snap.rect.top}px`;
+
+      ghost.style.width =
+        `${snap.rect.width}px`;
+
+      ghost.style.height =
+        `${snap.rect.height}px`;
+
+      ghost.style.pointerEvents = "none";
+      ghost.style.zIndex = "100000";
+
+      ghost.style.borderRadius = "10px";
+
+      ghost.style.boxShadow =
+        "0 10px 24px rgba(0,0,0,0.28)";
+
+      // usa a face real capturada na mão
+      ghost.style.backgroundImage =
+        snap.backgroundImage ||
+        "url('./assets/cards/back.png')";
+
+      ghost.style.backgroundSize =
+        "100% 100%";
+
+      ghost.style.backgroundPosition =
+        "center";
+
+      ghost.style.backgroundRepeat =
+        "no-repeat";
+
+      document.body.appendChild(ghost);
+
+
+      // ===================================================
+      // DESTINO INDIVIDUAL DA CARTA
+      // ===================================================
+      const startCenterX =
+        snap.rect.left +
+        snap.rect.width / 2;
+
+      const startCenterY =
+        snap.rect.top +
+        snap.rect.height / 2;
+
+      const endCenterX =
+        targetRect.left +
+        targetRect.width / 2;
+
+      const endCenterY =
+        targetRect.top +
+        targetRect.height / 2;
+
+      const dx =
+        endCenterX - startCenterX;
+
+      const dy =
+        endCenterY - startCenterY;
+
+
+      // ===================================================
+      // UMA CARTA COMEÇA DEPOIS DA OUTRA
+      // ===================================================
+      const delay =
+        i * 110;
+
+      setTimeout(() => {
+        ghost.animate(
+          [
+            {
+              transform:
+                "translate3d(0px, 0px, 0) scale(1)",
+              opacity: 1
+            },
+            {
+              transform:
+                `translate3d(${dx}px, ${dy}px, 0) scale(0.88)`,
+              opacity: 0.9
+            }
+          ],
+          {
+            duration: 360,
+            easing: "ease-out",
+            fill: "forwards"
+          }
+        );
+
+        setTimeout(() => {
+          ghost.remove();
+        }, 410);
+
+      }, delay);
+    });
+
+  }, 40);
+}
+
+
+/*
 export function playPendingHandToTableAnimation() {
   const fx = state.pendingHandToTableAnim;
   if (!fx?.cardIds?.length) return;
@@ -792,7 +1372,7 @@ export function playPendingHandToTableAnimation() {
       ghost.style.zIndex = "99999";
       ghost.style.borderRadius = "10px";
       ghost.style.boxShadow = "0 10px 24px rgba(0,0,0,0.28)";
-      ghost.style.backgroundImage = "url('./assets/cards/back.png')";
+      ghost.style.backgroundImage =  snap.backgroundImage ||  "url('./assets/cards/back.png')";
       ghost.style.backgroundSize = "cover";
       ghost.style.backgroundPosition = "center";
       ghost.style.backgroundRepeat = "no-repeat";
@@ -831,6 +1411,8 @@ export function playPendingHandToTableAnimation() {
     });
   }, 40);
 }
+
+*/
 
 
 export function renderMonte() {
@@ -880,11 +1462,41 @@ export function renderLixo() {
 
   lixoEl.innerHTML = "";
 
-  const topo = state.lixo[state.lixo.length - 1];
-  if (!topo) return;
+  const lixo = Array.isArray(state.lixo)
+    ? state.lixo
+    : [];
+
+  if (!lixo.length) return;
+
+  // =========================================================
+  // CARTAS ANTERIORES — efeito visual de pilha
+  // =========================================================
+
+  const anteriores = lixo.slice(-3, -1);
+
+  anteriores.forEach((card, index) => {
+    const backCard = createCardElement(card);
+
+    backCard.classList.add(
+      "discard-stack-card",
+      `discard-stack-${index + 1}`
+    );
+
+    lixoEl.appendChild(backCard);
+  });
+
+  // =========================================================
+  // CARTA ATUAL DO TOPO
+  // =========================================================
+
+  const topo = lixo[lixo.length - 1];
 
   const cardEl = createCardElement(topo);
+
+  cardEl.classList.add("discard-top-card");
+
   lixoEl.appendChild(cardEl);
+
   applyAnimIfQueued(cardEl, topo.id);
 
 }
@@ -893,42 +1505,33 @@ export function renderLixo() {
 
 export function bindTableUI() {
   if (state.spectator) return;
+
   const monteEl = document.getElementById("monte");
   const lixoEl = document.getElementById("lixo");
 
+  if (!monteEl || !lixoEl) return;
+
   // 🃏 MONTE → SEMPRE COMPRAR
   monteEl.onclick = () => {
-  console.log("🃏 clique no monte | fase:", state.faseTurno);
+    console.log(
+      "🃏 clique no monte | fase:",
+      state.faseTurno
+    );
 
-  if (state.faseTurno !== "COMPRAR") return;
+    if (state.faseTurno !== "COMPRAR") return;
 
-  // pega referência do topo (monte) antes
-  const fromEl = monteEl;
+    comprarDoMonte();
 
-  // executa compra (estado muda)
-  comprarDoMonte();
-
-  // renderiza para aparecer a carta na mão
-  renderAll();
-
-  // destino: última carta na mão
-  const handEl = document.getElementById("hand");
-  const toEl = handEl?.lastElementChild;
-
-  // anima do monte pra mão
-  const ultimaCarta = currentPlayer().hand[currentPlayer().hand.length - 1];
-  if (toEl && ultimaCarta) {
-    flyCard({ fromEl, toEl, card: ultimaCarta, sfx: "draw", duration: 280 });
-/*
-    toEl.classList.add("pop-in"); // micro “pop”
-    setTimeout(() => toEl.classList.remove("pop-in"), 200);*/
-  }
-
+    renderAll();
   };
+
 
   // 🗑 LIXO → COMPRA ou DESCARTE, DEPENDENDO DA FASE
   lixoEl.onclick = () => {
-    console.log("🗑 clique no lixo | fase:", state.faseTurno);
+    console.log(
+      "🗑 clique no lixo | fase:",
+      state.faseTurno
+    );
 
     // 🟢 pegar do lixo
     if (state.faseTurno === "COMPRAR") {
@@ -938,7 +1541,10 @@ export function bindTableUI() {
     }
 
     // 🔴 descartar
-    if (state.faseTurno === "DESCARTAR" || state.faseTurno === "BAIXAR") {
+    if (
+      state.faseTurno === "DESCARTAR" ||
+      state.faseTurno === "BAIXAR"
+    ) {
       discardSelectedCard();
       renderAll();
       return;
@@ -1310,9 +1916,12 @@ export function renderScoreboard() {
       requestStartCrazyBatidaAttempt();
     }, { passive: true });
   }
+
   renderMobileTableLayout();
+  renderMobileLandscapeTableLayout();
   renderDesktopTableLayout();
   moveMobileBatiButtonToBottomArea();
+
 }
 
 
@@ -1321,13 +1930,89 @@ function isMobilePortraitTable() {
   return window.matchMedia("(max-width: 768px) and (orientation: portrait)").matches;
 }
 
+function isMobileLandscapeTable() {
+  return window.matchMedia(
+    "(max-width: 1024px) and (max-height: 600px) and (orientation: landscape)"
+  ).matches;
+}
+
+let landscapeTableOriginalParent = null;
+let landscapeTableOriginalNextSibling = null;
+
+function updateTableLayoutModeClasses() {
+  const body = document.body;
+
+  const isPortrait =
+    isMobilePortraitTable();
+
+  const isLandscape =
+    isMobileLandscapeTable();
+
+  body.classList.toggle(
+    "mobile-table-mode",
+    isPortrait
+  );
+
+  body.classList.toggle(
+    "mobile-landscape-table-mode",
+    isLandscape
+  );
+
+  if (!isPortrait) {
+    document
+      .getElementById("mobileTableLayout")
+      ?.remove();
+  }
+
+  if (!isLandscape) {
+    document
+      .getElementById(
+        "mobileLandscapeTableLayout"
+      )
+      ?.remove();
+  }
+
+  /*
+   * Ao entrar em qualquer modo mobile,
+   * elimina imediatamente o layout desktop.
+   */
+  if (isPortrait || isLandscape) {
+    body.classList.remove(
+      "desktop-table-mode"
+    );
+
+    document
+      .getElementById("desktopTableLayout")
+      ?.remove();
+  }
+
+  restoreLandscapeCenterItems();
+  restoreLandscapeHand();
+  restoreLandscapeMelds();
+  
+}
+
 const mobilePortraitMediaQuery = window.matchMedia(
   "(max-width: 768px) and (orientation: portrait)"
 );
 
 mobilePortraitMediaQuery.addEventListener("change", () => {
+  updateTableLayoutModeClasses();
   renderAll();
 });
+
+
+const mobileLandscapeMediaQuery = window.matchMedia(
+  "(max-width: 1024px) and (max-height: 600px) and (orientation: landscape)"
+);
+
+mobileLandscapeMediaQuery.addEventListener("change", () => {
+  updateTableLayoutModeClasses();
+  renderAll();
+});
+
+
+updateTableLayoutModeClasses();
 
 function getPublicStateSafe() {
   return window.state_public || window.state || state_public || state || {};
@@ -1592,6 +2277,485 @@ const miniAnte = Number(
   moveMobilePotToTableTop();
 }
 
+/* =========================================================
+   MOBILE LANDSCAPE — ESTRUTURA PRINCIPAL DA MESA
+========================================================= */
+
+function renderMobileLandscapeTableLayout() {
+  const game =
+    document.getElementById("gameScreen") ||
+    document.getElementById("game");
+
+  if (!game) return;
+
+  let root = document.getElementById(
+    "mobileLandscapeTableLayout"
+  );
+
+  if (!isMobileLandscapeTable()) {
+    root?.remove();
+
+    document.body.classList.remove(
+      "mobile-landscape-table-mode"
+    );
+
+    return;
+  }
+
+  document.body.classList.add(
+    "mobile-landscape-table-mode"
+  );
+
+  /*
+   * O portrait não pode continuar ativo
+   * quando o aparelho estiver horizontal.
+   */
+  document.body.classList.remove(
+    "mobile-table-mode"
+  );
+
+  
+
+  if (!root) {
+    root = document.createElement("div");
+
+    root.id = "mobileLandscapeTableLayout";
+
+    root.innerHTML = `
+      <div class="landscape-topbar">
+        <span class="landscape-table-info">
+          Mesa
+        </span>
+
+        <span class="landscape-ante-info">
+          Ante
+        </span>
+      </div>
+
+      <button
+        type="button"
+        class="landscape-back-tables"
+        data-landscape-back-tables
+      >
+        Voltar às mesas
+      </button>
+
+      <div class="landscape-seat-layer">
+        <div
+          class="landscape-seat pos1"
+          data-landscape-seat="1"
+        >
+          J1
+        </div>
+
+        <div
+          class="landscape-seat pos2"
+          data-landscape-seat="2"
+        >
+          J2
+        </div>
+
+        <div
+          class="landscape-seat pos3"
+          data-landscape-seat="3"
+        >
+          J3
+        </div>
+
+        <div
+          class="landscape-seat pos4"
+          data-landscape-seat="4"
+        >
+          J4
+        </div>
+
+        <div
+          class="landscape-seat pos5"
+          data-landscape-seat="5"
+        >
+          J5
+        </div>
+
+        <div
+          class="landscape-seat pos6"
+          data-landscape-seat="6"
+        >
+          J6
+        </div>
+      </div>
+
+      <div class="landscape-table-center">
+        <div class="landscape-melds-area"></div>
+      <div class="landscape-center-controls"></div>
+
+      <div class="landscape-bottom-area">
+        <div class="landscape-sort-area">
+          <span class="landscape-sort-label">
+            Ordenar
+          </span>
+
+          <button
+            type="button"
+            class="landscape-sort-btn"
+            data-landscape-sort="rank"
+            aria-label="Ordenar por valor"
+            title="Ordenar por valor"
+          >
+            K
+          </button>
+
+          <button
+            type="button"
+            class="landscape-sort-btn"
+            data-landscape-sort="suit"
+            aria-label="Ordenar por naipe"
+            title="Ordenar por naipe"
+          >
+            ♠
+          </button>
+        </div>
+
+        <div class="landscape-hand-area"></div>
+
+        <div class="landscape-bati-area">
+          <button
+            type="button"
+            class="landscape-bati-btn"
+            data-landscape-bati
+          >
+            BATI
+          </button>
+        </div>
+      </div>
+    `;
+
+    game.prepend(root);
+  }
+  
+
+  const s = getPublicStateSafe();
+
+  const tableId =
+    s.tableId ||
+    state.tableId;
+
+  const tableData =
+    tableId && window.state?.tables
+      ? window.state.tables[tableId]
+      : null;
+
+
+  const buyInBase = Number(
+    tableData?.buyIn ??
+    s.room?.buyIn ??
+    s.buyIn ??
+    0
+  );
+
+  const mesaValor = Number(
+    tableData?.stake ??
+    tableData?.mesaValor ??
+    tableData?.tableValue ??
+    (buyInBase * 10)
+  );
+
+  const anteValor = Number(
+    tableData?.miniAnte ??
+    tableData?.ante ??
+    s.room?.ante ??
+    s.ante ??
+    Math.floor(mesaValor * 0.05)
+  );
+
+  const landscapeMesaEl = root.querySelector(
+    ".landscape-table-info"
+  );
+
+  const landscapeAnteEl = root.querySelector(
+    ".landscape-ante-info"
+  );
+
+  if (landscapeMesaEl) {
+    landscapeMesaEl.textContent =
+      `Mesa: ${mesaValor.toLocaleString("pt-BR")}`;
+  }
+
+  if (landscapeAnteEl) {
+    landscapeAnteEl.textContent =
+      `Ante: ${anteValor.toLocaleString("pt-BR")}`;
+  }
+
+  const players = Array.isArray(tableData?.seats)
+    ? tableData.seats.filter(Boolean)
+    : getPlayersForMobileTable();
+
+  const timerInfo =
+    getMobileTurnTimerInfo(s);
+
+  ensureMobileTurnBarTicker();
+
+  for (let seat = 1; seat <= 6; seat++) {
+    const el = root.querySelector(
+      `[data-landscape-seat="${seat}"]`
+    );
+
+    const player = players.find(
+      item => Number(item?.seat) === seat
+    );
+
+    if (!el) continue;
+
+    if (!player) {
+      el.innerHTML = "";
+      el.classList.add("empty");
+      el.classList.remove("is-current-turn");
+      continue;
+    }
+
+    el.classList.remove("empty");
+
+    const isCurrentTurn =
+      Number(s.currentSeat) ===
+      Number(player.seat);
+
+    el.classList.toggle(
+      "is-current-turn",
+      isCurrentTurn
+    );
+
+    const avatar =
+      player.avatarUrl ||
+      player.avatar_url ||
+      "/assets/avatars/avatar-01.png";
+
+    const chips = Number(
+      player.tableChips ??
+      player.stack ??
+      player.chips ??
+      0
+    );
+
+    const points = Number(
+      player.totalPoints ??
+      player.points ??
+      0
+    );
+
+    const handCount = Number(
+      player.handCount ??
+      player.cardsCount ??
+      player.handLength ??
+      player.cardCount ??
+      (
+        Array.isArray(player.hand)
+          ? player.hand.length
+          : 0
+      )
+    );
+
+    const isDealer =
+      Number(s.dealerSeat) ===
+      Number(player.seat);
+
+    const isOffline =
+      Boolean(player.disconnected);
+
+    el.innerHTML = `
+      ${handCount > 0 ? `
+        <div class="landscape-seat-cards">
+          ${Array
+            .from({
+              length: Math.min(handCount, 12)
+            })
+            .map(() => `
+              <span
+                class="landscape-mini-card"
+              ></span>
+            `)
+            .join("")}
+        </div>
+      ` : ""}
+
+      <div class="landscape-seat-hud">
+        <div class="landscape-seat-avatar">
+          <img
+            src="${avatar}"
+            alt=""
+          >
+
+          ${isDealer ? `
+            <span
+              class="landscape-dealer-chip"
+              aria-label="Carteador"
+            >
+              D
+            </span>
+          ` : ""}
+        </div>
+
+        <div class="landscape-seat-content">
+          <div class="landscape-seat-name">
+            ${player.name || "Jogador"}
+
+            ${isOffline ? `
+              <span
+                class="landscape-seat-offline"
+              >
+                OFF
+              </span>
+            ` : ""}
+          </div>
+
+          <div class="landscape-seat-meta">
+            ${chips.toLocaleString("pt-BR")}
+            ·
+            ${points} pts
+          </div>
+        </div>
+      </div>
+
+      ${isCurrentTurn && timerInfo.show ? `
+        <div class="landscape-seat-timebar">
+          <div
+            class="landscape-seat-timebar-fill"
+            data-mobile-turnbar-fill
+            style="width:${timerInfo.pct}%"
+          ></div>
+        </div>
+      ` : ""}
+    `;
+  }
+
+  moveLandscapeCenterItemsToTable();
+  moveLandscapeHandToTable();
+  moveLandscapeMeldsToTable();
+  
+  const landscapeSortValueBtn = root.querySelector(
+    '[data-landscape-sort="rank"]'
+  );
+
+  const landscapeSortSuitBtn = root.querySelector(
+    '[data-landscape-sort="suit"]'
+  );
+
+  if (landscapeSortValueBtn) {
+    landscapeSortValueBtn.onclick = () => {
+      window.setHandSort?.("value");
+    };
+  }
+
+  if (landscapeSortSuitBtn) {
+    landscapeSortSuitBtn.onclick = () => {
+      window.setHandSort?.("suit");
+    };
+  }
+
+  const landscapeBackTablesBtn = root.querySelector(
+    "[data-landscape-back-tables]"
+  );
+
+  if (landscapeBackTablesBtn) {
+    landscapeBackTablesBtn.onclick = () => {
+      document
+        .getElementById("btnMobileBackToTables")
+        ?.click();
+    };
+  }
+
+
+  const landscapeBatiBtn = root.querySelector(
+    "[data-landscape-bati]"
+  );
+
+  if (landscapeBatiBtn) {
+    const batiUi = getCrazyBatidaUi();
+
+    landscapeBatiBtn.textContent =
+      batiUi.label || "BATI";
+
+    landscapeBatiBtn.disabled =
+      !!batiUi.disabled;
+
+    landscapeBatiBtn.classList.toggle(
+      "is-active",
+      batiUi.label === "CANCELAR"
+    );
+
+    landscapeBatiBtn.classList.toggle(
+      "is-burned",
+      batiUi.label === "QUEIMOU"
+    );
+
+    landscapeBatiBtn.classList.toggle(
+      "is-disabled-ui",
+      !!batiUi.disabled
+    );
+
+    landscapeBatiBtn.onclick = (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      const atual = getCrazyBatidaUi();
+
+      if (atual.mine) {
+        requestCancelCrazyBatidaAttempt();
+        return;
+      }
+
+      if (atual.disabled) {
+        showGameNotice?.(
+          atual.label === "QUEIMOU"
+            ? "Você queimou. Agora só pode comprar do monte."
+            : "BATI indisponível."
+        );
+
+        return;
+      }
+
+      requestStartCrazyBatidaAttempt();
+    };
+  }
+
+}
+
+function restoreLandscapeCenterItems() {
+  if (isMobileLandscapeTable()) return;
+
+  const deckArea = document.getElementById("deck-area");
+  const monte = document.getElementById("monte");
+  const lixo = document.getElementById("lixo");
+  const potArea = document.getElementById("pot-area");
+
+  if (!deckArea || !monte || !lixo) return;
+
+  deckArea.appendChild(monte);
+  deckArea.appendChild(lixo);
+
+  if (potArea) {
+    deckArea.appendChild(potArea);
+  }
+}
+
+function restoreLandscapeHand() {
+  if (isMobileLandscapeTable()) return;
+
+  const bottomArea =
+    document.getElementById("bottomArea");
+
+  const hand =
+    document.getElementById("hand");
+
+  if (!bottomArea || !hand) return;
+
+  if (
+    hand.parentElement?.classList.contains(
+      "landscape-hand-area"
+    )
+  ) {
+    bottomArea.prepend(hand);
+  }
+}
+
 function renderDesktopTableLayout() {
   const s = getPublicStateSafe();
 
@@ -1600,11 +2764,17 @@ function renderDesktopTableLayout() {
 
   let root = document.getElementById("desktopTableLayout");
 
-  const isMobile = isMobilePortraitTable();
+  const isMobile =
+    isMobilePortraitTable() ||
+    isMobileLandscapeTable();
 
   if (isMobile) {
     if (root) root.remove();
-    document.body.classList.remove("desktop-table-mode");
+
+    document.body.classList.remove(
+      "desktop-table-mode"
+    );
+
     return;
   }
 
@@ -1696,7 +2866,7 @@ function renderDesktopTableLayout() {
       ` : ""}
         <div class="desktop-seat-meta">${chips.toLocaleString("pt-BR")} · ${pts} pts</div>
 
-        ${!isMe && handCount > 0 ? `
+        ${handCount > 0 ? `
         <div class="desktop-seat-cards">
           ${Array.from({ length: Math.min(handCount, 9) }).map(() => `
             <div class="mini-card"></div>
@@ -1751,6 +2921,105 @@ function moveMobilePotToTableTop() {
 
   potItems.forEach(el => holder.appendChild(el));
 }
+
+function moveLandscapeCenterItemsToTable() {
+  if (!isMobileLandscapeTable()) return;
+
+  const root = document.getElementById(
+    "mobileLandscapeTableLayout"
+  );
+
+  const holder = root?.querySelector(
+    ".landscape-center-controls"
+  );
+
+  const monte = document.getElementById("monte");
+  const lixo = document.getElementById("lixo");
+  const potArea = document.getElementById("pot-area");
+
+  if (!holder || !monte || !lixo) return;
+
+  holder.appendChild(monte);
+  holder.appendChild(lixo);
+
+  if (potArea) {
+    holder.appendChild(potArea);
+  }
+}
+
+function moveLandscapeHandToTable() {
+  if (!isMobileLandscapeTable()) return;
+
+  const root = document.getElementById(
+    "mobileLandscapeTableLayout"
+  );
+
+  const holder = root?.querySelector(
+    ".landscape-hand-area"
+  );
+
+  const hand = document.getElementById("hand");
+
+  if (!holder || !hand) return;
+
+  if (hand.parentElement !== holder) {
+    holder.appendChild(hand);
+  }
+}
+
+
+function moveLandscapeMeldsToTable() {
+  if (!isMobileLandscapeTable()) return;
+
+  const root = document.getElementById(
+    "mobileLandscapeTableLayout"
+  );
+
+  const holder = root?.querySelector(
+    ".landscape-melds-area"
+  );
+
+  const table = document.getElementById("table");
+
+  if (!holder || !table) return;
+
+  if (!landscapeTableOriginalParent) {
+    landscapeTableOriginalParent = table.parentElement;
+    landscapeTableOriginalNextSibling = table.nextSibling;
+  }
+
+  if (table.parentElement !== holder) {
+    holder.appendChild(table);
+  }
+}
+
+function restoreLandscapeMelds() {
+  if (isMobileLandscapeTable()) return;
+
+  const table = document.getElementById("table");
+
+  if (!table || !landscapeTableOriginalParent) return;
+
+  if (
+    table.parentElement?.classList.contains(
+      "landscape-melds-area"
+    )
+  ) {
+    if (
+      landscapeTableOriginalNextSibling &&
+      landscapeTableOriginalNextSibling.parentNode ===
+        landscapeTableOriginalParent
+    ) {
+      landscapeTableOriginalParent.insertBefore(
+        table,
+        landscapeTableOriginalNextSibling
+      );
+    } else {
+      landscapeTableOriginalParent.appendChild(table);
+    }
+  }
+}
+
 
 function getMobileCurrentPlayerForHud() {
   const pl = typeof currentPlayer === "function" ? currentPlayer() : null;
@@ -1887,6 +3156,12 @@ function moveMobileBatiButtonToBottomArea() {
 
 // expõe para actions.js sem import (evita ciclo)
 window.__flyCard = flyCard;
+
+window.getHudCardsTargetBySeat =
+  getHudCardsTargetBySeat;
+
+window.animateHudCardMovement =
+  animateHudCardMovement;
 
 // =============================
 // 💰 POTE NA MESA (FICHAS)

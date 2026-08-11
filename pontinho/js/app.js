@@ -5,7 +5,7 @@ import { state } from "./state.js";
 import { initPlayers,  nextPlayer, unlockAudio, dealInitialCardsAnimated, collectAnte, requestRebuy } from "./actions.js";
 import { renderNextPlayerButton, renderPot, renderRebuyOverlay, renderEndMatchOverlay, renderScoreboard, renderDealOverlay } from "./render.js";
 import { startTurnTimer } from "./turnTimer.js";
-import { renderRebuyButton, playPendingDrawAnimation, playPendingDiscardDrawAnimation, playPendingHandToTableAnimation } from "./render.js";
+import {  renderRebuyButton, playPendingHandToTableAnimation, playPendingHudDiscardAnimation, playPendingHudDrawAnimation, playDealToHudAnimation} from "./render.js";
 import { showScreen } from "./screens.js";
 
 window.openTablesFromHome = function (variant) {
@@ -313,18 +313,108 @@ if (pub.tableId) {
   // sempre limpa seleção
   state.selectedCards = [];
 
-  // lixo / mesa / deck
-const oldDiscardId = state.lixo?.[0]?.id ? String(state.lixo[0].id) : null;
-const newDiscardId = pub.discardTop?.id ? String(pub.discardTop.id) : null;
+// lixo / mesa / deck
+const oldDiscardTop =
+  Array.isArray(state.lixo) &&
+  state.lixo.length
+    ? state.lixo[state.lixo.length - 1]
+    : null;
 
-if (newDiscardId && oldDiscardId !== newDiscardId) {
-  state.pendingDiscardFlyAnim = {
-    card: pub.discardTop,
-    fromSeat: pub.lastDiscardSeat || pub.currentSeat || null
+
+const oldDiscardId =
+  oldDiscardTop?.id != null
+    ? String(oldDiscardTop.id)
+    : null;
+
+
+const newDiscardId =
+  pub.discardTop?.id != null
+    ? String(pub.discardTop.id)
+    : null;
+
+
+// =========================================================
+// IDENTIFICA SE ESTE STATE_PUBLIC TROUXE UMA NOVA COMPRA
+// =========================================================
+const incomingDrawSeq =
+  Number(pub.lastDrawSeq) || 0;
+
+const previousDrawSeq =
+  Number(state.lastHudDrawSeq) || 0;
+
+const isNewDiscardDraw =
+  incomingDrawSeq > 0 &&
+  incomingDrawSeq !== previousDrawSeq &&
+  String(pub.lastDrawSource || "").toUpperCase() === "DISCARD";
+
+
+// =========================================================
+// NOVO DESCARTE → HUD DO JOGADOR ATÉ O LIXO
+// =========================================================
+if (
+  newDiscardId &&
+  oldDiscardId !== newDiscardId &&
+  pub.lastDiscardSeat &&
+  !isNewDiscardDraw
+) {
+  state.pendingHudDiscardAnim = {
+    seat: Number(pub.lastDiscardSeat),
+    card: pub.discardTop
   };
 }
 
-state.lixo = pub.discardTop ? [pub.discardTop] : [];
+
+// =========================================================
+// NOVA COMPRA → MONTE/LIXO ATÉ HUD DO JOGADOR
+// =========================================================
+if (
+  incomingDrawSeq > 0 &&
+  incomingDrawSeq !== previousDrawSeq &&
+  pub.lastDrawSeat &&
+  pub.lastDrawSource
+) {
+  state.lastHudDrawSeq = incomingDrawSeq;
+
+  state.pendingHudDrawAnim = {
+    seat: Number(pub.lastDrawSeat),
+    source: String(pub.lastDrawSource),
+    card: pub.lastDrawCard || null
+  };
+}
+
+
+// =========================================================
+// MANTÉM ATÉ 3 CARTAS DO LIXO PARA O VISUAL
+// =========================================================
+if (!Array.isArray(state.lixo)) {
+  state.lixo = [];
+}
+
+if (!pub.discardTop) {
+  state.lixo = [];
+} else {
+  const newId =
+    String(pub.discardTop.id);
+
+  const currentTopId =
+    state.lixo.length
+      ? String(
+          state.lixo[
+            state.lixo.length - 1
+          ]?.id
+        )
+      : null;
+
+  if (currentTopId !== newId) {
+    state.lixo.push(pub.discardTop);
+  }
+
+  // Para o visual, não precisamos guardar
+  // um lixo gigantesco no cliente.
+  if (state.lixo.length > 3) {
+    state.lixo = state.lixo.slice(-3);
+  }
+}
 
 state.table = Array.isArray(pub.tableMelds)
   ? pub.tableMelds.map(m => ({ cards: m.cards || [] }))
@@ -513,8 +603,13 @@ if (state.room?.id) {
   // ✅ só entra no jogo quando a mesa começou E não está em matchEnded
 if (pub.started && !pub.matchEnded) {
   showScreen("game");
+
   renderAll();
+
+  playPendingHudDiscardAnimation?.();
   playPendingHandToTableAnimation?.();
+  playPendingHudDrawAnimation?.();
+  playDealToHudAnimation?.();
 
 // se a partida acabou, mas estou na tela de mesas, NÃO reabre overlay
   } else {
@@ -580,14 +675,14 @@ if (msg.type === "state_private") {
     );
 
     const newCard = state.players[idx].hand.find(c => !beforeIds.has(String(c.id)));
-
+/*
     if (newCard) {
       state.pendingDeckToHandAnim = {
         cardId: String(newCard.id),
         requestedAt: Date.now()
       };
     }
-
+*/
     state.pendingDrawFromDeck = null;
   }
 
@@ -605,14 +700,14 @@ if (msg.type === "state_private") {
     );
 
     const newCard = state.players[idx].hand.find(c => !beforeIds.has(String(c.id)));
-
+/*
     if (newCard) {
       state.pendingDiscardToHandAnim = {
         cardId: String(newCard.id),
         requestedAt: Date.now()
       };
     }
-
+*/
     state.pendingDrawFromDiscard = null;
   }
 
@@ -626,10 +721,10 @@ if (msg.type === "state_private") {
   state.selectedCards = [];
 
   renderAll();
-  playPendingDrawAnimation?.();
-  playPendingDiscardDrawAnimation?.();
   return;
+
   }
+
 
 //5) Error
 if (msg.type === "error") {

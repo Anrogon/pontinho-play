@@ -1827,6 +1827,9 @@ function makeRoom(t) {
     deck: [],
     discard: [],
     tableMelds: [],
+    lastDrawSeat: null,
+    lastDrawSource: null,
+    lastDrawSeq: 0,
     started: false,
     startAt: 0,
     currentSeat: 1,
@@ -2070,6 +2073,7 @@ function roomSnapshotPublic(room) {
     seats,
     tableMelds: room.tableMelds,
     discardTop: room.discard.at(-1) || null,
+    lastDiscardSeat: room.lastDiscardSeat || null,
     deckCount: room.deck.length,
     spectators: room.spectators.size,
   };
@@ -2515,6 +2519,11 @@ function sendState(roomId) {
     /*rematchRequestedBySeat: room.rematchRequestedBySeat || null,*/
     deckCount: room.deck.length,
     discardTop: room.discard?.[room.discard.length - 1] || null,
+    lastDiscardSeat:  Number(room.lastDiscardSeat) || null,
+    lastDrawSeat:  Number(room.lastDrawSeat) || null,
+    lastDrawSource: room.lastDrawSource || null,
+    lastDrawSeq: Number(room.lastDrawSeq) || 0,
+    lastDrawCard: room.lastDrawSource === "DISCARD" ? (room.lastDrawCard || null) : null,
     matchPot: Number(room.matchPot) || 0,
     houseRakePct: getHouseRakePct(room),
     houseRake: getHouseRake(room),
@@ -2965,6 +2974,12 @@ function handleDrawDeckAction(room, player, playerSeat) {
   if (!activeCheck.ok) return activeCheck;
 
   const card = room.deck.pop();
+
+  room.lastDrawSeat = Number(playerSeat) || null;
+  room.lastDrawSource = "DECK";
+  room.lastDrawCard = null;
+  room.lastDrawSeq = (Number(room.lastDrawSeq) || 0) + 1;
+
   if (!card) {
     endRoundByEmptyDeck(room);
     return null;
@@ -3041,6 +3056,7 @@ function handleDiscardAction(room, player, playerSeat, action) {
 
   player.hand.splice(idx, 1);
   room.discard.push(card);
+  room.lastDiscardSeat = Number(playerSeat) || null;
 
   if (requiredDiscard != null && String(card.id) === String(requiredDiscard)) {
     clearRequiredDiscardCard(room, playerSeat);
@@ -3656,6 +3672,12 @@ function handleDrawDiscardAction(room, player, playerSeat) {
   }
 
   const card = room.discard.pop();
+
+  room.lastDrawSeat = Number(playerSeat) || null;
+  room.lastDrawSource = "DISCARD";
+  room.lastDrawSeq = (Number(room.lastDrawSeq) || 0) + 1;
+  room.lastDrawCard = card || null;
+
   if (!card) {
     return { ok: false, msg: "Lixo vazio." };
   }
@@ -4938,51 +4960,55 @@ if (msg.type === "joinTableGroup") {
 
   const room = rooms.get(tableId);
 
-  if (mode === "spectator") {
-    joinAsSpectator(room, c, clientId, tableId, ws);
-    return;
-  }
+if (!room) {
+  return send(ws, "error", {
+    message: "Mesa inválida."
+  });
+}
 
-  const s = Number(seat);
+const s = Number(seat);
 
-    if (!(s >= 1 && s <= 6)) {
+if (!(s >= 1 && s <= 6)) {
+  return send(ws, "error", {
+    message: "Assento inválido."
+  });
+}
+
+// =====================================================
+// IMPEDE A MESMA CONTA EM DUAS CADEIRAS DA MESMA MESA
+// =====================================================
+
+if (c.userId != null) {
+  const sameAccountSeatIndex =
+    room.playersBySeat.findIndex(player =>
+      player &&
+      player.userId != null &&
+      String(player.userId) === String(c.userId)
+    );
+
+  if (sameAccountSeatIndex !== -1) {
+    const sameAccountPlayer =
+      room.playersBySeat[sameAccountSeatIndex];
+
+    const sameAccountSeat =
+      sameAccountSeatIndex + 1;
+
+    const isLegitimateReconnect =
+      Boolean(reconnectToken) &&
+      sameAccountPlayer.reconnectToken === reconnectToken &&
+      sameAccountSeat === s;
+
+    if (!isLegitimateReconnect) {
       return send(ws, "error", {
-        message: "Assento inválido."
+        message:
+          "Você já está participando desta mesa em outra aba ou janela."
       });
     }
+  }
+}
 
-    // =====================================================
-    // IMPEDE A MESMA CONTA EM DUAS CADEIRAS DA MESMA MESA
-    // =====================================================
-
-    if (c.userId != null) {
-      const sameAccountSeatIndex = room.playersBySeat.findIndex(player =>
-        player &&
-        player.userId != null &&
-        String(player.userId) === String(c.userId)
-      );
-
-      if (sameAccountSeatIndex !== -1) {
-        const sameAccountPlayer =
-          room.playersBySeat[sameAccountSeatIndex];
-
-        const sameAccountSeat = sameAccountSeatIndex + 1;
-
-        const isLegitimateReconnect =
-          Boolean(reconnectToken) &&
-          sameAccountPlayer.reconnectToken === reconnectToken &&
-          sameAccountSeat === s;
-
-        if (!isLegitimateReconnect) {
-          return send(ws, "error", {
-            message:
-              "Você já está participando desta mesa em outra aba ou janela."
-          });
-        }
-      }
-    }
-
-    const existing = room.playersBySeat[s - 1];
+const existing =
+  room.playersBySeat[s - 1];
 
   // ===== RECONEXÃO / ASSENTO JÁ OCUPADO =====
   if (existing) {

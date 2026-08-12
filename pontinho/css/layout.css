@@ -102,17 +102,25 @@ body{
 
 /* slot do monte/lixo */
 .pile-slot{
-  width: 80px;
+  width: 85px;
   height: 100px;
   border-radius: 6px;
-  border: 2px solid #84e615;
+  /*border: 2px solid #84e615;*/
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-#monte, #lixo{
-  width: 75px;
+#monte{
+  width: 80px;
+  height: 100px;
+  border-radius: 6px;
+  background-size: cover;
+  /*border: 2px solid #10e8f0;*/
+}
+
+#lixo{
+  width: 80px;
   height: 100px;
   border-radius: 6px;
   background-size: cover;
@@ -147,23 +155,6 @@ body{
 }
 
 
-/* =============================
-   HAND
-============================= 
-#hand{
-  width: 100% !important;
-  max-width: 980px !important;
-  margin: 0 auto !important;
-  display: flex !important;
-  justify-content: center !important;
-  gap: 10px !important;
-  flex-wrap: nowrap !important;
-  overflow-x: auto !important;
-  padding: 6px 8px !important;
-  transform: translateY(-16px) !important;  Sobe a mão - ajuste fino: -12px a -30px 
-}
-*/
-
 #hand::-webkit-scrollbar{ height: 10px; }
 #hand::-webkit-scrollbar-thumb{
   background: rgba(255,255,255,0.18);
@@ -171,17 +162,6 @@ body{
   border: 1px solid rgba(255,255,255,0.10);
 }
 
-/* Responsivo: HAND 
-@media (max-width: 900px){
-  #hand{
-    justify-content: flex-start;
-    padding: 8px 6px;
-  }
-}
-*/
-/* =============================
-   SCOREBOARD
-============================= */
 /* scoreboard flutuante */
 #scoreboard{
   position: absolute !important;
@@ -227,11 +207,6 @@ body{
     margin-top: 10px !important;
   }
 
-  /*
-  #hand{
-    transform: none !important;
-  }
-    */
 }
 
 /* =============================

@@ -1027,113 +1027,6 @@ export function renderTable() {
 }
 
 
-function getPlayerCardsAnimationTarget(seat) {
-  const seatNum = Number(seat);
-
-  if (!seatNum) return null;
-
-  // =========================================================
-  // MOBILE LANDSCAPE
-  // =========================================================
-  if (isMobileLandscapeTable()) {
-    const seatEl = document.querySelector(
-      `[data-landscape-seat="${seatNum}"]`
-    );
-
-    if (!seatEl) return null;
-
-    return (
-      seatEl.querySelector(".landscape-seat-cards") ||
-      seatEl.querySelector(".landscape-seat-hud") ||
-      null
-    );
-  }
-
-  // =========================================================
-  // MOBILE PORTRAIT
-  // =========================================================
-  if (isMobilePortraitTable()) {
-    const seatEl = document.querySelector(
-      `#mobileTableLayout [data-seat-pos="${seatNum}"]`
-    );
-
-    if (!seatEl) return null;
-
-    return (
-      seatEl.querySelector(".mobile-seat-cards") ||
-      seatEl
-    );
-  }
-
-  // =========================================================
-  // DESKTOP
-  // =========================================================
-  const seatEl =
-    document.querySelector(
-      `#desktopTableLayout .desktop-seat.pos${seatNum}`
-    ) ||
-    document.querySelector(
-      `.desktop-seat.pos${seatNum}`
-    );
-
-  if (!seatEl) return null;
-
-  return (
-    seatEl.querySelector(".desktop-seat-cards") ||
-    seatEl
-  );
-}
-
-function animateDrawToPlayerHud({
-  seat,
-  fromEl,
-  duration = 420
-}) {
-  if (!fromEl) return;
-
-  const toEl =
-    getPlayerCardsAnimationTarget(seat);
-
-  if (!toEl) return;
-
-  const fakeBackCard = {
-    id: `anim-back-${Date.now()}`,
-    image: "assets/cards/back.png"
-  };
-
-  flyCard({
-    fromEl,
-    toEl,
-    card: fakeBackCard,
-    sfx: "draw",
-    duration
-  });
-}
-
-
-function animateDiscardFromPlayerHud({
-  seat,
-  card,
-  duration = 420
-}) {
-  if (!card) return;
-
-  const fromEl =
-    getPlayerCardsAnimationTarget(seat);
-
-  const lixoEl =
-    document.getElementById("lixo");
-
-  if (!fromEl || !lixoEl) return;
-
-  flyCard({
-    fromEl,
-    toEl: lixoEl,
-    card,
-    sfx: null,
-    duration
-  });
-}
 
 let pendingHandToTableTimer = null;
 
@@ -1248,7 +1141,7 @@ export function playPendingHandToTableAnimation() {
       // usa a face real capturada na mão
       ghost.style.backgroundImage =
         snap.backgroundImage ||
-        "url('./assets/cards/back.png')";
+        "url('./assets/cards/back-vermelho.png')";
 
       ghost.style.backgroundSize =
         "100% 100%";
@@ -1326,98 +1219,10 @@ export function playPendingHandToTableAnimation() {
 }
 
 
-/*
-export function playPendingHandToTableAnimation() {
-  const fx = state.pendingHandToTableAnim;
-  if (!fx?.cardIds?.length) return;
-
-  clearTimeout(pendingHandToTableTimer);
-
-  const ids = fx.cardIds.map(String);
-  const snapshots = Array.isArray(fx.cardSnapshots) ? fx.cardSnapshots : [];
-  const targetMeldIndex =
-    Number.isInteger(fx.targetMeldIndex) ? fx.targetMeldIndex : null;
-
-  state.pendingHandToTableAnim = null;
-
-  pendingHandToTableTimer = setTimeout(() => {
-    let tableEl = null;
-
-    if (targetMeldIndex != null) {
-      tableEl = document.querySelector(`.grupo-table[data-meld-index="${targetMeldIndex}"]`);
-    }
-
-    if (!tableEl) {
-      tableEl =
-        document.querySelector(".table-melds") ||
-        document.getElementById("tableMelds") ||
-        document.getElementById("table") ||
-        document.getElementById("game");
-    }
-
-    if (!tableEl) return;
-
-    ids.forEach((id, i) => {
-      const snap = snapshots.find(s => String(s.id) === String(id));
-      if (!snap?.rect) return;
-
-      const ghost = document.createElement("div");
-      ghost.className = "card";
-      ghost.style.position = "fixed";
-      ghost.style.left = `${snap.rect.left}px`;
-      ghost.style.top = `${snap.rect.top}px`;
-      ghost.style.width = `${snap.rect.width}px`;
-      ghost.style.height = `${snap.rect.height}px`;
-      ghost.style.pointerEvents = "none";
-      ghost.style.zIndex = "99999";
-      ghost.style.borderRadius = "10px";
-      ghost.style.boxShadow = "0 10px 24px rgba(0,0,0,0.28)";
-      ghost.style.backgroundImage =  snap.backgroundImage ||  "url('./assets/cards/back.png')";
-      ghost.style.backgroundSize = "cover";
-      ghost.style.backgroundPosition = "center";
-      ghost.style.backgroundRepeat = "no-repeat";
-
-      document.body.appendChild(ghost);
-
-      const targetRect = tableEl.getBoundingClientRect();
-      const dx =
-        (targetRect.left + targetRect.width / 2) -
-        (snap.rect.left + snap.rect.width / 2);
-      const dy =
-        (targetRect.top + targetRect.height / 2) -
-        (snap.rect.top + snap.rect.height / 2);
-
-      ghost.animate(
-        [
-          {
-            transform: "translate(0px, 0px) scale(1)",
-            opacity: 1
-          },
-          {
-            transform: `translate(${dx}px, ${dy}px) scale(0.88)`,
-            opacity: 0.88
-          }
-        ],
-        {
-          duration: 360 + i * 50,
-          easing: "ease-out",
-          fill: "forwards"
-        }
-      );
-
-      setTimeout(() => {
-        ghost.remove();
-      }, 420 + i * 50);
-    });
-  }, 40);
-}
-
-*/
-
 
 export function renderMonte() {
   const el = document.getElementById("monte");
-  el.style.backgroundImage = "url('./assets/cards/back.png')";
+  el.style.backgroundImage = "url('./assets/cards/back-azul.png')";
   el.onclick = () => {
     comprarDoMonte(); // só 1 vez
     // no online, NÃO precisa renderAll()
@@ -3157,11 +2962,6 @@ function moveMobileBatiButtonToBottomArea() {
 // expõe para actions.js sem import (evita ciclo)
 window.__flyCard = flyCard;
 
-window.getHudCardsTargetBySeat =
-  getHudCardsTargetBySeat;
-
-window.animateHudCardMovement =
-  animateHudCardMovement;
 
 // =============================
 // 💰 POTE NA MESA (FICHAS)

@@ -117,15 +117,6 @@ export function playCardSound(kind = "deal") {
   }
 }
 
-// ✅ Som de distribuição em rajada (usado no startNextRound e deals)
-function playDealBurst(n = 9) {
-  let i = 0;
-  const t = setInterval(() => {
-    playCardSound("deal");
-    i++;
-    if (i >= n) clearInterval(t);
-  }, 35);
-}
 
 export function playVictorySound() {
   try {
@@ -239,20 +230,6 @@ export function getNextActivePlayerIndex(fromIndex) {
 }
 
 
-export function dealInitialCards(qtd = 9) {
-  state.players.forEach(player => {
-    player.hand = [];
-
-    for (let i = 0; i < qtd; i++) {
-      const card = state.deck.pop();
-      if (!card) break;
-
-      player.hand.push(card);
-    }
-  });
-
-  playDealBurst(9);
-}
 
 
 

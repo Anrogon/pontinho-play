@@ -1143,7 +1143,7 @@ function resetRoomForRematch(room) {
   for (const p of room.playersBySeat || []) {
     if (!p) continue;
     p.nextMatchReady = false;
-
+    p.rematchReady = false;
     p.hand = [];
     p.totalPoints = 0;
     p.lastRoundPoints = 0;
@@ -1160,6 +1160,80 @@ function resetRoomForRematch(room) {
   }
   cleanupEmptyRoomInstances();
 }
+
+function tryPrepareRoomAfterRematchChoices(room) {
+  if (!room || !room.matchEnded) {
+    return false;
+  }
+
+  const seatedPlayers =
+    (room.playersBySeat || []).filter(Boolean);
+
+  if (!seatedPlayers.length) {
+    return false;
+  }
+
+  // Só reabre quando TODOS que ainda continuam sentados
+  // escolheram individualmente "Revanche".
+  const allRemainingAccepted =
+    seatedPlayers.every(
+      p => p.rematchReady === true
+    );
+
+  if (!allRemainingAccepted) {
+    return false;
+  }
+
+  // =====================================================
+  // TODOS OS JOGADORES QUE RESTARAM ACEITARAM REVANCHE
+  // =====================================================
+  room.started = false;
+  room.matchEnded = false;
+
+  room.startAt = 0;
+  room.phase = "WAITING";
+
+  room.roundEnded = false;
+  room.winnerSeat = null;
+  room.matchWinnerSeat = null;
+
+  room.currentSeat = 1;
+
+  room.deck = [];
+  room.discard = [];
+  room.tableMelds = [];
+
+  room.roundNumber = 0;
+  room.matchPot = 0;
+
+  room.rebuyDecisionUntil = 0;
+  room.crazyBatidaBurnedBySeat = {};
+
+  room.dealEndsAt = 0;
+  room.turnEndsAt = 0;
+  room.buyEndsAt = 0;
+
+  if (room.nextRoundTimeoutId) {
+    clearTimeout(room.nextRoundTimeoutId);
+    room.nextRoundTimeoutId = null;
+  }
+
+  if (room._startTimerId) {
+    clearTimeout(room._startTimerId);
+    room._startTimerId = null;
+  }
+
+  if (room._dealStartTimer) {
+    clearTimeout(room._dealStartTimer);
+    room._dealStartTimer = null;
+  }
+
+  resetStartCountdown(room);
+  refreshStartCountdown(room);
+
+  return true;
+}
+
 
 
 function scheduleNextRoundWithRebuy(room, ms = 20000) {
@@ -2112,18 +2186,57 @@ function broadcastLobbyTable(room) {
 function getLobbyRoomForGroup(tableGroupId) {
   const groupId = String(tableGroupId);
 
-  // prioridade 1: room do grupo que ainda não começou
+  // =====================================================
+  // PRIORIDADE 1:
+  // sala em espera que JÁ possui jogadores sentados
+  // =====================================================
   for (const room of rooms.values()) {
-    if (String(room.tableGroupId || room.id) !== groupId) continue;
+    if (
+      String(room.tableGroupId || room.id) !== groupId
+    ) {
+      continue;
+    }
+
+    const seatedCount =
+      Array.isArray(room.playersBySeat)
+        ? room.playersBySeat.filter(Boolean).length
+        : 0;
+
+    if (
+      !room.started &&
+      !room.matchEnded &&
+      seatedCount > 0
+    ) {
+      return room;
+    }
+  }
+
+  // =====================================================
+  // PRIORIDADE 2:
+  // qualquer sala vazia/em espera já existente
+  // =====================================================
+  for (const room of rooms.values()) {
+    if (
+      String(room.tableGroupId || room.id) !== groupId
+    ) {
+      continue;
+    }
 
     if (!room.started && !room.matchEnded) {
       return room;
     }
   }
 
-  // prioridade 2: se todas começaram, cria nova instância vazia
-  const base = getBaseTableConfig(groupId);
-  if (!base) return rooms.get(groupId) || null;
+  // =====================================================
+  // PRIORIDADE 3:
+  // cria/localiza uma nova instância
+  // =====================================================
+  const base =
+    getBaseTableConfig(groupId);
+
+  if (!base) {
+    return rooms.get(groupId) || null;
+  }
 
   return findOrCreateRoomForGroup(groupId, 1);
 }
@@ -2757,6 +2870,7 @@ function createPlayerForSeat(room, seat, clientId, client, avatarUrl) {
     
     disconnected: false,
     nextMatchReady: true,
+    rematchReady: false,
     disconnectDeadline: 0,
     disconnectTimer: null,
 
@@ -3215,6 +3329,7 @@ const initialTableChips = Math.max(0, stake - getBuyIn(room));
     if (!p) continue;
 
     p.nextMatchReady = true;
+    p.rematchReady = false;
     p.disconnected = false;
     p.eliminated = false;
     p.pendingRebuy = false;
@@ -4877,16 +4992,35 @@ if (msg.type === "leaveTable") {
       }
     }
 
-    const stillSeated = (room.playersBySeat || []).some(Boolean);
+  const stillSeated =
+    (room.playersBySeat || []).some(Boolean);
 
-    // se a partida acabou e ninguém ficou sentado, limpa a mesa
-    if (room.matchEnded && !stillSeated) {
+
+  // =====================================================
+  // PARTIDA TERMINOU
+  // =====================================================
+  if (room.matchEnded) {
+
+    // ---------------------------------------------------
+    // NINGUÉM FICOU NA MESA
+    // ---------------------------------------------------
+    if (!stillSeated) {
       resetRoomForRematch(room);
       resetStartCountdown(room);
     }
 
-    broadcastLobbyTable(room);
-    sendState(room.id);
+    // ---------------------------------------------------
+    // AINDA HÁ JOGADORES SENTADOS
+    // Só reabre se TODOS os que ficaram
+    // escolheram individualmente Revanche.
+    // ---------------------------------------------------
+    else {
+      tryPrepareRoomAfterRematchChoices(room);
+    }
+  }
+
+broadcastLobbyTable(room);
+sendState(room.id);
   }
 
   c.tableId = null;
@@ -5171,6 +5305,7 @@ if (msg.type === "keepSeatForNextMatch") {
   // Este jogador escolheu ficar sentado para a próxima.
   // Não mexe na mesa inteira e não mexe nos outros jogadores.
   p.nextMatchReady = true;
+  p.rematchReady = true;
   p.disconnected = false;
   p.eliminated = false;
   p.pendingRebuy = false;
@@ -5181,6 +5316,9 @@ if (msg.type === "keepSeatForNextMatch") {
   p.obrigacaoBaixar = false;
   p.totalPoints = 0;
   p.lastRoundPoints = 0;
+
+  tryPrepareRoomAfterRematchChoices(room);
+  
 
   refreshStartCountdown(room);
 

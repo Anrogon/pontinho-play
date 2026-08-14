@@ -969,6 +969,8 @@ window.rematchSameTable = function rematchSameTable() {
   window.scrollTo?.(0, 0);
 };
 
+
+
 // ✅ Voltar às mesas: este jogador libera o assento e volta sem lugar marcado
 window.declineRematchSameTable = function declineRematchSameTable() {
   document.getElementById("endMatchOverlay")?.remove();

@@ -319,12 +319,24 @@ function animateHudCardMovement({
   const startHeight =
     sourceRect?.height || 34;
 
-  // tamanho final = tamanho real do lixo
+  /// =========================================================
+  // TAMANHO FINAL DA CARTA
+  // Mantém a carta sempre na vertical durante o voo.
+  // Se existir uma mini-carta real no HUD, usa o tamanho dela.
+  // =========================================================
+  const targetCard =
+    toEl.querySelector?.(
+      ".mini-card, .mobile-mini-card, .landscape-mini-card"
+    );
+
+  const targetRect =
+    targetCard?.getBoundingClientRect?.();
+
   const endWidth =
-    to.width;
+    (targetRect?.width || startWidth) * 2;
 
   const endHeight =
-    to.height;
+    (targetRect?.height || startHeight) * 2;
 
   const startX =
     from.left +
@@ -676,8 +688,17 @@ function findCardElementFromTouch(touch) {
 
 export function createCardElement(card, { selectable = false } = {}) {
   const div = document.createElement("div");
+
   div.className = "card";
   div.style.backgroundImage = `url('${getCardImage(card)}')`;
+
+  // identifica o coringa no DOM
+  if (
+    card?.isJoker === true ||
+    String(card?.valor || "").toUpperCase() === "JOKER"
+  ) {
+    div.classList.add("joker-card");
+  }
 
   // ✅ aplica visual de seleção
   if (state.selectedCards.includes(card.id)) {
@@ -693,19 +714,15 @@ export function createCardElement(card, { selectable = false } = {}) {
 
       toggleSelectCard(card.id);
 
-      /*
-      * Atualiza apenas a carta tocada.
-      * Não redesenha a mesa inteira.
-      */
       div.classList.toggle(
         "selected",
         state.selectedCards.includes(card.id)
       );
     };
   }
+
   return div;
 }
-
 
 export function renderHand() {
   const handEl = document.getElementById("hand");
@@ -910,6 +927,10 @@ export function renderTable() {
       div.style.backgroundImage = `url('${getCardImage(card)}')`;
 
       // ✅ clique no coringa da mesa = tentar substituir pelo carta real selecionada
+      if (card?.isJoker) {
+        div.classList.add("joker-card");
+      }
+
       if (card?.isJoker) {
         div.onclick = (e) => {
           e.stopPropagation();
@@ -1644,23 +1665,6 @@ export function renderScoreboard() {
   if (mobileBatiBtn) {
     mobileBatiBtn.onclick = handleBatiButtonClick;
 
-    if (isMobilePortrait) {
-      const deckArea = document.getElementById("deck-area");
-
-      if (deckArea) {
-
-        // 🔥 remove qualquer botão antigo já movido
-        const old = deckArea.querySelector(".sb-mobile-bati-btn");
-        if (old && old !== mobileBatiBtn) {
-          old.remove();
-        }
-
-        // 🔥 move o atual
-        if (mobileBatiBtn.parentElement !== deckArea) {
-          deckArea.appendChild(mobileBatiBtn);
-        }
-      }
-    }
   }
 
   // =========================================================
@@ -1753,6 +1757,10 @@ function updateTableLayoutModeClasses() {
   const isLandscape =
     isMobileLandscapeTable();
 
+  const isDesktop =
+    !isPortrait && !isLandscape;
+
+
   body.classList.toggle(
     "mobile-table-mode",
     isPortrait
@@ -1763,58 +1771,86 @@ function updateTableLayoutModeClasses() {
     isLandscape
   );
 
+  body.classList.toggle(
+    "desktop-table-mode",
+    isDesktop
+  );
+
+
+  // =====================================================
+  // SAINDO DO LANDSCAPE
+  // PRIMEIRO devolve os elementos reais ao DOM original
+  // =====================================================
+  if (!isLandscape) {
+    restoreLandscapeCenterItems();
+    restoreLandscapeHand();
+    restoreLandscapeMelds();
+
+    // SOMENTE DEPOIS remove o container landscape
+    document
+      .getElementById("mobileLandscapeTableLayout")
+      ?.remove();
+  }
+
+
+  // =====================================================
+  // SAINDO DO PORTRAIT
+  // =====================================================
   if (!isPortrait) {
     document
       .getElementById("mobileTableLayout")
       ?.remove();
   }
 
-  if (!isLandscape) {
-    document
-      .getElementById(
-        "mobileLandscapeTableLayout"
-      )
-      ?.remove();
-  }
 
-  /*
-   * Ao entrar em qualquer modo mobile,
-   * elimina imediatamente o layout desktop.
-   */
-  if (isPortrait || isLandscape) {
-    body.classList.remove(
-      "desktop-table-mode"
-    );
-
+  // =====================================================
+  // SAINDO DO DESKTOP
+  // =====================================================
+  if (!isDesktop) {
     document
       .getElementById("desktopTableLayout")
       ?.remove();
   }
-
-  restoreLandscapeCenterItems();
-  restoreLandscapeHand();
-  restoreLandscapeMelds();
-  
 }
 
 const mobilePortraitMediaQuery = window.matchMedia(
   "(max-width: 768px) and (orientation: portrait)"
 );
 
-mobilePortraitMediaQuery.addEventListener("change", () => {
-  updateTableLayoutModeClasses();
-  renderAll();
-});
+let tableLayoutChangeTimer = null;
 
+function refreshTableLayoutAfterModeChange() {
+  clearTimeout(tableLayoutChangeTimer);
+
+  // =====================================================
+  // TROCA AS CLASSES IMEDIATAMENTE
+  // Evita o layout anterior "piscar" durante a rotação.
+  // =====================================================
+  updateTableLayoutModeClasses();
+
+  // =====================================================
+  // O render espera o viewport estabilizar.
+  // =====================================================
+  tableLayoutChangeTimer = setTimeout(() => {
+    requestAnimationFrame(() => {
+      renderAll();
+    });
+  }, 120);
+}
+
+mobilePortraitMediaQuery.addEventListener(
+  "change",
+  refreshTableLayoutAfterModeChange
+);
 
 const mobileLandscapeMediaQuery = window.matchMedia(
   "(max-width: 1024px) and (max-height: 600px) and (orientation: landscape)"
 );
 
-mobileLandscapeMediaQuery.addEventListener("change", () => {
-  updateTableLayoutModeClasses();
-  renderAll();
-});
+mobileLandscapeMediaQuery.addEventListener(
+  "change",
+  refreshTableLayoutAfterModeChange
+);
 
 
 updateTableLayoutModeClasses();
@@ -2078,7 +2114,6 @@ const miniAnte = Number(
       `;
         }
 
-  renderMobileBottomHudClean(tableData, s);
   moveMobilePotToTableTop();
 }
 
@@ -2098,6 +2133,16 @@ function renderMobileLandscapeTableLayout() {
   );
 
   if (!isMobileLandscapeTable()) {
+
+    // =====================================================
+    // SAINDO DO LANDSCAPE
+    // Primeiro devolve os elementos reais para o DOM
+    // original. Só depois remove o layout landscape.
+    // =====================================================
+    restoreLandscapeCenterItems();
+    restoreLandscapeHand();
+    restoreLandscapeMelds();
+
     root?.remove();
 
     document.body.classList.remove(
@@ -2705,7 +2750,6 @@ function moveMobilePotToTableTop() {
 
     if (el.id === "monte") return false;
     if (el.id === "lixo") return false;
-    if (el.id === "mobileBottomHud") return false;
     if (el.classList?.contains("sb-mobile-bati-btn")) return false;
     if (el.classList?.contains("sort-btn")) return false;
 
@@ -2854,69 +2898,6 @@ function getMobileCurrentPlayerForHud() {
 }
 
 
-function renderMobileBottomHudClean(tableData, s) {
-  if (!isMobilePortraitTable()) {
-    const old = document.getElementById("mobileBottomHud");
-    if (old) old.remove();
-    return;
-  }
-
-  const bottomArea = document.getElementById("bottomArea") || document.body;
-
-  let hud = document.getElementById("mobileBottomHud");
-
-  if (!hud) {
-    hud = document.createElement("div");
-    hud.id = "mobileBottomHud";
-    bottomArea.appendChild(hud);
-  }
-
-  const mySeat = s.mySeat;
-
-  const me = Array.isArray(tableData?.seats)
-    ? tableData.seats.find(p => Number(p?.seat) === Number(mySeat))
-    : null;
-
-  if (!me) {
-    hud.innerHTML = "";
-    return;
-  }
-
-  const avatar =
-    me.avatarUrl ||
-    me.avatar_url ||
-    "/assets/avatar-default.png";
-
-  const chips = Number(me.tableChips ?? me.stack ?? 0);
-  const pts = Number(me.totalPoints ?? 0);
-  const isMyTurn = Number(s.currentSeat) === Number(s.mySeat);
-
-  const timerInfo = getMobileTurnTimerInfo(s);
-  ensureMobileTurnBarTicker();
-
-  hud.innerHTML = `
-    <div class="mobile-bottom-avatar">
-      <img src="${avatar}">
-    </div>
-
-    <div class="mobile-bottom-info">
-      <div class="mobile-bottom-name">${me.name || "Você"}</div>
-      <div class="mobile-bottom-meta">${chips} · ${pts} pts</div>
-
-      ${isMyTurn && timerInfo.show ? `
-        <div class="mobile-hud-timebar">
-          <div
-            class="mobile-hud-timebar-fill"
-            data-mobile-turnbar-fill
-            style="width:${timerInfo.pct}%"
-          ></div>
-        </div>
-      ` : ""}
-    </div>
-  `;
-
-  hud.classList.toggle("is-current-turn", isMyTurn);
-}
 
 function moveMobileSortButtonsToDeckArea() {
   if (!isMobilePortraitTable()) return;
@@ -2945,18 +2926,52 @@ function moveMobileSortButtonsToDeckArea() {
 }
 
 function moveMobileBatiButtonToBottomArea() {
-  if (!isMobilePortraitTable()) return;
+  const bottomArea =
+    document.getElementById("bottomArea") ||
+    document.body;
 
-  const bottomArea = document.getElementById("bottomArea") || document.body;
-  const btn = document.querySelector(".sb-mobile-bati-btn");
+  // =====================================================
+  // FORA DO PORTRAIT
+  // remove qualquer BATI móvel que tenha ficado para trás
+  // =====================================================
+  if (!isMobilePortraitTable()) {
+    bottomArea
+      .querySelectorAll(".sb-mobile-bati-btn")
+      .forEach(btn => btn.remove());
+
+    return;
+  }
+
+  // =====================================================
+  // BOTÃO NOVO CRIADO PELO SCOREBOARD DESTE RENDER
+  // =====================================================
+  const scoreboard =
+    document.getElementById("scoreboard");
+
+  const btn =
+    scoreboard?.querySelector(
+      ".sb-mobile-bati-btn"
+    );
 
   if (!btn) return;
 
-  if (!btn.closest("#bottomArea")) {
-    bottomArea.appendChild(btn);
-  }
+  // =====================================================
+  // REMOVE O BOTÃO DO RENDER ANTERIOR
+  // =====================================================
+  bottomArea
+    .querySelectorAll(".sb-mobile-bati-btn")
+    .forEach(old => {
+      if (old !== btn) {
+        old.remove();
+      }
+    });
 
+  // =====================================================
+  // MOVE SOMENTE O BOTÃO ATUAL
+  // =====================================================
   btn.id = "mobileBatiBtnHud";
+
+  bottomArea.appendChild(btn);
 }
 
 // expõe para actions.js sem import (evita ciclo)

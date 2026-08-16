@@ -457,9 +457,34 @@ function startCrazyBatidaAttemptForSeat(room, seat, ms = 25000) {
   clearAutoTurnTimer(room);
 
   const stolen = room.discard.pop();
-  player.hand = [...(player.hand || []), stolen];
 
-  markDiscardCardRequired(room, seat, stolen.id);
+  player.hand = [
+    ...(player.hand || []),
+    stolen
+  ];
+
+
+  // =====================================================
+  // BATI PEGOU A CARTA DO LIXO
+  // =====================================================
+  room.lastDrawSeq =
+    (Number(room.lastDrawSeq) || 0) + 1;
+
+  room.lastDrawSeat =
+    Number(seat);
+
+  room.lastDrawSource =
+    "DISCARD";
+
+  room.lastDrawCard =
+    stolen;
+
+
+  markDiscardCardRequired(
+    room,
+    seat,
+    stolen.id
+  );
 
   room.crazyBatidaAttempt = {
     active: true,
@@ -3162,6 +3187,47 @@ function handleDiscardAction(room, player, playerSeat, action) {
     return { ok: false, msg: "Pegou do lixo: use ou devolva a carta." };
   }
 
+  // =========================================================
+  // CRAZY — BATIDA DE MÃO CHEIA EM ANDAMENTO
+  // =========================================================
+  if (
+    isCrazyProgressiveMeldAttempt(
+      room,
+      playerSeat
+    )
+  ) {
+    const allowedDiscardIds =
+      room.crazyBatidaAttempt
+        ?.allowedDiscardIds || [];
+
+    const isAllowedFinalDiscard =
+      (player.hand || []).length === 1 &&
+      allowedDiscardIds.some(
+        id =>
+          String(id) ===
+          String(card.id)
+      );
+
+    // Não pode abandonar a tentativa no meio.
+    if (!isAllowedFinalDiscard) {
+
+      clearCrazyBatidaAttempt(
+        room,
+        {
+          restoreSnapshot: true,
+          resumeTurn: true
+        }
+      );
+
+      return {
+        ok: false,
+        msg:
+          "Batida de Mão Cheia não concluída. Os jogos voltaram para sua mão."
+      };
+    }
+  }
+
+
   if (requiredJoker != null && String(card.id) === String(requiredJoker)) {
     return { ok: false, msg: "Use o coringa antes de descartar." };
   }
@@ -4074,7 +4140,163 @@ function tryBuildGlobalBatidaGroups(room, cards) {
 }
 
 
+// =========================================================
+// CRAZY — BATIDA DE MÃO CHEIA EM ETAPAS
+// =========================================================
 
+function getCrazyProgressiveBatidaPlan(room, cards) {
+  if (!isCrazy(room)) {
+    return { ok: false };
+  }
+
+  if (!Array.isArray(cards) || cards.length < 6) {
+    return { ok: false };
+  }
+
+  // -------------------------------------------------------
+  // 1) Batida sem descarte
+  // -------------------------------------------------------
+  const groups =
+    tryBuildGlobalBatidaGroups(room, cards);
+
+  if (groups && groups.length >= 2) {
+    return {
+      ok: true,
+      withDiscard: false,
+      allowedDiscardIds: []
+    };
+  }
+
+  // -------------------------------------------------------
+  // 2) Batida deixando UMA carta para descarte
+  // -------------------------------------------------------
+  const allowedDiscardIds = [];
+
+  for (let i = 0; i < cards.length; i++) {
+    const discardCandidate = cards[i];
+
+    // coringa nunca pode ser descarte
+    if (isJoker(discardCandidate)) {
+      continue;
+    }
+
+    const remaining =
+      cards.filter((_, index) => index !== i);
+
+    const remainingGroups =
+      tryBuildGlobalBatidaGroups(
+        room,
+        remaining
+      );
+
+    if (
+      remainingGroups &&
+      remainingGroups.length >= 2
+    ) {
+      allowedDiscardIds.push(
+        String(discardCandidate.id)
+      );
+    }
+  }
+
+  if (allowedDiscardIds.length) {
+    return {
+      ok: true,
+      withDiscard: true,
+      allowedDiscardIds
+    };
+  }
+
+  return { ok: false };
+}
+
+
+function isCrazyProgressiveMeldAttempt(room, seat) {
+  return (
+    room?.crazyBatidaAttempt?.active === true &&
+    room.crazyBatidaAttempt.type === "PROGRESSIVE_MELD" &&
+    Number(room.crazyBatidaAttempt.claimantSeat || 0) ===
+      Number(seat || 0)
+  );
+}
+
+function isCrazyBatidaAttemptForSeat(room, seat) {
+  return (
+    room?.crazyBatidaAttempt?.active === true &&
+    Number(room.crazyBatidaAttempt.claimantSeat || 0) ===
+      Number(seat || 0)
+  );
+}
+
+function startCrazyProgressiveMeldAttempt(
+  room,
+  playerSeat,
+  plan
+) {
+  if (!room) {
+    return {
+      ok: false,
+      msg: "Mesa inválida."
+    };
+  }
+
+  const player =
+    room.playersBySeat?.[playerSeat - 1];
+
+  if (!player) {
+    return {
+      ok: false,
+      msg: "Jogador inválido."
+    };
+  }
+
+  // -------------------------------------------------------
+  // Se já existe a própria tentativa progressiva,
+  // apenas continua.
+  // -------------------------------------------------------
+  if (
+    isCrazyProgressiveMeldAttempt(
+      room,
+      playerSeat
+    )
+  ) {
+    return { ok: true };
+  }
+
+  // -------------------------------------------------------
+  // Não interfere numa disputa BATI já existente.
+  // -------------------------------------------------------
+  if (room.crazyBatidaAttempt?.active) {
+    return {
+      ok: false,
+      msg: "Já existe uma tentativa de BATI ativa."
+    };
+  }
+
+  // snapshot ANTES de baixar o primeiro jogo especial
+  if (!room._crazyBatidaSnapshot) {
+    room._crazyBatidaSnapshot =
+      captureCrazyBatidaSnapshot(room);
+  }
+
+  room.crazyBatidaAttempt = {
+    active: true,
+    type: "PROGRESSIVE_MELD",
+
+    claimantSeat:
+      Number(playerSeat),
+
+    startedAt:
+      Date.now(),
+
+    allowedDiscardIds:
+      Array.isArray(plan?.allowedDiscardIds)
+        ? [...plan.allowedDiscardIds]
+        : []
+  };
+
+  return { ok: true };
+}
 
 
 
@@ -4312,10 +4534,87 @@ function handlePlayMeldAction(room, player, playerSeat, action) {
     }
   }
 
-  // 2) VALIDAÇÃO NORMAL
-  const validated = validateMeldCards(room, selected);
+ 
+  // =========================================================
+// 2) VALIDAÇÃO NORMAL / BATIDA DE MÃO CHEIA
+// =========================================================
+
+  let validated =
+    validateMeldCards(room, selected);
+
+  let usedProgressiveSpecial = false;
+
+
+  // ---------------------------------------------------------
+  // Se não é um jogo permitido normalmente,
+  // verifica a exceção especial de BATIDA.
+  // ---------------------------------------------------------
+  if (!validated.ok && isCrazy(room)) {
+
+    const special =
+      validateBatidaGroupSpecial(
+        room,
+        selected
+      );
+
+    if (special?.ok) {
+
+      let progressiveActive =
+        isCrazyBatidaAttemptForSeat(
+          room,
+          playerSeat
+        );
+
+      // -----------------------------------------------------
+      // PRIMEIRO bloco especial:
+      // a mão inteira precisa permitir uma batida.
+      // -----------------------------------------------------
+      if (!progressiveActive) {
+
+        const plan =
+          getCrazyProgressiveBatidaPlan(
+            room,
+            hand
+          );
+
+        if (plan.ok) {
+          const started =
+            startCrazyProgressiveMeldAttempt(
+              room,
+              playerSeat,
+              plan
+            );
+
+          if (!started.ok) {
+            return started;
+          }
+
+          progressiveActive = true;
+        }
+      }
+
+      // -----------------------------------------------------
+      // Dentro da Batida de Mão Cheia,
+      // permite esse jogo especial.
+      // -----------------------------------------------------
+      if (progressiveActive) {
+        validated = {
+          ok: true,
+          kind: special.kind,
+          aceHigh: !!special.aceHigh
+        };
+
+        usedProgressiveSpecial = true;
+      }
+    }
+  }
+
+
   if (!validated.ok) {
-    return { ok: false, msg: validated.msg };
+    return {
+      ok: false,
+      msg: validated.msg
+    };
   }
 
     if (validated.kind === "TRINCA") {
@@ -4333,8 +4632,16 @@ function handlePlayMeldAction(room, player, playerSeat, action) {
       }
     }
 
-    if (isCrazy(room)) {
-      const crazyTrincaCheck = validateCrazyTrincaShape(selected, { initial: true });
+    if (
+      isCrazy(room) &&
+      !usedProgressiveSpecial
+    ) {
+      const crazyTrincaCheck =
+        validateCrazyTrincaShape(
+          selected,
+          { initial: true }
+        );
+
       if (!crazyTrincaCheck.ok) {
         return crazyTrincaCheck;
       }
@@ -4382,10 +4689,63 @@ function handlePlayMeldAction(room, player, playerSeat, action) {
   }
 
   // 5) FIM DE RODADA
-  if ((player.hand || []).length === 0) {
-    revealBatidaThenEndRound(room, playerSeat);
+    if ((player.hand || []).length === 0) {
+
+    // Batida de Mão Cheia concluída com sucesso.
+    if (
+      isCrazyProgressiveMeldAttempt(
+        room,
+        playerSeat
+      )
+    ) {
+      clearCrazyBatidaAttempt(
+        room,
+        {
+          restoreSnapshot: false,
+          resumeTurn: false
+        }
+      );
+    }
+
+    revealBatidaThenEndRound(
+      room,
+      playerSeat
+    );
+
     return null;
   }
+
+
+  // =========================================================
+  // BATIDA DE MÃO CHEIA COM UMA CARTA PARA DESCARTAR
+  // =========================================================
+  if (
+    isCrazyProgressiveMeldAttempt(
+      room,
+      playerSeat
+    ) &&
+    (player.hand || []).length === 1
+  ) {
+    const finalCard =
+      player.hand[0];
+
+    const allowedDiscardIds =
+      room.crazyBatidaAttempt
+        ?.allowedDiscardIds || [];
+
+    const canDiscardFinalCard =
+      allowedDiscardIds.some(
+        id =>
+          String(id) ===
+          String(finalCard?.id)
+      );
+
+    if (canDiscardFinalCard) {
+      player.pendingBatidaAfterDiscard = true;
+      return null;
+    }
+  }
+
 
   if (shouldForceBatida(room, player)) {
     endRound(room, playerSeat);
@@ -5026,6 +5386,9 @@ sendState(room.id);
   c.tableId = null;
   c.seat = null;
   c.mode = null;
+  send(ws, "leftTable", {
+    tableId
+  });
 
   return;
 }

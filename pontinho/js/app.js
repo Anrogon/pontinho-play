@@ -150,6 +150,26 @@ if (msg.type === "table_public") {
   return;
 }
 
+// =====================================================
+// SAÍDA DA MESA CONFIRMADA PELO SERVIDOR
+// =====================================================
+if (msg.type === "leftTable") {
+  waitingLeaveTableAck = false;
+
+  try {
+    renderTablesScreen();
+  } catch (err) {
+    console.error(
+      "[CLIENT] erro ao renderizar mesas após saída:",
+      err
+    );
+  }
+
+  return;
+}
+
+
+
 // 2) joined
 if (msg.type === "joined") {
   console.log("[WS] joined recebido", msg.payload);
@@ -603,6 +623,8 @@ if (state.room?.id) {
   // ✅ só entra no jogo quando a mesa começou E não está em matchEnded
 if (pub.started && !pub.matchEnded) {
   showScreen("game");
+
+  showLandscapeHint();
 
   renderAll();
 
@@ -1085,6 +1107,7 @@ function bindGameControls() {
 
   // ✅ MOSTRA O JOGO AGORA (mata a tela vazia)
   showScreen("game");
+  showLandscapeHint();
   renderAll();
   bindTableUI();
 
@@ -1111,6 +1134,7 @@ let ignoredRoomAfterSpectatorExit = null;
 
 let pendingSpectatorJoinTableId = null;
 
+let waitingLeaveTableAck = false;
 
 // ✅ Voltar às mesas: sai do modo espectador e volta pra lista de mesas
 window.backToTables = function backToTables() {
@@ -1126,6 +1150,8 @@ window.backToTables = function backToTables() {
 
   // avisa o servidor
   if (tableId && socket && socket.readyState === WebSocket.OPEN) {
+    waitingLeaveTableAck = true;
+
     socket.send(JSON.stringify({
       type: "leaveTable",
       payload: {
@@ -1171,10 +1197,12 @@ window.backToTables = function backToTables() {
 
   updateSpectatorUI();
 
-  try {
-    renderTablesScreen();
-  } catch (err) {
-    console.error("[CLIENT] erro ao renderizar mesas:", err);
+  if (!waitingLeaveTableAck) {
+    try {
+      renderTablesScreen();
+    } catch (err) {
+      console.error("[CLIENT] erro ao renderizar mesas:", err);
+    }
   }
 
   window.scrollTo?.(0, 0);
@@ -1218,6 +1246,29 @@ window.showGameNotice = function showGameNotice(message, type = "warn") {
 window.alert = function (message) {
   window.showGameNotice?.(message || "Aviso.", "warn");
 };
+
+function showLandscapeHint() {
+  const isMobile =
+    window.matchMedia("(max-width: 900px)").matches;
+
+  const isPortrait =
+    window.matchMedia("(orientation: portrait)").matches;
+
+  if (!isMobile || !isPortrait) return;
+
+  // mostra apenas uma vez por sessão do navegador
+  if (sessionStorage.getItem("landscapeHintShown")) return;
+
+  sessionStorage.setItem("landscapeHintShown", "1");
+
+  setTimeout(() => {
+    window.showGameNotice?.(
+      "📱 Dica: gire o celular para jogar no modo paisagem.",
+      "info"
+    );
+  }, 800);
+}
+
 
 function updateSpectatorUI() {
   const isSpectator = !!state.spectator;
@@ -1264,35 +1315,29 @@ function updateSpectatorUI() {
   const isMobile = true;
   const isInGame = !!state.room?.id;
 
-  let gameBackBtn = document.getElementById("btnMobileBackToTables");
+  let gameBackBtn =  document.getElementById("btnMobileBackToTables");
 
   if (isMobile && isInGame) {
+
+    // =====================================================
+    // CRIA O BOTÃO SOMENTE UMA VEZ
+    // =====================================================
     if (!gameBackBtn) {
       gameBackBtn = document.createElement("button");
       gameBackBtn.id = "btnMobileBackToTables";
-      const isMobileLayout =
-      window.matchMedia?.("(max-width: 768px)")?.matches;
-
-    gameBackBtn.textContent = isMobileLayout
-      ? "⬅"
-      : "Voltar às mesas";
-
-      if (isMobileLayout) {
-        gameBackBtn.style.minWidth = "42px";
-        gameBackBtn.style.padding = "8px";
-      } else {
-        gameBackBtn.style.minWidth = "";
-        gameBackBtn.style.padding = "8px 12px";
-      }
 
       gameBackBtn.style.position = "absolute";
       gameBackBtn.style.top = "14px";
       gameBackBtn.style.right = "14px";
       gameBackBtn.style.zIndex = "9999";
-      gameBackBtn.style.padding = "8px 12px";
+
       gameBackBtn.style.borderRadius = "10px";
-      gameBackBtn.style.border = "1px solid rgba(255,255,255,0.25)";
-      gameBackBtn.style.background = "rgba(0,0,0,0.45)";
+      gameBackBtn.style.border =
+        "1px solid rgba(255,255,255,0.25)";
+
+      gameBackBtn.style.background =
+        "rgba(0,0,0,0.45)";
+
       gameBackBtn.style.color = "#fff";
       gameBackBtn.style.fontWeight = "800";
       gameBackBtn.style.cursor = "pointer";
@@ -1301,10 +1346,32 @@ function updateSpectatorUI() {
         window.backToTables?.();
       };
 
-      document.getElementById("game")?.appendChild(gameBackBtn);
+      document
+        .getElementById("game")
+        ?.appendChild(gameBackBtn);
+    }
+
+
+    // =====================================================
+    // ATUALIZA O VISUAL SEMPRE QUE O LAYOUT MUDA
+    // =====================================================
+    const isMobileLayout =
+      window
+        .matchMedia?.("(max-width: 768px)")
+        ?.matches;
+
+    if (isMobileLayout) {
+      gameBackBtn.textContent = "⬅";
+      gameBackBtn.style.minWidth = "42px";
+      gameBackBtn.style.padding = "8px";
+    } else {
+      gameBackBtn.textContent = "Voltar às mesas";
+      gameBackBtn.style.minWidth = "";
+      gameBackBtn.style.padding = "8px 12px";
     }
 
     gameBackBtn.style.display = "";
+
   } else if (gameBackBtn) {
     gameBackBtn.style.display = "none";
   }

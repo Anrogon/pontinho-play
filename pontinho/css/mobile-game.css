@@ -96,7 +96,6 @@
 
     width: 46px !important;
     min-width: 46px !important;
-    height: 264px !important;
 
     display: block !important;
     overflow: visible !important;
@@ -110,8 +109,8 @@
     position: absolute !important;
     left: 0 !important;
 
-    width: 46px !important;
-    height: 72px !important;
+    width: 45px !important;
+    height: 65px !important;
 
     margin: 0 !important;
     border-radius: 5px !important;
@@ -125,18 +124,18 @@
   }
 
   .grupo-table .card:nth-child(1)  { top: 0px;   z-index: 1;  }
-  .grupo-table .card:nth-child(2)  { top: 16px;  z-index: 2;  }
-  .grupo-table .card:nth-child(3)  { top: 32px;  z-index: 3;  }
-  .grupo-table .card:nth-child(4)  { top: 48px;  z-index: 4;  }
-  .grupo-table .card:nth-child(5)  { top: 64px;  z-index: 5;  }
-  .grupo-table .card:nth-child(6)  { top: 80px;  z-index: 6;  }
-  .grupo-table .card:nth-child(7)  { top: 96px;  z-index: 7;  }
-  .grupo-table .card:nth-child(8)  { top: 112px; z-index: 8;  }
-  .grupo-table .card:nth-child(9)  { top: 128px; z-index: 9;  }
-  .grupo-table .card:nth-child(10) { top: 144px; z-index: 10; }
-  .grupo-table .card:nth-child(11) { top: 160px; z-index: 11; }
-  .grupo-table .card:nth-child(12) { top: 176px; z-index: 12; }
-  .grupo-table .card:nth-child(13) { top: 192px; z-index: 13; }
+  .grupo-table .card:nth-child(2)  { top: 18px;  z-index: 2;  }
+  .grupo-table .card:nth-child(3)  { top: 36px;  z-index: 3;  }
+  .grupo-table .card:nth-child(4)  { top: 54px;  z-index: 4;  }
+  .grupo-table .card:nth-child(5)  { top: 72px;  z-index: 5;  }
+  .grupo-table .card:nth-child(6)  { top: 90px;  z-index: 6;  }
+  .grupo-table .card:nth-child(7)  { top: 108px;  z-index: 7;  }
+  .grupo-table .card:nth-child(8)  { top: 126px; z-index: 8;  }
+  .grupo-table .card:nth-child(9)  { top: 144px; z-index: 9;  }
+  .grupo-table .card:nth-child(10) { top: 162px; z-index: 10; }
+  .grupo-table .card:nth-child(11) { top: 180px; z-index: 11; }
+  .grupo-table .card:nth-child(12) { top: 198px; z-index: 12; }
+  .grupo-table .card:nth-child(13) { top: 216px; z-index: 13; }
 }
 
 /* =========================================================
@@ -249,24 +248,44 @@
     pointer-events: auto !important;
   }
 
-  body.mobile-table-mode .pile-slot,
-  body.mobile-table-mode #monte,
-  body.mobile-table-mode #lixo {
-    width: 45px;
-    height: 70px;
+  /* MONTE */
+  body.mobile-table-mode #monte {
+    width: 60px;
+    height: 80px;
     border-radius: 5px;
-  }
 
-  body.mobile-table-mode #monte,
-  body.mobile-table-mode #lixo {
     position: relative;
     z-index: 25001;
     pointer-events: auto;
   }
 
+  /* LIXO */
+  body.mobile-table-mode #lixo {
+    width: 55px;
+    height: 75px;
+    border-radius: 5px;
+
+    position: relative;
+    z-index: 25001;
+    pointer-events: auto;
+  }
+
+  /* SLOT */
+  body.mobile-table-mode .pile-slot {
+    width: 55px;
+    height: 75px;
+    border-radius: 5px;
+  }
+
+    /* CARTA/IMAGEM DO MONTE */
   body.mobile-table-mode #monte .card,
+  body.mobile-table-mode #monte img {
+    width: 42px;
+    height: 66px;
+  }
+
+  /* CARTA/IMAGEM DO LIXO */
   body.mobile-table-mode #lixo .card,
-  body.mobile-table-mode #monte img,
   body.mobile-table-mode #lixo img {
     width: 42px;
     height: 66px;
@@ -279,29 +298,6 @@
 ========================================================= */
 
 @media (max-width: 520px) and (orientation: portrait) {
-
-  body.mobile-table-mode #mobileBottomHud{
-  position:fixed !important;
-
-  right:15px !important;
-  left:auto !important;
-
-  bottom:calc(
-    10px + env(safe-area-inset-bottom) + 122px
-  ) !important;
-
-  top:auto !important;
-  transform:none !important;
-
-  z-index:38000 !important;
-}
-
-  body.mobile-table-mode #mobileBottomHud.is-current-turn {
-    border: 1px solid #ffd700 !important;
-    box-shadow:
-      0 0 0 2px rgba(255, 215, 0, 0.35),
-      0 0 14px rgba(255, 215, 0, 0.85) !important;
-  }
 
   body.mobile-table-mode #mobileSortButtonsHud {
     position: fixed !important;
@@ -332,7 +328,7 @@
     left: auto !important;
     right: 35px !important;
     top: auto !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 165px) !important;
+    bottom: calc(10px + env(safe-area-inset-bottom) + 125px) !important;
     transform: none !important;
 
     min-width: 70px !important;
@@ -371,51 +367,36 @@
     background: linear-gradient(180deg, #e53935, #b71c1c) !important;
   }
 
-  body.mobile-table-mode #mobileBottomHud {
-  overflow: visible !important;
-  }
-
-  body.mobile-table-mode #mobileBottomHud .mobile-bottom-info {
-    min-width: 0 !important;
-    flex: 1 1 auto !important;
-  }
 
   body.mobile-table-mode .mobile-seat-timebar {
-  position: absolute !important;
+    position: absolute !important;
 
-  left: 36px !important;
-  right: 10px !important;
-  bottom: 2px !important;
+    left: 36px !important;
+    right: 10px !important;
+    bottom: 2px !important;
 
-  height: 3px !important;
-  border-radius: 999px !important;
+    height: 3px !important;
+    border-radius: 999px !important;
 
-  background: rgba(255,255,255,0.22) !important;
-  overflow: hidden !important;
+    background: rgba(255,255,255,0.22) !important;
+    overflow: hidden !important;
 
-  z-index: 5 !important;
-}
+    z-index: 5 !important;
+  }
 
-  body.mobile-table-mode .mobile-seat-timebar-fill,
-  body.mobile-table-mode .mobile-hud-timebar-fill {
+  body.mobile-table-mode .mobile-seat-timebar-fill {
     height: 100% !important;
     border-radius: 999px !important;
 
-    /*background: linear-gradient(180deg, #e53935, #b71c1c) !important;*/
-    background: linear-gradient(90deg,#ffd700, #ffb300 );
+    background: linear-gradient(
+      90deg,
+      #ffd700,
+      #ffb300
+    );
+
     transition: width 0.2s linear !important;
   }
 
-  body.mobile-table-mode .mobile-hud-timebar {
-    width: 58px !important;
-    height: 5px !important;
-
-    margin-top: 4px !important;
-
-    border-radius: 999px !important;
-    background: rgba(255,255,255,0.22) !important;
-    overflow: hidden !important;
-  }
 
   body.mobile-table-mode .mobile-seat-offline {
   display: inline-flex !important;

@@ -47,11 +47,11 @@
   }
 
   #table .table-melds-top {
-    top: 40px !important;
+    top: 28px !important;
   }
 
   #table .table-melds-bottom {
-    top: 150px !important;
+    top: 165px !important;
   }
 
   #table .grupo-table {
@@ -118,68 +118,15 @@
     position: fixed !important;
     left: 40% !important;
     transform: translateX(-50%) !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 118px) !important;
+    bottom: calc(8px + env(safe-area-inset-bottom) + 110px) !important;
 
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 15px !important;
+    gap: 10px !important;
 
     z-index: 25000 !important;
     pointer-events: auto !important;
-  }
-
-  #mobileBottomHud {
-    position: fixed !important;
-    left: 14px !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 128px) !important;
-
-    width: 112px !important;
-    height: 34px !important;
-    padding: 3px 6px !important;
-    border-radius: 999px !important;
-
-    display: flex !important;
-    align-items: center !important;
-    gap: 6px !important;
-
-    background: rgba(0, 95, 145, 0.8) !important;
-    border: 1px solid rgba(120, 210, 255, 0.8) !important;
-    color: #fff !important;
-    box-sizing: border-box !important;
-
-    z-index: 32000 !important;
-    pointer-events: auto !important;
-  }
-
-  .mobile-bottom-avatar {
-    width: 24px !important;
-    height: 24px !important;
-    flex: 0 0 24px !important;
-    border-radius: 50% !important;
-    overflow: hidden !important;
-  }
-
-  .mobile-bottom-avatar img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-    display: block !important;
-  }
-
-  .mobile-bottom-name {
-    font-size: 10px !important;
-    font-weight: 900 !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-
-  .mobile-bottom-meta {
-    font-size: 8px !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
   }
 
   #bottomArea .sort-btn {
@@ -248,11 +195,11 @@
 
 /* =========================================================
    MOBILE POT NO TOPO DA MESA
-========================================================= */
+========================================================= 
 @media (max-width: 520px) and (orientation: portrait) {
   #mobilePotTop {
     position: absolute !important;
-    left: 50% !important;
+    left: 60% !important;
     top: 120px !important;
     transform: translateX(-50%) !important;
 
@@ -277,7 +224,7 @@
     text-align: center !important;
   }
 }
-
+*/
 
 /*******************NOVO MOBILE COMEÇA AQUI***********/
 
@@ -448,7 +395,7 @@
 
   .mobile-seat.pos1 {  left: 15%;  top: 45%;  transform: translate(-50%, -50%);}
   .mobile-seat.pos2 {  left: 15%;  top: 20%;  transform: translate(-50%, -50%);}
-  .mobile-seat.pos3 {  left: 45%;  top: 20%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos3 {  left: 48%;  top: 20%;  transform: translate(-50%, -50%);}
   .mobile-seat.pos4 {  left: 80%;  top: 20%;  transform: translate(-50%, -50%);}
 
   .mobile-seat.pos5 {  left: 80%;  top: 45%;  transform: translate(-50%, -50%);}

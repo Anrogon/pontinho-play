@@ -57,7 +57,8 @@ const HOME_STATUS_FEED = [
   "🎯 Bater sem descarte também encerra a rodada.",
   "⚡ Não pode descartar carta que entra na mesa.",
   "🎴 Você pode bater com dois coringas em uma carta.",
-  "👏 Quer bater com a mão cheia? Selecione todas as cartas e abaixe os jogos."
+  "👏 Quer bater com a mão cheia? Selecione todas as cartas e abaixe os jogos.",
+  "📱 Gire o celular para jogar no modo paisagem."
 ];
 
 function ensureHomeStatusFeed() {

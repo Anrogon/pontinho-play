@@ -147,9 +147,9 @@
   #hand {
     position: fixed !important;
 
-    left: 58px !important;
+    left: 10px !important;
     right: 6px !important;
-    bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+    bottom: calc(20px + env(safe-area-inset-bottom)) !important;
 
     width: auto !important;
     max-width: none !important;
@@ -184,7 +184,7 @@
     z-index: 1 !important;
 
     flex: 0 0 auto !important;
-    margin-left: -25px !important;
+    margin-left: -22px !important;
 
     border-radius: 5px !important;
     border: 1px solid rgba(255,255,255,.92) !important;
@@ -233,14 +233,20 @@
   #deck-area {
     position: fixed !important;
 
-    left: 50% !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 110px) !important;
-    transform: translateX(-50%) !important;
+    left: auto !important;
+    right: 12px !important;
+
+    top: 270px !important;
+    bottom: auto !important;
+
+    transform: none !important;
 
     display: flex !important;
-    justify-content: center !important;
+    flex-direction: column !important;
     align-items: center !important;
-    gap: 16px !important;
+    justify-content: flex-start !important;
+
+    gap: 8px !important;
 
     margin: 0 !important;
 
@@ -302,11 +308,14 @@
   body.mobile-table-mode #mobileSortButtonsHud {
     position: fixed !important;
 
-    left: 24px !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 140px) !important;
+    left: auto !important;
+    right: 12px !important;
+    bottom: calc(10px + env(safe-area-inset-bottom) + 18px) !important;
 
     display: flex !important;
-    gap: 10px !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 6px !important;
 
     z-index: 37000 !important;
   }
@@ -326,9 +335,9 @@
     position: fixed !important;
 
     left: auto !important;
-    right: 35px !important;
+    right: 12px !important;
     top: auto !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 125px) !important;
+    bottom: calc(10px + env(safe-area-inset-bottom) + 135px) !important;
     transform: none !important;
 
     min-width: 70px !important;
@@ -417,6 +426,7 @@
 
   vertical-align: middle !important;
 }
+
 }
 
 /* =========================================================
@@ -426,10 +436,12 @@
 @media (max-width:700px){
 
   body.mobile-table-mode #sortPanel{
-    position:fixed !important;
+    position:static !important;
 
-    left:7px !important;
-    bottom:calc(23px + env(safe-area-inset-bottom)) !important;
+    left:auto !important;
+    right:auto !important;
+    top:auto !important;
+    bottom:auto !important;
 
     display:flex !important;
     flex-direction:column !important;
@@ -452,7 +464,6 @@
     pointer-events:auto !important;
     z-index:99999 !important;
   }
-
   body.mobile-table-mode #sortPanel .sort-title{
     position:static !important;
 

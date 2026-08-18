@@ -114,6 +114,7 @@
    MOBILE HUD INFERIOR â€” JOGADOR, MONTE/LIXO, ORDENAR, BATI
 ========================================================= */
 @media (max-width: 520px) and (orientation: portrait) {
+  /*
   #deck-area {
     position: fixed !important;
     left: 40% !important;
@@ -128,14 +129,12 @@
     z-index: 25000 !important;
     pointer-events: auto !important;
   }
-
+*/
   #bottomArea .sort-btn {
-    position: fixed !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 88px) !important;
-
     width: 30px !important;
     height: 30px !important;
     padding: 0 !important;
+
     border: none !important;
     background: transparent !important;
     border-radius: 50% !important;
@@ -144,13 +143,6 @@
     pointer-events: auto !important;
   }
 
-  #bottomArea .sort-btn:nth-of-type(1) {
-    left: 34px !important;
-  }
-
-  #bottomArea .sort-btn:nth-of-type(2) {
-    left: 74px !important;
-  }
 
   #bottomArea .sort-btn img {
     width: 30px !important;
@@ -193,38 +185,6 @@
   }
 }
 
-/* =========================================================
-   MOBILE POT NO TOPO DA MESA
-========================================================= 
-@media (max-width: 520px) and (orientation: portrait) {
-  #mobilePotTop {
-    position: absolute !important;
-    left: 60% !important;
-    top: 120px !important;
-    transform: translateX(-50%) !important;
-
-    z-index: 30 !important;
-    pointer-events: none !important;
-
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  #mobilePotTop img {
-    max-width: 58px !important;
-    max-height: 58px !important;
-  }
-
-  #mobilePotTop,
-  #mobilePotTop * {
-    color: #fff !important;
-    font-weight: 800 !important;
-    text-align: center !important;
-  }
-}
-*/
 
 /*******************NOVO MOBILE COMEÇA AQUI***********/
 
@@ -270,6 +230,35 @@
     z-index: 10 !important;
   }
 
+  /* 
+  =========================================================
+   VOLTAR ÀS MESAS — NA MESMA LINHA DE MESA / ANTE
+  ========================================================= */
+  body.mobile-table-mode #btnMobileBackToTables {
+    position: fixed !important;
+
+    top: 4px !important;
+    left: 6px !important;
+    right: auto !important;
+
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 25px !important;
+
+    padding: 0 !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    border-radius: 7px !important;
+
+    font-size: 16px !important;
+    line-height: 1 !important;
+
+    z-index: 50000 !important;
+  }
+
   .mobile-table-topbar span {
     padding: 4px 7px !important;
 
@@ -291,14 +280,14 @@
   .mobile-seat {
     position: absolute !important;
 
-    width: 100px !important;
-    min-height: 40px !important;
+    width: 110px !important;
+    min-height: 34px !important;
 
     display: flex !important;
     align-items: center !important;
-    gap: 6px !important;
+    gap: 4px !important;
 
-    padding: 3px 6px !important;
+    padding: 2px 5px !important;
 
     text-align: left !important;
 
@@ -324,7 +313,7 @@
   }
 
   .mobile-seat.is-current-turn {
-    border: 2px solid #ffd700 !important;
+    border: 1px solid #ffd700 !important;
 
     box-shadow:
       0 0 0 2px rgba(255,215,0,0.35),
@@ -334,10 +323,11 @@
   .mobile-seat-avatar {
     position: relative !important;
     overflow: visible !important;
-    width: 24px !important;
-    height: 24px !important;
 
-    flex: 0 0 24px !important;
+    width: 21px !important;
+    height: 21px !important;
+
+    flex: 0 0 21px !important;
 
     margin: 0 !important;
 
@@ -371,9 +361,9 @@
   }
 
   .mobile-seat-name {
-    margin: 0 0 2px 0 !important;
+    margin: 0 0 1px 0 !important;
 
-    font-size: 11px !important;
+    font-size: 10px !important;
     font-weight: 900 !important;
     line-height: 1 !important;
 
@@ -383,7 +373,7 @@
   }
 
   .mobile-seat-meta {
-    font-size: 8.5px !important;
+    font-size: 8px !important;
     line-height: 1 !important;
 
     white-space: nowrap !important;
@@ -393,14 +383,14 @@
      POSIÇÕES
   ========================= */
 
-  .mobile-seat.pos1 {  left: 15%;  top: 45%;  transform: translate(-50%, -50%);}
-  .mobile-seat.pos2 {  left: 15%;  top: 20%;  transform: translate(-50%, -50%);}
-  .mobile-seat.pos3 {  left: 48%;  top: 20%;  transform: translate(-50%, -50%);}
-  .mobile-seat.pos4 {  left: 80%;  top: 20%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos1 {  left: 15%;  top: 35%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos2 {  left: 15%;  top: 15%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos3 {  left: 48%;  top: 10%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos4 {  left: 80%;  top: 15%;  transform: translate(-50%, -50%);}
 
-  .mobile-seat.pos5 {  left: 80%;  top: 45%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos5 {  left: 80%;  top: 35%;  transform: translate(-50%, -50%);}
 
-  .mobile-seat.pos6 {  left: 80%;  top: 70%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos6 {  left: 80%;  top: 55%;  transform: translate(-50%, -50%);}
 
   /* =========================
      CARTAS DOS JOGADORES

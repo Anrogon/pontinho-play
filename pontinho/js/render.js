@@ -2114,7 +2114,7 @@ const miniAnte = Number(
       `;
         }
 
-  moveMobilePotToTableTop();
+  moveMobileSortButtonsToDeckArea();
 }
 
 /* =========================================================
@@ -2571,13 +2571,41 @@ function renderMobileLandscapeTableLayout() {
 function restoreLandscapeCenterItems() {
   if (isMobileLandscapeTable()) return;
 
-  const deckArea = document.getElementById("deck-area");
-  const monte = document.getElementById("monte");
-  const lixo = document.getElementById("lixo");
-  const potArea = document.getElementById("pot-area");
+  const deckArea =
+    document.getElementById("deck-area");
+
+  const monte =
+    document.getElementById("monte");
+
+  const lixo =
+    document.getElementById("lixo");
+
+  const potArea =
+    document.getElementById("pot-area");
 
   if (!deckArea || !monte || !lixo) return;
 
+
+  // =====================================================
+  // PORTRAIT
+  // Pote acima do Monte e do Lixo
+  // =====================================================
+  if (isMobilePortraitTable()) {
+    if (potArea) {
+      deckArea.appendChild(potArea);
+    }
+
+    deckArea.appendChild(monte);
+    deckArea.appendChild(lixo);
+
+    return;
+  }
+
+
+  // =====================================================
+  // DESKTOP / OUTROS MODOS
+  // mantém a ordem antiga
+  // =====================================================
   deckArea.appendChild(monte);
   deckArea.appendChild(lixo);
 
@@ -2728,7 +2756,7 @@ function renderDesktopTableLayout() {
   }
 }
 
-
+/*
 
 function moveMobilePotToTableTop() {
   if (!isMobilePortraitTable()) return;
@@ -2770,6 +2798,8 @@ function moveMobilePotToTableTop() {
 
   potItems.forEach(el => holder.appendChild(el));
 }
+*/
+
 
 function moveLandscapeCenterItemsToTable() {
   if (!isMobileLandscapeTable()) return;
@@ -2902,9 +2932,12 @@ function getMobileCurrentPlayerForHud() {
 function moveMobileSortButtonsToDeckArea() {
   if (!isMobilePortraitTable()) return;
 
-  const bottomArea = document.getElementById("bottomArea") || document.body;
+  const bottomArea =
+    document.getElementById("bottomArea") ||
+    document.body;
 
-  let holder = document.getElementById("mobileSortButtonsHud");
+  let holder =
+    document.getElementById("mobileSortButtonsHud");
 
   if (!holder) {
     holder = document.createElement("div");
@@ -2912,18 +2945,17 @@ function moveMobileSortButtonsToDeckArea() {
     bottomArea.appendChild(holder);
   }
 
-  const buttons = Array.from(document.querySelectorAll("button")).filter(btn => {
-    const cls = String(btn.className || "").toLowerCase();
-    const id = String(btn.id || "").toLowerCase();
+  const sortPanel =
+    document.getElementById("sortPanel");
 
-    return id.includes("sort") || cls.includes("sort-btn");
-  });
-
-  buttons.forEach(btn => {
-    if (btn.closest("#mobileSortButtonsHud")) return;
-    holder.appendChild(btn);
-  });
+  if (
+    sortPanel &&
+    !sortPanel.closest("#mobileSortButtonsHud")
+  ) {
+    holder.appendChild(sortPanel);
+  }
 }
+
 
 function moveMobileBatiButtonToBottomArea() {
   const bottomArea =
@@ -2982,53 +3014,26 @@ window.__flyCard = flyCard;
 // 💰 POTE NA MESA (FICHAS)
 // =============================
 export function renderPot() {
-  const gameRoot = document.getElementById("game");
+  const potEl =
+    document.getElementById("pot-area");
 
-  // pega SEMPRE o lixo que está dentro do #game (evita pegar lixo de outra tela)
-  const lixoEl =
-    gameRoot?.querySelector("#lixo") ||
-    document.querySelector("#game #lixo") ||
-    document.getElementById("lixo");
+  if (!potEl) return;
 
-  if (!lixoEl) return;
-
-  // ✅ remove potes duplicados que possam ter ficado no DOM
-  // (mantém só 1)
-  const allPots = Array.from(document.querySelectorAll("#game .pot-area, #game #pot-area, .pot-area#pot-area"));
-  for (let i = 1; i < allPots.length; i++) allPots[i].remove();
-
-  // garante que existe exatamente 1 potEl
-  let potEl = document.getElementById("pot-area");
-  if (!potEl) {
-    potEl = document.createElement("div");
-    potEl.id = "pot-area";
-    potEl.className = "pot-area";
-  }
-
-  // ✅ garante que ele está colado no lixo CERTO (o do game)
-  // se estiver em outro lugar, move
-  if (potEl.previousElementSibling !== lixoEl) {
-    potEl.remove(); // remove de onde estiver
-    lixoEl.insertAdjacentElement("afterend", potEl);
-  }
-
-  const pot = typeof state.matchPot === "number" ? state.matchPot : 0;
+  const pot =
+    typeof state.matchPot === "number"
+      ? state.matchPot
+      : 0;
 
   potEl.innerHTML = `
     <div class="chip-stack" aria-label="Pote ${pot}">
       ${buildChipStackHTML(pot)}
     </div>
-    <div class="pot-label">Pote: ${Number(pot).toLocaleString("pt-BR")}</div>
+
+    <div class="pot-label">
+      Pote: ${Number(pot).toLocaleString("pt-BR")}
+    </div>
   `;
-
-/* animação do pote
-  potEl.classList.add("pot-update");
-
-  setTimeout(() => {
-    potEl.classList.remove("pot-update");
-  }, 300);*/
 }
-
 
 
 // cria até 12 fichas só para visual (não precisa ser 1:1)

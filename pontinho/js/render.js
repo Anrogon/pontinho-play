@@ -913,7 +913,7 @@ export function renderTable() {
 
   const totalMelds = state.table.length;
   const splitIndex = isMobilePortrait
-  ? 6
+  ? 5
   : totalMelds;
 
   state.table.forEach((jogo, index) => {

@@ -13,25 +13,10 @@
    MOBILE PORTRAIT â€” MESA / JOGOS BAIXADOS
 ========================================================= */
 @media (max-width: 520px) and (orientation: portrait) {
-  #table {
-    position: fixed !important;
-    left: 10px !important;
-    right: 10px !important;
-
-    top: calc(10px + env(safe-area-inset-top) + 165px) !important;
-    bottom: calc(10px + env(safe-area-inset-bottom) + 230px) !important;
-
-    background: transparent !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-
-    z-index: 16000 !important;
-    pointer-events: auto !important;
-  }
 
   #table .table-melds-layer {
     position: absolute !important;
-    left: 50% !important;
+    left: 44% !important;
     transform: translateX(-50%) !important;
 
     display: flex !important;
@@ -114,22 +99,6 @@
    MOBILE HUD INFERIOR â€” JOGADOR, MONTE/LIXO, ORDENAR, BATI
 ========================================================= */
 @media (max-width: 520px) and (orientation: portrait) {
-  /*
-  #deck-area {
-    position: fixed !important;
-    left: 40% !important;
-    transform: translateX(-50%) !important;
-    bottom: calc(8px + env(safe-area-inset-bottom) + 110px) !important;
-
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 10px !important;
-
-    z-index: 25000 !important;
-    pointer-events: auto !important;
-  }
-*/
   #bottomArea .sort-btn {
     width: 30px !important;
     height: 30px !important;

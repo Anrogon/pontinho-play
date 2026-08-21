@@ -133,8 +133,8 @@
     position: fixed !important;
 
     left: 10px !important;
-    right: 6px !important;
-    bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+    right: 30px !important;
+    bottom: calc(23px + env(safe-area-inset-bottom)) !important;
 
     width: auto !important;
     max-width: none !important;
@@ -162,14 +162,14 @@
   }
 
   #hand .card {
-    width: 42px !important;
-    height: 66px !important;
+    width: 46px !important;
+    height: 72px !important;
 
     position: relative !important;
     z-index: 1 !important;
 
     flex: 0 0 auto !important;
-    margin-left: -22px !important;
+    margin-left: -25px !important;
 
     border-radius: 5px !important;
     border: 1px solid rgba(255,255,255,.92) !important;
@@ -255,7 +255,7 @@
     width: 55px;
     height: 75px;
     border-radius: 5px;
-
+    background: linear-gradient(180deg, #3688f3, #144ca0) !important;
     position: relative;
     z-index: 25001;
     pointer-events: auto;

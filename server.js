@@ -1869,10 +1869,69 @@ function hasFreeSeat(room, seat) {
 
 function findOrCreateRoomForGroup(tableGroupId, seat) {
   const groupId = String(tableGroupId);
+  const requestedSeat = Number(seat);
 
   for (const room of rooms.values()) {
-    const sameGroup = String(room.tableGroupId || room.id) === groupId;
+    const sameGroup =
+      String(room.tableGroupId || room.id) === groupId;
+
     if (!sameGroup) continue;
+
+    // Só substitui bot enquanto a partida ainda não começou.
+    if (!room.started && !room.matchEnded) {
+
+      const players =
+        room.playersBySeat || [];
+
+      const requestedPlayer =
+        requestedSeat >= 1 &&
+        requestedSeat <= 6
+          ? players[requestedSeat - 1]
+          : null;
+
+      // =====================================================
+      // HUMANO CHEGOU DURANTE O COUNTDOWN
+      // Remove um bot para dar lugar ao humano.
+      // =====================================================
+
+      const botIndex =
+        players.findIndex(
+          player => player?.isBot === true
+        );
+
+      if (botIndex >= 0) {
+
+        // Se clicou exatamente na cadeira do bot,
+        // remove aquele bot.
+        if (requestedPlayer?.isBot === true) {
+
+          console.log("[BOT] removido para entrada de humano", {
+            roomId: room.id,
+            seat: requestedSeat,
+            botName: requestedPlayer.name
+          });
+
+          players[requestedSeat - 1] = null;
+        }
+
+        // Se clicou numa cadeira livre,
+        // remove o bot existente para não ficar
+        // 3 humanos + bot antes da partida.
+        else if (!requestedPlayer) {
+
+          const bot =
+            players[botIndex];
+
+          console.log("[BOT] removido para entrada de humano", {
+            roomId: room.id,
+            seat: botIndex + 1,
+            botName: bot?.name
+          });
+
+          players[botIndex] = null;
+        }
+      }
+    }
 
     const canJoin =
       !room.started &&
@@ -1887,10 +1946,16 @@ function findOrCreateRoomForGroup(tableGroupId, seat) {
   const base = getBaseTableConfig(groupId);
   if (!base) return null;
 
-  const nextNo = (Number(roomInstanceCounters.get(groupId)) || 1) + 1;
-  roomInstanceCounters.set(groupId, nextNo);
+  const nextNo =
+    (Number(roomInstanceCounters.get(groupId)) || 1) + 1;
 
-  const newRoomId = `${groupId}#${nextNo}`;
+  roomInstanceCounters.set(
+    groupId,
+    nextNo
+  );
+
+  const newRoomId =
+    `${groupId}#${nextNo}`;
 
   const room = makeRoom({
     ...base,
@@ -1902,6 +1967,7 @@ function findOrCreateRoomForGroup(tableGroupId, seat) {
   room.instanceNo = nextNo;
 
   rooms.set(newRoomId, room);
+
   return room;
 }
 
@@ -2906,6 +2972,74 @@ function createPlayerForSeat(room, seat, clientId, client, avatarUrl) {
   return room.playersBySeat[seat - 1];
 }
 
+function createBotForSeat(room, seat) {
+  if (!room) return null;
+
+  const s = Number(seat);
+
+  if (!(s >= 1 && s <= 6)) {
+    return null;
+  }
+
+  if (room.playersBySeat?.[s - 1]) {
+    return null;
+  }
+
+  const buyIn = Number(room.buyIn) || 0;
+  const mesaStack = buyIn * 10;
+  const mesaStackLiquido = mesaStack - buyIn;
+
+  const botNumber =
+    (room.playersBySeat || []).filter(p => p?.isBot).length + 1;
+
+  const bot = {
+    clientId: null,
+    userId: null,
+
+    isBot: true,
+
+    reconnectToken: null,
+
+    name: `Visitante ${botNumber}`,
+    avatarUrl: "/assets/avatars/avatar-01.png",
+
+    // bot não possui saldo de conta real
+    chips: 0,
+
+    // mas participa normalmente da mesa
+    tableChips: mesaStackLiquido,
+
+    hand: [],
+
+    totalPoints: 0,
+    lastRoundPoints: 0,
+    eliminated: false,
+
+    rebuyCount: 0,
+    pendingRebuy: false,
+    rebuyDeclined: false,
+    pendingBatidaAfterDiscard: false,
+
+    disconnected: false,
+    nextMatchReady: true,
+    disconnectDeadline: 0,
+    disconnectTimer: null,
+
+    jogosBaixados: [],
+    obrigacaoBaixar: false
+  };
+
+  room.playersBySeat[s - 1] = bot;
+
+  console.log("[BOT] entrou na mesa", {
+    roomId: room.id,
+    seat: s,
+    name: bot.name
+  });
+
+  return bot;
+}
+
 
 
 function ensurePhase(room, allowedPhases) {
@@ -3265,13 +3399,112 @@ function refreshStartCountdown(room) {
   const count = connectedSeatedCount(room);
 
   if (count < minPlayers) {
+
     resetStartCountdown(room);
+
     clearAutoTurnTimer(room);
+
     room.turnEndsAt = 0;
     room._autoTurnSeat = null;
     room.buyEndsAt = 0;
+
+    // =====================================================
+    // BOT PARA COMPLETAR O MÍNIMO DA MESA
+    // Regra inicial:
+    // - só entra bot quando existem exatamente 2 jogadores
+    // - espera 15 segundos por um humano
+    // =====================================================
+
+    const seatedPlayers =
+      (room.playersBySeat || []).filter(Boolean);
+
+    const humanPlayers =
+      seatedPlayers.filter(p => !p.isBot);
+
+    if (
+      humanPlayers.length === 2 &&
+      count === 2 &&
+      minPlayers === 3
+    ) {
+
+      if (!room._botJoinTimer) {
+
+        console.log("[BOT] aguardando terceiro jogador humano", {
+          roomId: room.id
+        });
+
+        room._botJoinTimer = setTimeout(() => {
+          room._botJoinTimer = null;
+
+          // revalida tudo depois da espera
+          if (!room) return;
+          if (room.started && !room.matchEnded) return;
+
+          const currentCount =
+            connectedSeatedCount(room);
+
+          const currentHumans =
+            (room.playersBySeat || [])
+              .filter(Boolean)
+              .filter(p => !p.isBot);
+
+          // entrou um humano enquanto esperávamos
+          if (
+            currentCount >= minPlayers ||
+            currentHumans.length !== 2
+          ) {
+            return;
+          }
+
+          const freeSeatIndex =
+            (room.playersBySeat || [])
+              .findIndex(p => !p);
+
+          if (freeSeatIndex === -1) {
+            return;
+          }
+
+          const botSeat =
+            freeSeatIndex + 1;
+
+          const bot =
+            createBotForSeat(
+              room,
+              botSeat
+            );
+
+          if (!bot) {
+            return;
+          }
+
+          broadcastRoomState(room);
+          broadcastLobbyTable(room);
+
+          // agora haverá 3 jogadores e o fluxo normal
+          // poderá iniciar o countdown da partida
+          refreshStartCountdown(room);
+
+        }, 5000);
+      }
+
+    } else {
+
+      // condição mudou antes do bot entrar:
+      // cancela a espera
+      if (room._botJoinTimer) {
+        clearTimeout(room._botJoinTimer);
+        room._botJoinTimer = null;
+      }
+    }
+
     return;
   }
+
+  if (room._botJoinTimer) {
+    clearTimeout(room._botJoinTimer);
+    room._botJoinTimer = null;
+  }
+
 
   if (!room.startAt) {
     room.startAt = Date.now() + 30000;
@@ -3480,7 +3713,6 @@ function isPlayersTurn(room, clientId) {
 
 
 
-/*
 function getNextDealerSeat(room) {
   const players = room.playersBySeat || [];
 
@@ -3499,7 +3731,6 @@ function getNextDealerSeat(room) {
 
   return null;
 }
-*/
 
 function nextOccupiedSeat(room, fromSeat) {
   const total = room.playersBySeat.length;
@@ -3637,18 +3868,48 @@ function getBuyDurationMs(room) {
   return Number(room?.buyMs) > 0 ? Number(room.buyMs) : 15000;
 }
 
-function startTurnClock(room) {
-  const now = Date.now();
-  const turnMs = Number(room.turnMs) > 0 ? Number(room.turnMs) : 30000;
-  const buyMs = Number(room.buyMs) > 0 ? Number(room.buyMs) : 15000;
 
-  room.turnMs = turnMs;
-  room.buyMs = buyMs;
+function startTurnClock(room) {
+
+  const now = Date.now();
+
+  const currentSeat = room.currentSeat;
+  const currentPlayer = currentSeat
+    ? room.playersBySeat?.[currentSeat - 1]
+    : null;
+
+  const isFastAutoPlayer =
+    !!currentPlayer &&
+    (
+      currentPlayer.isBot === true ||
+      currentPlayer.disconnected === true
+    );
+
+  const normalTurnMs =
+    Number(room.turnMs) > 0
+      ? Number(room.turnMs)
+      : 30000;
+
+  const normalBuyMs =
+    Number(room.buyMs) > 0
+      ? Number(room.buyMs)
+      : 15000;
+
+  const turnMs =
+    isFastAutoPlayer
+      ? 5000
+      : normalTurnMs;
+
+  const buyMs =
+    isFastAutoPlayer
+      ? 2000
+      : normalBuyMs;
+
   room.turnEndsAt = now + turnMs;
   room.buyEndsAt = now + buyMs;
-  room._autoTurnSeat = room.currentSeat || null;
-}
 
+  room._autoTurnSeat = currentSeat || null;
+}
 
 
 
@@ -3723,19 +3984,37 @@ function scheduleAutoTurn(room) {
 
     const now2 = Date.now();
 
-    // 1) Se ainda está em COMPRAR e bateu 15s, compra automático
-    if (room.phase === "COMPRAR" && room.buyEndsAt && now2 >= room.buyEndsAt) {
+    // 1) Se ainda está em COMPRAR e bateu o tempo da compra,
+    // compra automaticamente do monte
+    if (
+      room.phase === "COMPRAR" &&
+      room.buyEndsAt &&
+      now2 >= room.buyEndsAt
+    ) {
       const bought = room.deck.pop();
+
       if (bought) {
         currentNow.hand.push(bought);
+
+        // registra a compra automática
+        // para disparar a animação MONTE -> HUD
+        room.lastDrawSeat = Number(seatNow) || null;
+        room.lastDrawSource = "DECK";
+        room.lastDrawCard = null;
+        room.lastDrawSeq =
+          (Number(room.lastDrawSeq) || 0) + 1;
       }
 
       room.phase = "BAIXAR";
 
-      // mantém o mesmo turnEndsAt; só encerra a janela de compra
+      // mantém o mesmo turnEndsAt;
+      // só encerra a janela de compra
       room.buyEndsAt = 0;
 
-      if (room?.id) sendState(room.id);
+      if (room?.id) {
+        sendState(room.id);
+      }
+
       scheduleAutoTurn(room);
       return;
     }
@@ -3761,6 +4040,8 @@ function scheduleAutoTurn(room) {
         const card = currentNow.hand.splice(idx, 1)[0];
         if (card) {
           room.discard.push(card);
+          room.lastDiscardSeat =
+            Number(seatNow) || null;
 
           const requiredDiscard = room.mustUseDiscardCardBySeat?.[seatNow];
           if (requiredDiscard != null && String(card.id) === String(requiredDiscard)) {
@@ -5350,6 +5631,12 @@ if (msg.type === "leaveTable") {
           p.disconnected = true;
         }
       }
+
+      // Reavalia o início da partida.
+      // Se restaram somente 2 humanos,
+      // inicia a espera para entrada do bot.
+      refreshStartCountdown(room);
+
     }
 
   const stillSeated =

@@ -497,3 +497,35 @@
 #lixo.hud-discard-arriving > .discard-top-card {
   visibility: hidden;
 }
+
+body.desktop-table-mode #table .table-melds-layer {
+  position: absolute !important;
+
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+
+  gap: 12px !important;
+
+  width: 82% !important;
+
+  pointer-events: none !important;
+}
+
+body.desktop-table-mode #table .table-melds-top {
+  top: 40px !important;
+}
+
+body.desktop-table-mode #table .table-melds-bottom {
+  top: 180px !important;
+}
+
+body.desktop-table-mode #table .grupo-table {
+  flex: 0 0 auto !important;
+  pointer-events: auto !important;
+}

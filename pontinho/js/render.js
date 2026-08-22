@@ -897,24 +897,47 @@ export function renderTable() {
   const isMobilePortrait =
     window.matchMedia?.("(max-width: 520px) and (orientation: portrait)")?.matches;
 
+  const isMobileLandscape =
+    document.body.classList.contains(
+      "mobile-landscape-table-mode"
+    );
+
+  const isDesktop =
+    document.body.classList.contains(
+      "desktop-table-mode"
+    );
+
   let topLayer = null;
   let bottomLayer = null;
 
-  if (isMobilePortrait) {
+  if (
+    isMobilePortrait ||
+    isMobileLandscape ||
+    isDesktop
+  ) {
     topLayer = document.createElement("div");
-    topLayer.className = "table-melds-layer table-melds-top";
+    topLayer.className =
+      "table-melds-layer table-melds-top";
 
     bottomLayer = document.createElement("div");
-    bottomLayer.className = "table-melds-layer table-melds-bottom";
+    bottomLayer.className =
+      "table-melds-layer table-melds-bottom";
 
     el.appendChild(topLayer);
     el.appendChild(bottomLayer);
   }
 
   const totalMelds = state.table.length;
-  const splitIndex = isMobilePortrait
-  ? 5
-  : totalMelds;
+
+  let splitIndex = totalMelds;
+
+  if (isMobilePortrait) {
+    splitIndex = 5;
+  } else if (isMobileLandscape) {
+    splitIndex = 7;
+  } else if (isDesktop) {
+    splitIndex = 8;
+  }
 
   state.table.forEach((jogo, index) => {
     const group = document.createElement("div");
@@ -947,7 +970,7 @@ export function renderTable() {
       renderAll();
     };
 
-    if (isMobilePortrait) {
+    if (topLayer && bottomLayer) {
       if (index < splitIndex) {
         bottomLayer.appendChild(group);
       } else {
@@ -1526,7 +1549,14 @@ export function renderScoreboard() {
   const dur = typeof state.turnDurationSec === "number" ? state.turnDurationSec : 30;
 
   // detecta mobile portrait
-  const isMobilePortrait = window.matchMedia("(max-width: 520px) and (orientation: portrait)").matches;
+  const isMobilePortrait =
+    window.matchMedia?.("(max-width: 520px) and (orientation: portrait)")?.matches;
+
+  const isMobileLandscape =
+    document.body.classList.contains("mobile-landscape-table-mode");
+
+  const isDesktop =
+    document.body.classList.contains("desktop-table-mode");
 
   // mantém estado de “aberto/fechado” no próprio DOM
   if (isMobilePortrait && el.dataset.open !== "1") el.dataset.open = "0";

@@ -26,8 +26,8 @@ export function initPlayers(qtd) {
       eliminated: false,    
       chips: 150000, // 💰 fichas (ajuste o valor inicial como quiser)     
       avatarUrl: `https://i.pravatar.cc/80?img=${3 + i}`, // 🧑 avatar (placeholder online por enquanto)
-      /*isBot: i !== 0*/
-      /*isBot: false*/
+      isBot: i !== 0,
+      isBot: false,
       rebuyCount: 0,
       pendingRebuy: false,
       rebuyDeclined: false,
@@ -1805,6 +1805,14 @@ export async function nextPlayer() {
   state.turnoTravado = false;
   state.jaComprouNoTurno = false;
   state.faseTurno = "COMPRAR";
+
+  const next = currentPlayer();
+
+  if (next?.isBot) {
+    setTimeout(() => {
+      botTakeTurn();
+    }, 300);
+  }
 }
 
 

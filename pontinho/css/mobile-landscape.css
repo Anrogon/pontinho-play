@@ -387,7 +387,7 @@
     align-items: flex-start;
     justify-content: center;
 
-    overflow: hidden;
+    overflow: visible;
 
     pointer-events: auto;
   }
@@ -423,63 +423,60 @@
     pointer-events: auto;
   }
 
-  /*Cada jogo baixado*/
+  /* Cada jogo baixado */
+body.mobile-landscape-table-mode
+#mobileLandscapeTableLayout
+.landscape-melds-area
+#table .table-melds-layer > .grupo-table {
+  position: relative;
+
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+
+  width: auto;
+  height: 54px;
+
+  margin: 1px;
+  padding: 0;
+
+  overflow: visible;
+
+  background: transparent;
+
+  pointer-events: auto;
+}
+
+
+/* Cartas dos jogos baixados */
+body.mobile-landscape-table-mode
+#mobileLandscapeTableLayout
+.landscape-melds-area
+#table .table-melds-layer > .grupo-table > .card {
+  position: relative;
+
+  width: 32px;
+  height: 50px;
+
+  flex: 0 0 32px;
+
+  margin: 0 0 0 -25px;
+
+  border-radius: 3px;
+
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+
+  pointer-events: auto;
+}
 
   body.mobile-landscape-table-mode
   #mobileLandscapeTableLayout
   .landscape-melds-area
-  #table > .grupo-table {
-    position: relative;
-
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-
-    width: auto;
-    height: 54px;
-
-    margin: 1px;
-    padding: 0;
-
-    overflow: visible;
-
-    background: transparent;
-
-    pointer-events: auto;
-  }
-
-
-  /*Cartas dos jogos baixados*/
-
-  body.mobile-landscape-table-mode
-  #mobileLandscapeTableLayout
-  .landscape-melds-area
-  #table > .grupo-table > .card {
-    position: relative;
-
-    width: 32px;
-    height: 50px;
-
-    flex: 0 0 32px;
-
-    margin: 0 0 0 -25px;
-
-    border-radius: 3px;
-
-    background-size: 100% 100%;
-    background-position: center;
-    background-repeat: no-repeat;
-
-    pointer-events: auto;
-  }
-
-  body.mobile-landscape-table-mode
-  #mobileLandscapeTableLayout
-  .landscape-melds-area
-  #table > .grupo-table > .card:first-child {
+  #table .table-melds-layer > .grupo-table > .card:first-child {
     margin-left: 2px;
   }
-
   .landscape-center-controls {
     position: absolute;
 
@@ -901,5 +898,39 @@
   body.mobile-landscape-table-mode #btnMobileBackToTables {
     display: none;
   }
+
+/* Duas linhas de jogos baixados, cada linha com 7 jogos, totalizando 14 jogos visíveis. */
+
+  body.mobile-landscape-table-mode #table .table-melds-layer {
+  position: absolute !important;
+
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+
+  gap: 8px !important;
+
+  width: 86% !important;
+
+  pointer-events: none !important;
+}
+
+body.mobile-landscape-table-mode #table .table-melds-top {
+  top: 5px !important;
+}
+
+body.mobile-landscape-table-mode #table .table-melds-bottom {
+  top: 65px !important;
+}
+
+body.mobile-landscape-table-mode #table .grupo-table {
+  flex: 0 0 auto !important;
+  pointer-events: auto !important;
+}
 
 }

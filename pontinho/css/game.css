@@ -518,11 +518,11 @@ body.desktop-table-mode #table .table-melds-layer {
 }
 
 body.desktop-table-mode #table .table-melds-top {
-  top: 40px !important;
+  top: 130px !important;
 }
 
 body.desktop-table-mode #table .table-melds-bottom {
-  top: 180px !important;
+  top: 240px !important;
 }
 
 body.desktop-table-mode #table .grupo-table {

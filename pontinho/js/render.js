@@ -929,15 +929,19 @@ export function renderTable() {
 
   const totalMelds = state.table.length;
 
+  // Portrait continua usando quantidade de jogos
   let splitIndex = totalMelds;
 
   if (isMobilePortrait) {
     splitIndex = 5;
-  } else if (isMobileLandscape) {
-    splitIndex = 7;
-  } else if (isDesktop) {
-    splitIndex = 8;
   }
+
+  // Landscape e Desktop passam a usar quantidade de CARTAS
+  let landscapeBottomCards = 0;
+  let desktopBottomCards = 0;
+
+  const LANDSCAPE_BOTTOM_MAX_CARDS = 25;
+  const DESKTOP_BOTTOM_MAX_CARDS = 40;
 
   state.table.forEach((jogo, index) => {
     const group = document.createElement("div");
@@ -971,11 +975,55 @@ export function renderTable() {
     };
 
     if (topLayer && bottomLayer) {
-      if (index < splitIndex) {
-        bottomLayer.appendChild(group);
-      } else {
-        topLayer.appendChild(group);
+
+      const cardCount =
+        Array.isArray(jogo.cards)
+          ? jogo.cards.length
+          : 0;
+
+      // ==========================================
+      // LANDSCAPE — limite pela quantidade de cartas
+      // ==========================================
+      if (isMobileLandscape) {
+
+        if (
+          landscapeBottomCards + cardCount <=
+          LANDSCAPE_BOTTOM_MAX_CARDS
+        ) {
+          bottomLayer.appendChild(group);
+          landscapeBottomCards += cardCount;
+        } else {
+          topLayer.appendChild(group);
+        }
       }
+
+      // ==========================================
+      // DESKTOP — limite pela quantidade de cartas
+      // ==========================================
+      else if (isDesktop) {
+
+        if (
+          desktopBottomCards + cardCount <=
+          DESKTOP_BOTTOM_MAX_CARDS
+        ) {
+          bottomLayer.appendChild(group);
+          desktopBottomCards += cardCount;
+        } else {
+          topLayer.appendChild(group);
+        }
+      }
+
+      // ==========================================
+      // PORTRAIT — mantém como já estava
+      // ==========================================
+      else {
+        if (index < splitIndex) {
+          bottomLayer.appendChild(group);
+        } else {
+          topLayer.appendChild(group);
+        }
+      }
+
     } else {
       el.appendChild(group);
     }
@@ -2097,7 +2145,7 @@ const miniAnte = Number(
       "/assets/avatar-default.png";
 
     const chips = Number(p.tableChips ?? p.stack ?? 0);
-    const pts = Number(p.totalPoints ?? 0);
+    const pts = Number(  p.currentTotalPoints ??  p.totalPoints ??  0);
     const isOffline = !!p.disconnected;
 
     const handCount = Number(p.handCount ?? 0);
@@ -2416,6 +2464,7 @@ function renderMobileLandscapeTableLayout() {
     );
 
     const points = Number(
+      player.currentTotalPoints ??
       player.totalPoints ??
       player.points ??
       0
@@ -2735,9 +2784,7 @@ function renderDesktopTableLayout() {
       "/assets/avatars/avatar-01.png";
 
     const chips = Number(p.tableChips ?? p.stack ?? p.chips ?? 0);
-    const pts = Number(p.totalPoints ?? 0);
-
-    const isMe = Number(p.seat) === Number(s.mySeat);
+    const pts = Number(  p.currentTotalPoints ??  p.totalPoints ??  0);
     const isDealer = Number(s.dealerSeat) === Number(p.seat);
     const handCount = Number(
     p.handCount ??
@@ -2785,50 +2832,6 @@ function renderDesktopTableLayout() {
     `;
   }
 }
-
-/*
-
-function moveMobilePotToTableTop() {
-  if (!isMobilePortraitTable()) return;
-
-  const root = document.getElementById("mobileTableLayout");
-  const deckArea = document.getElementById("deck-area");
-  if (!root || !deckArea) return;
-
-  let holder = document.getElementById("mobilePotTop");
-
-  if (!holder) {
-    holder = document.createElement("div");
-    holder.id = "mobilePotTop";
-    root.appendChild(holder);
-  }
-
-  const potItems = Array.from(deckArea.children).filter(el => {
-    if (!el) return false;
-
-    if (el.id === "monte") return false;
-    if (el.id === "lixo") return false;
-    if (el.classList?.contains("sb-mobile-bati-btn")) return false;
-    if (el.classList?.contains("sort-btn")) return false;
-
-    const txt = String(el.textContent || "").toLowerCase();
-    const cls = String(el.className || "").toLowerCase();
-    const id = String(el.id || "").toLowerCase();
-
-    return (
-      txt.includes("pote") ||
-      cls.includes("pot") ||
-      cls.includes("pote") ||
-      cls.includes("chip") ||
-      id.includes("pot") ||
-      id.includes("pote") ||
-      id.includes("chip")
-    );
-  });
-
-  potItems.forEach(el => holder.appendChild(el));
-}
-*/
 
 
 function moveLandscapeCenterItemsToTable() {

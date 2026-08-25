@@ -1364,7 +1364,6 @@ html, body {
 }
 .seat.occupied{
   opacity: 1;
-  filter: grayscale(1);
   pointer-events: auto;
   cursor: pointer;
 }

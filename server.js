@@ -2760,6 +2760,13 @@ function sendState(roomId) {
           ? p.tableChips
           : (((Number(room.buyIn) || 0) * 10) - (Number(room.buyIn) || 0)),
         totalPoints: p.totalPoints || 0,
+        currentTotalPoints:
+        room.roundEnded
+          ? (Number(p.totalPoints) || 0)
+          : (
+              (Number(p.totalPoints) || 0) +
+              getHandPoints(p.hand || [])
+            ),
         lastRoundPoints: p.lastRoundPoints || 0,
         handCount: Array.isArray(p.hand) ? p.hand.length : 0,
         eliminated: !!p.eliminated,

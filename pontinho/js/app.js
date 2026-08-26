@@ -52,10 +52,39 @@ export function connectWS() {
   });
 
   socket.addEventListener("message", (ev) => {
-    let msg;
-    try { msg = JSON.parse(ev.data); } catch { return; }
-    console.log("[WS] <-", msg.type, msg.payload); // ✅ add aqui
 
+  let msg;
+
+  try {
+    msg = JSON.parse(ev.data);
+  } catch {
+    return;
+  }
+
+  console.log("[WS] <-", msg.type, msg.payload);
+
+  // ===== STATUS ONLINE DA HOME =====
+  if (msg.type === "online_status") {
+    const onlinePlayersEl =
+      document.getElementById("onlinePlayers");
+
+    const openTablesEl =
+      document.getElementById("openTables");
+
+    if (onlinePlayersEl) {
+      onlinePlayersEl.textContent =
+        Number(msg.payload?.onlinePlayers) || 0;
+    }
+
+    if (openTablesEl) {
+      openTablesEl.textContent =
+        Number(msg.payload?.openTables) || 0;
+    }
+
+    return;
+  }
+
+  // ... continua o código que já existe aqui
     
 
 // 1) hello

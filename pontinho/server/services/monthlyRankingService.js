@@ -26,31 +26,31 @@ const MONTHLY_RANKING_PRIZES = [
   {
     from: 1,
     to: 1,
-    chips: 50000,
+    chips: 5000,
     luckyCards: 0
   },
   {
     from: 2,
     to: 2,
-    chips: 30000,
+    chips: 3000,
     luckyCards: 0
   },
   {
     from: 3,
     to: 3,
-    chips: 20000,
+    chips: 2000,
     luckyCards: 0
   },
   {
     from: 4,
     to: 10,
-    chips: 10000,
+    chips: 1000,
     luckyCards: 0
   },
   {
     from: 11,
     to: 50,
-    chips: 5000,
+    chips: 500,
     luckyCards: 0
   },
   {

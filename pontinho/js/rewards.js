@@ -737,23 +737,23 @@ function getRankingRewardLabel(position) {
   }
 
   if (position === 1) {
-    return "Prêmio atual: 50.000 fichas";
+    return "Prêmio atual: 5.000 fichas";
   }
 
   if (position === 2) {
-    return "Prêmio atual: 30.000 fichas";
+    return "Prêmio atual: 3.000 fichas";
   }
 
   if (position === 3) {
-    return "Prêmio atual: 20.000 fichas";
+    return "Prêmio atual: 2.000 fichas";
   }
 
   if (position <= 10) {
-    return "Prêmio atual: 10.000 fichas";
+    return "Prêmio atual: 1.000 fichas";
   }
 
   if (position <= 50) {
-    return "Prêmio atual: 5.000 fichas";
+    return "Prêmio atual: 500 fichas";
   }
 
   if (position <= 100) {

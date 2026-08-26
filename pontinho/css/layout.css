@@ -125,8 +125,8 @@ body{
   border-radius: 6px;
   background-size: cover;
   
-  background: linear-gradient(180deg, #e9ebee, #737e8f) !important;
-  /*border: 1px solid #e9eee3;*/
+  /*background: linear-gradient(180deg, #e9ebee, #737e8f) !important;*/
+  border: 1px solid #e9eee3;
 }
 
 /* Responsivo: PILES */

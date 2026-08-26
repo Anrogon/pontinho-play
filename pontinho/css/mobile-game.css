@@ -133,7 +133,7 @@
     position: fixed !important;
 
     left: 10px !important;
-    right: 30px !important;
+    right: 35px !important;
     bottom: calc(23px + env(safe-area-inset-bottom)) !important;
 
     width: auto !important;
@@ -162,14 +162,14 @@
   }
 
   #hand .card {
-    width: 46px !important;
-    height: 72px !important;
+    width: 52px !important;
+    height: 81px !important;
 
     position: relative !important;
     z-index: 1 !important;
 
     flex: 0 0 auto !important;
-    margin-left: -25px !important;
+    margin-left: -30px !important;
 
     border-radius: 5px !important;
     border: 1px solid rgba(255,255,255,.92) !important;
@@ -255,7 +255,8 @@
     width: 55px;
     height: 75px;
     border-radius: 5px;
-    background: linear-gradient(180deg, #3688f3, #144ca0) !important;
+    border: 1px solid #e6ecec;
+    /*background: linear-gradient(180deg, #3688f3, #144ca0) !important;*/
     position: relative;
     z-index: 25001;
     pointer-events: auto;
@@ -278,7 +279,7 @@
   /* CARTA/IMAGEM DO LIXO */
   body.mobile-table-mode #lixo .card,
   body.mobile-table-mode #lixo img {
-    width: 42px;
+    width: 45px;
     height: 66px;
   }
 }

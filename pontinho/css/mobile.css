@@ -253,7 +253,7 @@
   .mobile-seat {
     position: absolute !important;
 
-    width: 110px !important;
+    width: 100px !important;
     min-height: 34px !important;
 
     display: flex !important;
@@ -338,7 +338,7 @@
 
     max-width: 68px !important;
 
-    font-size: 11px !important;
+    font-size: 10px !important;
     font-weight: 900 !important;
     line-height: 1 !important;
 
@@ -360,11 +360,11 @@
      POSIÇÕES
   ========================= */
   .mobile-seat.pos1 {  left: 48%;  top: 40%;  transform: translate(-50%, -50%);}
-  .mobile-seat.pos2 {  left: 15%;  top: 35%;  transform: translate(-50%, -50%);}
-  .mobile-seat.pos3 {  left: 15%;  top: 15%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos2 {  left: 18%;  top: 35%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos3 {  left: 18%;  top: 15%;  transform: translate(-50%, -50%);}
   .mobile-seat.pos4 {  left: 48%;  top: 10%;  transform: translate(-50%, -50%);}
-  .mobile-seat.pos5 {  left: 80%;  top: 15%;  transform: translate(-50%, -50%);}
-  .mobile-seat.pos6 {  left: 80%;  top: 35%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos5 {  left: 82%;  top: 15%;  transform: translate(-50%, -50%);}
+  .mobile-seat.pos6 {  left: 82%;  top: 35%;  transform: translate(-50%, -50%);}
 
   
   /* =========================

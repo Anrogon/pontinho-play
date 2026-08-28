@@ -5746,24 +5746,43 @@ if (msg.type === "joinTableGroup") {
     }
 
 
-  // sai da mesa atual antes de entrar em outra
-  leaveCurrentTable(clientId);
+  // Espectador precisa abandonar a sala anterior antes de assistir outra.
+  // Jogador/reconexão mantém o fluxo normal da cadeira.
+  if (mode === "spectator") {
+    leaveCurrentTable(clientId);
+  }
 
   const room = rooms.get(tableId);
 
-if (!room) {
-  return send(ws, "error", {
-    message: "Mesa inválida."
-  });
-}
+  if (!room) {
+    return send(ws, "error", {
+      message: "Mesa inválida."
+    });
+  }
 
-const s = Number(seat);
+  // =====================================================
+  // ENTRADA COMO ESPECTADOR
+  // Espectador não precisa de assento.
+  // =====================================================
+  if (mode === "spectator") {
+    joinAsSpectator(
+      room,
+      c,
+      clientId,
+      tableId,
+      ws
+    );
 
-if (!(s >= 1 && s <= 6)) {
-  return send(ws, "error", {
-    message: "Assento inválido."
-  });
-}
+    return;
+  }
+
+  const s = Number(seat);
+
+  if (!(s >= 1 && s <= 6)) {
+    return send(ws, "error", {
+      message: "Assento inválido."
+    });
+  }
 
 // =====================================================
 // IMPEDE A MESMA CONTA EM DUAS CADEIRAS DA MESMA MESA

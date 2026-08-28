@@ -225,6 +225,30 @@ if (msg.type === "joined") {
   state.spectator = (mode === "spectator");
   state.mySeat = seat ?? null;
 
+  if (mode === "spectator") {
+  // troca imediatamente a referência para a mesa escolhida
+  state.tableId = tableId;
+
+  // nunca reaproveita jogadores/mesa visual da sala anterior
+  state.players = [];
+  state.table = [];
+  state.lixo = [];
+  state.deckCount = 0;
+  state.matchPot = 0;
+  state.pot = 0;
+
+  // limpa os HUDs desktop que possam ter ficado da mesa anterior
+  document
+    .querySelectorAll("#desktopTableLayout .desktop-seat")
+    .forEach(el => {
+      el.innerHTML = "";
+      el.classList.add("empty");
+      el.classList.remove("is-current-turn");
+    });
+}
+
+  
+
   // ✅ entrou de fato como espectador
   if (mode === "spectator") {
     pendingSpectatorJoinTableId = null;
@@ -265,6 +289,29 @@ if (msg.type === "state_public") {
   console.log("[CLIENT] ignorando state_public fora da mesa:", pub.tableId);
   return;
   }
+
+  // Espectador só aceita estado da mesa atual
+// ou da nova mesa que está tentando assistir.
+if (state.spectator === true && pub.tableId) {
+
+  const spectatorTableId =
+    pendingSpectatorJoinTableId || state.room?.id;
+
+  const sameSpectatorTable =
+    pub.tableId === spectatorTableId ||
+    String(pub.tableId).startsWith(
+      String(spectatorTableId || "") + "#"
+    );
+
+  if (spectatorTableId && !sameSpectatorTable) {
+    console.log("[SPECTATOR] state_public antigo ignorado:", {
+      assistindo: spectatorTableId,
+      recebido: pub.tableId
+    });
+
+    return;
+  }
+}
 
   if (
     ignoredRoomAfterSpectatorExit &&
@@ -664,6 +711,12 @@ if (pub.started && !pub.matchEnded) {
 
 // se a partida acabou, mas estou na tela de mesas, NÃO reabre overlay
   } else {
+
+    if (state.spectator) {
+      showScreen("game");
+      renderAll();
+      return;
+    }
     const tables = document.getElementById("tablesScreen");
     const game = document.getElementById("game");
 
@@ -1301,6 +1354,16 @@ function showLandscapeHint() {
 
 function updateSpectatorUI() {
   const isSpectator = !!state.spectator;
+
+
+  // Espectador não possui mão para ordenar
+  const sortPanel = document.getElementById("sortPanel");
+
+  if (sortPanel) {
+    sortPanel.style.display = isSpectator ? "none" : "";
+  }
+
+
 
   // scoreboard
   const scoreboard = document.getElementById("scoreboard");

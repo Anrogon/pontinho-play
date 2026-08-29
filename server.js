@@ -1039,6 +1039,7 @@ function hasRebuyChoices(room) {
 
   return (room.playersBySeat || []).some(pl =>
     pl &&
+    pl.isBot !== true &&
     pl.eliminated === true &&
     pl.disconnected !== true &&
     pl.pendingRebuy !== true &&
@@ -1290,6 +1291,7 @@ function scheduleNextRoundWithRebuy(room, ms = 20000) {
   // com pendingRebuy = true no endRound().
   const hasConnectedChoices = (room.playersBySeat || []).some(pl =>
     pl &&
+    pl.isBot !== true &&
     pl.eliminated === true &&
     pl.disconnected !== true &&
     pl.pendingRebuy !== true &&
@@ -2694,6 +2696,16 @@ function finalizeMatchEconomy(room) {
       } : null
     )
   });
+
+  // Bot não permanece ocupando assento após o fim da partida.
+  for (let i = 0; i < room.playersBySeat.length; i++) {
+    const p = room.playersBySeat[i];
+
+    if (p?.isBot === true) {
+      room.playersBySeat[i] = null;
+    }
+  }
+
 }
 
 function sendState(roomId) {
@@ -5708,20 +5720,72 @@ if (msg.type === "joinTableGroup") {
     return send(ws, "error", { message: "Assento inválido." });
   }
 
-  const realRoom = findOrCreateRoomForGroup(tableGroupId, seat);
+// =====================================================
+// REENTRADA: antes de procurar/criar outra instância,
+// verifica se este usuário já está em alguma sala
+// deste mesmo grupo.
+// =====================================================
+  if (c.userId != null) {
+    for (const existingRoom of rooms.values()) {
+      const sameGroup =
+        String(
+          existingRoom.tableGroupId ||
+          existingRoom.baseTableId ||
+          existingRoom.id
+        ) === String(tableGroupId);
 
-  if (!realRoom) {
-    return send(ws, "error", {
-      message: "Não foi possível encontrar uma mesa disponível."
-    });
+      if (!sameGroup) continue;
+
+      const existingSeatIndex =
+        (existingRoom.playersBySeat || []).findIndex(player =>
+          player &&
+          player.isBot !== true &&
+          player.userId != null &&
+          String(player.userId) === String(c.userId) &&
+          !player.eliminated
+        );
+
+      if (existingSeatIndex >= 0) {
+        const existingSeat = existingSeatIndex + 1;
+        const existingPlayer =
+          existingRoom.playersBySeat[existingSeatIndex];
+
+        console.log("[REENTRADA] jogador encontrado na instância original", {
+          userId: c.userId,
+          roomId: existingRoom.id,
+          seat: existingSeat
+        });
+
+        msg.type = "joinTable";
+        msg.payload = {
+          ...payload,
+          tableId: existingRoom.id,
+          seat: existingSeat,
+          reconnectToken: existingPlayer.reconnectToken
+        };
+
+        break;
+      }
+    }
   }
 
-  // reaproveita o fluxo antigo, mas agora com o tableId real
-  msg.type = "joinTable";
-  msg.payload = {
-    ...payload,
-    tableId: realRoom.id
-  };
+// Só procura/cria outra instância se não encontrou
+// o próprio jogador em uma instância existente.
+  if (msg.type === "joinTableGroup") {
+    const realRoom = findOrCreateRoomForGroup(tableGroupId, seat);
+
+    if (!realRoom) {
+      return send(ws, "error", {
+        message: "Não foi possível encontrar uma mesa disponível."
+      });
+    }
+
+    msg.type = "joinTable";
+    msg.payload = {
+      ...payload,
+      tableId: realRoom.id
+    };
+  }
 
   // deixa cair no joinTable abaixo
 }

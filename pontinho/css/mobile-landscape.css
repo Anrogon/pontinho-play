@@ -341,6 +341,26 @@
    * Distribuição Assentos:
    */
 
+  
+  .landscape-seat.pos1 { left: 10%;  top: 30%; transform: translate(-50%, -50%); }
+  .landscape-seat.pos2 { left: 22%; top: 17%; transform: translate(-50%, -50%); }
+  .landscape-seat.pos3 { left: 40%; top: 17%; transform: translate(-50%, -50%); }
+  .landscape-seat.pos4 { left: 58%; top: 17%; transform: translate(-50%, -50%); }
+  .landscape-seat.pos5 { left: 75%; top: 17%; transform: translate(-50%, -50%); }
+  .landscape-seat.pos6 { left: 90%; top: 30%; transform: translate(-50%, -50%); }
+
+
+
+
+
+
+
+
+
+  /*
+   Distribuição Assentos:
+   
+
   .landscape-seat.pos1 { left: 10%;  top: 62%; transform: translate(-50%, -50%); }
   .landscape-seat.pos2 { left: 9%;  top: 34%; transform: translate(-50%, -50%); }
   .landscape-seat.pos3 { left: 32%; top: 14%; transform: translate(-50%, -50%); }

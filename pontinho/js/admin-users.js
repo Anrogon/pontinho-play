@@ -1,4 +1,8 @@
-const API_BASE = "/api";
+const API_BASE =
+  location.hostname === "localhost"
+    ? "http://localhost:3001/api"
+    : "/api";
+
 let allAdminUsers = [];
 let currentPage = 1;
 let pageSize = 20;
@@ -215,7 +219,7 @@ async function handleResetPassword(userId, username) {
 
   try {
     setMsg("Redefinindo senha...");
-    const data = await adminPost(`${API_BASE}/admin/users/${userId}/reset-password`, {
+    const data = await adminPost(`${API_BASE}/auth/admin/users/${userId}/reset-password`, {
       newPassword: newPassword.trim(),
     });
     setMsg(`${data.message || "Senha redefinida com sucesso."} Senha temporária definida.`);

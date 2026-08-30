@@ -5790,8 +5790,6 @@ if (msg.type === "joinTableGroup") {
   // deixa cair no joinTable abaixo
 }
 
-
-
     // -------------------------
     // JOIN TABLE
     // -------------------------

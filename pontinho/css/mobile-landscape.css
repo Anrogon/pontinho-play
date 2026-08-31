@@ -497,46 +497,74 @@ body.mobile-landscape-table-mode
   #table .table-melds-layer > .grupo-table > .card:first-child {
     margin-left: 2px;
   }
+
+
   .landscape-center-controls {
-    position: absolute;
+    position: fixed;
+    inset: 0;
 
-    left: 50%;
-    bottom: 2px;
+    width: 100vw;
+    height: 100vh;
 
-    transform: translateX(-50%);
+    transform: none;
 
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 8px;
+    display: block;
 
-    pointer-events: auto;
+    z-index: 25;
+    pointer-events: none;
   }
 
   body.mobile-landscape-table-mode
   .landscape-center-controls #monte,
   body.mobile-landscape-table-mode
   .landscape-center-controls #lixo {
-    position: relative;
+    position: fixed;
 
-    width: 34px;
-    min-width: 34px;
-    max-width: 34px;
+    width: 36px;
+    
 
-    height: 52px;
-    min-height: 52px;
-    max-height: 52px;
+    height: 56px;
+    
 
-    flex: 0 0 34px;
+    flex: 0 0 40px;
 
     margin: 0;
     padding: 0;
-    border-radius: 5px;
+    border-radius: 3px;
 
     background-size: 100% 100%;
     background-position: center;
     background-repeat: no-repeat;
   }
+
+  /* MONTE — lateral esquerda */
+body.mobile-landscape-table-mode
+.landscape-center-controls #monte {
+  left: 15%;
+  top: 54%;
+
+  right: auto;
+  bottom: auto;
+
+  transform: translate(-50%, -50%);
+
+  pointer-events: auto;
+}
+
+
+/* LIXO — lateral direita */
+body.mobile-landscape-table-mode
+.landscape-center-controls #lixo {
+  right: 12.5%;
+  top: 54%;
+
+  left: auto;
+  bottom: auto;
+
+  transform: translateY(-50%);
+
+  pointer-events: auto;
+}
 
   body.mobile-landscape-table-mode
   .landscape-center-controls #monte .card,
@@ -557,7 +585,13 @@ body.mobile-landscape-table-mode
   }
 
   .landscape-center-controls #pot-area {
-    position: relative;
+    position: fixed;
+
+    right: calc(12% - 60px);
+    top: 50%;
+
+    left: auto;
+    bottom: auto;
 
     width: 62px;
     height: 82px;
@@ -569,6 +603,10 @@ body.mobile-landscape-table-mode
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
+
+    transform: translateY(-50%);
+
+    pointer-events: none;
   }
 
   .landscape-center-controls #pot-area .chip-stack {

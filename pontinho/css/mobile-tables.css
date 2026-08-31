@@ -199,7 +199,7 @@
 
   #tablesGrid > .table-card .seat.pos4 {
     left: 50% !important;
-    top: 6px !important;
+    top: 1px !important;
     transform: translateX(-50%) !important;
   }
 

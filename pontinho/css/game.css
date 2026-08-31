@@ -470,8 +470,8 @@
 #lixo .discard-stack-1 {
   transform:
     translate(-50%, -50%)
-    translate(-3px, -2px)
-    rotate(-2deg);
+    translate(-2px, -1px)
+    rotate(-1deg);
 
   opacity: .78;
   z-index: 1;
@@ -480,8 +480,8 @@
 #lixo .discard-stack-2 {
   transform:
     translate(-50%, -50%)
-    translate(3px, -1px)
-    rotate(2deg);
+    translate(2px, -1px)
+    rotate(1deg);
 
   opacity: .88;
   z-index: 2;

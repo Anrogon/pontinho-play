@@ -241,6 +241,10 @@ async function handleEndSessions(userId) {
 }
 
 function buildStatusHtml(user) {
+  if (isDeletedUser(user)) {
+    return `<span style="color:#ffb3b3;font-weight:700;">Excluída</span>`;
+  }
+
   if (isBlockedUser(user)) {
     const reason = user?.blocked_reason ? ` • ${user.blocked_reason}` : "";
     return `<span style="color:#ffb3b3;font-weight:700;">Bloqueado${reason}</span>`;
@@ -249,7 +253,20 @@ function buildStatusHtml(user) {
   return `<span style="color:#b7f7c3;font-weight:700;">Ativo</span>`;
 }
 
+function isDeletedUser(user) {
+  return (
+    user?.blocked_reason === "Conta excluída pelo usuário" ||
+    /^usuario_excluido_\d+$/.test(String(user?.username || "")) ||
+    /^deleted_\d+@deleted\.invalid$/i.test(String(user?.email || ""))
+  );
+}
+
+
 function buildActionsHtml(user) {
+
+  if (isDeletedUser(user)) {
+    return "";
+  }
   const blocked = isBlockedUser(user);
 
   return `
@@ -278,19 +295,37 @@ function renderUsers(users) {
   bindRowActions();
   return;
   }
-
   tbody.innerHTML = users.map((user) => {
+    
+    const isDeleted = isDeletedUser(user);
+
     const profileHtml = isAdminUser(user)
       ? `<span class="admin-pill">Administrador</span>`
       : `<span class="user-pill">Usuário</span>`;
 
+    const username = isDeleted
+      ? "Excluído"
+      : (user.username ?? "—");
+
+    const email = isDeleted
+      ? "—"
+      : (user.email ?? "—");
+
+    const statusHtml = isDeleted
+      ? `<span class="status-blocked">Excluída</span>`
+      : buildStatusHtml(user);
+
+    const balance = isDeleted
+      ? "0"
+      : formatBalance(user.chipsBalance);
+
     return `
       <tr>
         <td>${user.id ?? "—"}</td>
-        <td>${user.username ?? "—"}</td>
-        <td>${user.email ?? "—"}</td>
-        <td>${buildStatusHtml(user)}</td>
-        <td>${formatBalance(user.chipsBalance)}</td>
+        <td>${username}</td>
+        <td>${email}</td>
+        <td>${statusHtml}</td>
+        <td>${balance}</td>
         <td>${profileHtml}</td>
         <td>${formatDate(user.createdAt)}</td>
         <td>${buildActionsHtml(user)}</td>

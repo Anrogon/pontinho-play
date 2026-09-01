@@ -1536,7 +1536,7 @@ router.post("/me/delete-account", requireAuth, async (req, res) => {
         chips_balance = 0,
         avatar_url = NULL,
         is_blocked = true,
-        blocked_reason = 'Conta excluída pelo usuário',
+        blocked_reason = 'Conta excluída pelo usuário.',
         must_reset_password = false,
         session_version = COALESCE(session_version, 1) + 1,
         updated_at = NOW()
@@ -1851,6 +1851,37 @@ router.post("/admin/users/:id/unblock", requireAuth, requireAdmin, async (req, r
         message: "ID do usuário inválido.",
       });
     }
+
+    const checkUser = await pool.query(
+        `
+        SELECT id, username, email, blocked_reason
+        FROM users
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [targetUserId]
+      );
+
+      const targetUser = checkUser.rows[0];
+
+      if (!targetUser) {
+        return res.status(404).json({
+          ok: false,
+          message: "Usuário alvo não encontrado.",
+        });
+      }
+
+      const isDeletedAccount =
+        targetUser.blocked_reason === "Conta excluída pelo usuário" ||
+        /^usuario_excluido_\d+$/.test(String(targetUser.username || "")) ||
+        /^deleted_\d+@deleted\.invalid$/i.test(String(targetUser.email || ""));
+
+      if (isDeletedAccount) {
+        return res.status(403).json({
+          ok: false,
+          message: "Contas excluídas não podem ser reativadas.",
+        });
+      }
 
     const result = await pool.query(
       `

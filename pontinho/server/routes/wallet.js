@@ -1,7 +1,7 @@
 const express = require("express");
 const pool = require("../config/db");
 const { requireAuth } = require("../middleware/auth");
-const { CHIP_PACKAGES, getChipPackage } = require("../config/chipPackages");
+const {  CHIP_PACKAGES, CASH_PACKAGES, getChipPackage, getCashPackage} = require("../config/chipPackages");
 const { createPixPayment, getPaymentById } = require("../services/mercadoPago");
 
 
@@ -12,13 +12,28 @@ router.get("/packages", requireAuth, async (req, res) => {
   return res.json({
     ok: true,
     packages: CHIP_PACKAGES,
+    cashPackages: CASH_PACKAGES,
   });
 });
 
 router.post("/deposit", requireAuth, async (req, res) => {
   try {
     const packageId = String(req.body?.packageId || "");
-    const pack = getChipPackage(packageId);
+
+    const purpose =
+      String(req.body?.purpose || "CHIPS").toUpperCase();
+
+    if (!["CHIPS", "CASH"].includes(purpose)) {
+      return res.status(400).json({
+        ok: false,
+        message: "Finalidade de depósito inválida.",
+      });
+    }
+
+    const pack =
+      purpose === "CASH"
+        ? getCashPackage(packageId)
+        : getChipPackage(packageId);
 
     if (!pack) {
       return res.status(400).json({
@@ -26,6 +41,16 @@ router.post("/deposit", requireAuth, async (req, res) => {
         message: "Pacote inválido.",
       });
     }
+
+    const amountCents =
+      purpose === "CASH"
+        ? Number(pack.amountCents) || 0
+        : Number(pack.priceCents) || 0;
+
+    const chipsAmount =
+      purpose === "CHIPS"
+        ? Number(pack.chips) || 0
+        : 0;
 
     const txResult = await pool.query(
       `
@@ -35,20 +60,33 @@ router.post("/deposit", requireAuth, async (req, res) => {
         status,
         amount_cents,
         chips_amount,
-        provider
+        provider,
+        purpose
       )
-      VALUES ($1, 'deposit', 'pending', $2, $3, 'mercado_pago')
+      VALUES ($1, 'deposit', 'pending', $2, $3, 'mercado_pago', $4)
       RETURNING *
       `,
-      [req.auth.userId, pack.priceCents, pack.chips]
+      [
+        req.auth.userId,
+        amountCents,
+        chipsAmount,
+        purpose
+      ]
     );
 
     const transaction = txResult.rows[0];
 
     const mpPayment = await createPixPayment({
-      amountCents: pack.priceCents,
-      description: `Compra de ${pack.chips} fichas`,
-      payerEmail: req.auth.email || "cliente@pontinhoplay.com.br",
+      amountCents,
+
+      description:
+        purpose === "CASH"
+          ? `Depósito de R$ ${(amountCents / 100).toFixed(2)}`
+          : `Compra de ${chipsAmount} fichas`,
+
+      payerEmail:
+        req.auth.email || "cliente@pontinhoplay.com.br",
+
       externalReference: transaction.id,
     });
 
@@ -88,8 +126,9 @@ router.post("/deposit", requireAuth, async (req, res) => {
       paymentId,
       qrCode,
       qrCodeBase64,
-      amount: pack.priceCents / 100,
-      chips: pack.chips,
+      purpose,
+      amount: amountCents / 100,
+      chips: chipsAmount,
     });
 
   } catch (err) {
@@ -186,6 +225,36 @@ async function creditApprovedDepositByPaymentId(paymentId) {
     };
   }
 
+  const mpExternalReference =
+      String(mpPayment?.external_reference || "");
+
+    const mpAmount =
+      Number(mpPayment?.transaction_amount || 0);
+
+    const expectedAmount =
+      Number(tx.amount_cents || 0) / 100;
+
+    if (mpExternalReference !== String(tx.id)) {
+      return {
+        ok: false,
+        status: mpStatus,
+        credited: false,
+        message: "Referência do pagamento não corresponde à transação.",
+      };
+    }
+
+    if (
+      !Number.isFinite(mpAmount) ||
+      Math.abs(mpAmount - expectedAmount) > 0.001
+    ) {
+      return {
+        ok: false,
+        status: mpStatus,
+        credited: false,
+        message: "Valor do pagamento não corresponde à transação.",
+      };
+    }
+
   await pool.query("BEGIN");
 
   try {
@@ -216,15 +285,102 @@ async function creditApprovedDepositByPaymentId(paymentId) {
       };
     }
 
-    await pool.query(
-      `
-      UPDATE users
-      SET chips_balance = COALESCE(chips_balance, 0) + $1,
-          updated_at = NOW()
-      WHERE id = $2
-      `,
-      [lockedTx.chips_amount, lockedTx.user_id]
-    );
+    const purpose =
+      String(lockedTx.purpose || "CHIPS").toUpperCase();
+
+    if (purpose === "CASH") {
+      const amount = Number(lockedTx.amount_cents || 0) / 100;
+
+      if (amount <= 0) {
+        throw new Error("Valor de depósito CASH inválido.");
+      }
+
+      const userResult = await pool.query(
+        `
+        SELECT cash_balance
+        FROM users
+        WHERE id = $1
+        FOR UPDATE
+        `,
+        [lockedTx.user_id]
+      );
+
+      const user = userResult.rows[0];
+
+      if (!user) {
+        throw new Error("Usuário do depósito não encontrado.");
+      }
+
+      const balanceBefore =
+        Number(user.cash_balance) || 0;
+
+      const balanceAfter =
+        Number((balanceBefore + amount).toFixed(2));
+
+      await pool.query(
+        `
+        UPDATE users
+        SET cash_balance = $1,
+            updated_at = NOW()
+        WHERE id = $2
+        `,
+        [
+          balanceAfter,
+          lockedTx.user_id
+        ]
+      );
+
+      await pool.query(
+        `
+        INSERT INTO cash_transactions (
+          user_id,
+          type,
+          status,
+          amount,
+          balance_before,
+          balance_after,
+          reference_type,
+          reference_id,
+          provider,
+          provider_transaction_id,
+          description
+        )
+        VALUES (
+          $1,
+          'DEPOSIT',
+          'COMPLETED',
+          $2,
+          $3,
+          $4,
+          'WALLET_DEPOSIT',
+          $5,
+          'mercado_pago',
+          $6,
+          $7
+        )
+        `,
+        [
+          lockedTx.user_id,
+          amount,
+          balanceBefore,
+          balanceAfter,
+          String(lockedTx.id),
+          String(lockedTx.provider_payment_id || ""),
+          `Depósito PIX aprovado - R$ ${amount.toFixed(2)}`
+        ]
+      );
+
+    } else {
+          await pool.query(
+            `
+            UPDATE users
+            SET chips_balance = COALESCE(chips_balance, 0) + $1,
+                updated_at = NOW()
+            WHERE id = $2
+            `,
+            [lockedTx.chips_amount, lockedTx.user_id]
+          );
+        }
 
     await pool.query(
       `
@@ -242,10 +398,22 @@ async function creditApprovedDepositByPaymentId(paymentId) {
       ok: true,
       status: "approved",
       credited: true,
-      chips: lockedTx.chips_amount,
+      purpose,
+      chips:
+        purpose === "CHIPS"
+          ? Number(lockedTx.chips_amount) || 0
+          : 0,
+      amount:
+        purpose === "CASH"
+          ? Number(lockedTx.amount_cents || 0) / 100
+          : 0,
       userId: lockedTx.user_id,
-      message: "Pagamento aprovado e fichas creditadas.",
+      message:
+        purpose === "CASH"
+          ? "Pagamento aprovado e saldo em dinheiro creditado."
+          : "Pagamento aprovado e fichas creditadas.",
     };
+
   } catch (err) {
     await pool.query("ROLLBACK");
     throw err;
@@ -284,12 +452,26 @@ router.get("/deposit/:transactionId/status", requireAuth, async (req, res) => {
     }
 
     if (tx.status === "approved") {
+      const purpose =
+        String(tx.purpose || "CHIPS").toUpperCase();
+
       return res.json({
         ok: true,
         status: "approved",
         credited: true,
-        chips: tx.chips_amount,
-        message: "Pagamento já aprovado.",
+        purpose,
+        chips:
+          purpose === "CHIPS"
+            ? Number(tx.chips_amount) || 0
+            : 0,
+        amount:
+          purpose === "CASH"
+            ? Number(tx.amount_cents || 0) / 100
+            : 0,
+        message:
+          purpose === "CASH"
+            ? "Pagamento já aprovado. Saldo em dinheiro creditado."
+            : "Pagamento já aprovado.",
       });
     }
 
@@ -302,6 +484,7 @@ router.get("/deposit/:transactionId/status", requireAuth, async (req, res) => {
 
     const mpPayment = await getPaymentById(tx.provider_payment_id);
     const mpStatus = String(mpPayment?.status || "unknown");
+
 
     if (mpStatus !== "approved") {
       await pool.query(
@@ -318,6 +501,36 @@ router.get("/deposit/:transactionId/status", requireAuth, async (req, res) => {
         status: mpStatus,
         credited: false,
         message: "Pagamento ainda não aprovado.",
+      });
+    }
+
+    const mpExternalReference =
+      String(mpPayment?.external_reference || "");
+
+    const mpAmount =
+      Number(mpPayment?.transaction_amount || 0);
+
+    const expectedAmount =
+      Number(tx.amount_cents || 0) / 100;
+
+    if (mpExternalReference !== String(tx.id)) {
+      return res.status(400).json({
+        ok: false,
+        status: mpStatus,
+        credited: false,
+        message: "Referência do pagamento não corresponde à transação.",
+      });
+    }
+
+    if (
+      !Number.isFinite(mpAmount) ||
+      Math.abs(mpAmount - expectedAmount) > 0.001
+    ) {
+      return res.status(400).json({
+        ok: false,
+        status: mpStatus,
+        credited: false,
+        message: "Valor do pagamento não corresponde à transação.",
       });
     }
 
@@ -344,25 +557,127 @@ router.get("/deposit/:transactionId/status", requireAuth, async (req, res) => {
     }
 
     if (lockedTx.status === "approved") {
+      const purpose =
+        String(lockedTx.purpose || "CHIPS").toUpperCase();
+
       await pool.query("COMMIT");
+
       return res.json({
         ok: true,
         status: "approved",
         credited: true,
-        chips: lockedTx.chips_amount,
-        message: "Pagamento já aprovado.",
+        purpose,
+        chips:
+          purpose === "CHIPS"
+            ? Number(lockedTx.chips_amount) || 0
+            : 0,
+        amount:
+          purpose === "CASH"
+            ? Number(lockedTx.amount_cents || 0) / 100
+            : 0,
+        message:
+          purpose === "CASH"
+            ? "Pagamento já aprovado. Saldo em dinheiro creditado."
+            : "Pagamento já aprovado.",
       });
     }
 
-    await pool.query(
-      `
-      UPDATE users
-      SET chips_balance = COALESCE(chips_balance, 0) + $1,
-          updated_at = NOW()
-      WHERE id = $2
-      `,
-      [lockedTx.chips_amount, req.auth.userId]
-    );
+    const purpose =
+      String(lockedTx.purpose || "CHIPS").toUpperCase();
+
+    if (purpose === "CASH") {
+      const amount = Number(lockedTx.amount_cents || 0) / 100;
+
+      if (amount <= 0) {
+        throw new Error("Valor de depósito CASH inválido.");
+      }
+
+      const userResult = await pool.query(
+        `
+        SELECT cash_balance
+        FROM users
+        WHERE id = $1
+        FOR UPDATE
+        `,
+        [lockedTx.user_id]
+      );
+
+      const user = userResult.rows[0];
+
+      if (!user) {
+        throw new Error("Usuário do depósito não encontrado.");
+      }
+
+      const balanceBefore =
+        Number(user.cash_balance) || 0;
+
+      const balanceAfter =
+        Number((balanceBefore + amount).toFixed(2));
+
+      await pool.query(
+        `
+        UPDATE users
+        SET cash_balance = $1,
+            updated_at = NOW()
+        WHERE id = $2
+        `,
+        [
+          balanceAfter,
+          lockedTx.user_id
+        ]
+      );
+
+      await pool.query(
+        `
+        INSERT INTO cash_transactions (
+          user_id,
+          type,
+          status,
+          amount,
+          balance_before,
+          balance_after,
+          reference_type,
+          reference_id,
+          provider,
+          provider_transaction_id,
+          description
+        )
+        VALUES (
+          $1,
+          'DEPOSIT',
+          'COMPLETED',
+          $2,
+          $3,
+          $4,
+          'WALLET_DEPOSIT',
+          $5,
+          'mercado_pago',
+          $6,
+          $7
+        )
+        `,
+        [
+          lockedTx.user_id,
+          amount,
+          balanceBefore,
+          balanceAfter,
+          String(lockedTx.id),
+          String(lockedTx.provider_payment_id || ""),
+          `Depósito PIX aprovado - R$ ${amount.toFixed(2)}`
+        ]
+      );
+
+    } else {
+      await pool.query(
+        `
+        UPDATE users
+        SET chips_balance = COALESCE(chips_balance, 0) + $1,
+            updated_at = NOW()
+        WHERE id = $2
+        `,
+        [lockedTx.chips_amount, lockedTx.user_id]
+      );
+    }
 
     await pool.query(
       `
@@ -380,8 +695,19 @@ router.get("/deposit/:transactionId/status", requireAuth, async (req, res) => {
       ok: true,
       status: "approved",
       credited: true,
-      chips: lockedTx.chips_amount,
-      message: "Pagamento aprovado. Fichas creditadas.",
+      purpose,
+      chips:
+        purpose === "CHIPS"
+          ? Number(lockedTx.chips_amount) || 0
+          : 0,
+      amount:
+        purpose === "CASH"
+          ? Number(lockedTx.amount_cents || 0) / 100
+          : 0,
+      message:
+        purpose === "CASH"
+          ? "Pagamento aprovado. Saldo em dinheiro creditado."
+          : "Pagamento aprovado. Fichas creditadas.",
     });
 
   } catch (err) {

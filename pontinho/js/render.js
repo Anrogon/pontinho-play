@@ -1615,6 +1615,8 @@ export function renderScoreboard() {
   el.classList.toggle("sb-open", isOpen);
 
  const batiUi = getCrazyBatidaUi();
+ const isCompetition =
+  String(state.mode || "RECREATIONAL").toUpperCase() === "COMPETITION";
   el.innerHTML = `
         <div class="sb-title">
         <span>${mesaTitulo}</span>
@@ -1650,16 +1652,22 @@ export function renderScoreboard() {
       <div class="sb-info">
         <div class="sb-name">${nome}</div>
 
-                <div class="sb-sub sb-sub-desktop">
-          <div class="sb-sub-row">
-            <span class="sb-pill">Fichas: ${chips.toLocaleString("pt-BR")}</span>
-            <span class="sb-pill">Ante: ${ante.toLocaleString("pt-BR")}</span>
-          </div>
+        <div class="sb-sub sb-sub-desktop">
+          ${
+            !isCompetition
+              ? `
+                <div class="sb-sub-row">
+                  <span class="sb-pill">Fichas: ${chips.toLocaleString("pt-BR")}</span>
+                  <span class="sb-pill">Ante: ${ante.toLocaleString("pt-BR")}</span>
+                </div>
+              `
+              : ""
+          }
 
-          <div class="sb-sub-row">
-            <span class="sb-pill sb-detail">Mão: ${ptsMao}</span>
-            <span class="sb-pill sb-detail">Total de Pontos: ${ptsTotal}</span>
-          </div>
+  <div class="sb-sub-row">
+    <span class="sb-pill sb-detail">Mão: ${ptsMao}</span>
+    <span class="sb-pill sb-detail">Total de Pontos: ${ptsTotal}</span>
+  </div>
 
           <div class="sb-sub-row">
           ${!isMobilePortrait ? `<span class="sb-pill sb-bati-placeholder" aria-hidden="true"></span>` : ""}
@@ -2102,9 +2110,31 @@ const miniAnte = Number(
   const mesaEl = document.getElementById("mobileMesaInfo");
   const anteEl = document.getElementById("mobileAnteInfo");
 
-  if (mesaEl) mesaEl.textContent = `Mesa: ${mesaValor.toLocaleString("pt-BR")}`;
-  if (anteEl) anteEl.textContent = `Ante: ${miniAnte.toLocaleString("pt-BR")}`;
+  const isCompetition =
+    String(state.mode || "RECREATIONAL").toUpperCase() === "COMPETITION";
 
+  if (mesaEl) {
+  if (isCompetition) {
+    const competitionValue = buyInBase / 100;
+
+    mesaEl.textContent =
+      `Mesa: ${competitionValue.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+      })}`;
+  } else {
+    mesaEl.textContent =
+      `Mesa: ${mesaValor.toLocaleString("pt-BR")}`;
+  }
+}
+
+  if (anteEl) {
+    anteEl.style.display = isCompetition ? "none" : "";
+
+    if (!isCompetition) {
+      anteEl.textContent = `Ante: ${miniAnte.toLocaleString("pt-BR")}`;
+    }
+  }
   // ==============================
   // JOGADORES (SEM VOCÊ)
   // ==============================
@@ -2145,7 +2175,7 @@ const miniAnte = Number(
       "/assets/avatar-default.png";
 
     const chips = Number(p.tableChips ?? p.stack ?? 0);
-    const pts = Number(  p.currentTotalPoints ??  p.totalPoints ??  0);
+    const pts = Number(p.currentTotalPoints ?? p.totalPoints ?? 0);
     const isOffline = !!p.disconnected;
 
     const handCount = Number(p.handCount ?? 0);
@@ -2187,7 +2217,12 @@ const miniAnte = Number(
             <span class="mobile-seat-offline">OFF</span>
           ` : ""}
         </div>
-          <div class="mobile-seat-meta">${chips} · ${pts} pts</div>
+          <div class="mobile-seat-meta">
+            ${isCompetition
+              ? `${pts} pontos`
+              : `${chips.toLocaleString("pt-BR")} · ${pts} pts`
+            }
+          </div>
         </div>
       `;
         }
@@ -2403,14 +2438,32 @@ function renderMobileLandscapeTableLayout() {
     ".landscape-ante-info"
   );
 
+  const isCompetition =
+    String(state.mode || "RECREATIONAL").toUpperCase() === "COMPETITION";
+
   if (landscapeMesaEl) {
-    landscapeMesaEl.textContent =
-      `Mesa: ${mesaValor.toLocaleString("pt-BR")}`;
+    if (isCompetition) {
+      const competitionValue = buyInBase / 100;
+
+      landscapeMesaEl.textContent =
+        `Mesa: ${competitionValue.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL"
+        })}`;
+    } else {
+      landscapeMesaEl.textContent =
+        `Mesa: ${mesaValor.toLocaleString("pt-BR")}`;
+    }
   }
 
   if (landscapeAnteEl) {
-    landscapeAnteEl.textContent =
-      `Ante: ${anteValor.toLocaleString("pt-BR")}`;
+    landscapeAnteEl.style.display =
+      isCompetition ? "none" : "";
+
+    if (!isCompetition) {
+      landscapeAnteEl.textContent =
+        `Ante: ${anteValor.toLocaleString("pt-BR")}`;
+    }
   }
 
   const players = Array.isArray(tableData?.seats)
@@ -2536,9 +2589,10 @@ function renderMobileLandscapeTableLayout() {
           </div>
 
           <div class="landscape-seat-meta">
-            ${chips.toLocaleString("pt-BR")}
-            ·
-            ${points} pts
+            ${isCompetition
+              ? `${points} pontos`
+              : `${chips.toLocaleString("pt-BR")} · ${points} pts`
+            }
           </div>
         </div>
       </div>
@@ -2786,6 +2840,8 @@ function renderDesktopTableLayout() {
     const chips = Number(p.tableChips ?? p.stack ?? p.chips ?? 0);
     const pts = Number(  p.currentTotalPoints ??  p.totalPoints ??  0);
     const isDealer = Number(s.dealerSeat) === Number(p.seat);
+    const isCompetition =
+      String(state.mode || "RECREATIONAL").toUpperCase() === "COMPETITION";
     const handCount = Number(
     p.handCount ??
     p.cardsCount ??
@@ -2819,7 +2875,12 @@ function renderDesktopTableLayout() {
           OFFLINE
         </div>
       ` : ""}
-        <div class="desktop-seat-meta">${chips.toLocaleString("pt-BR")} · ${pts} pts</div>
+        <div class="desktop-seat-meta">
+          ${isCompetition
+            ? `${pts} pontos`
+            : `${chips.toLocaleString("pt-BR")} · ${pts} pts`
+          }
+        </div>
 
         ${handCount > 0 ? `
         <div class="desktop-seat-cards">
@@ -3052,29 +3113,47 @@ export function renderPot() {
 
   if (!potEl) return;
 
-  const pot =
-    typeof state.matchPot === "number"
-      ? state.matchPot
-      : 0;
+  const isCompetition =
+    String(state.mode || "RECREATIONAL").toUpperCase() === "COMPETITION";
+
+  const pot = isCompetition
+    ? Number(state.competitionGross) || 0
+    : Number(state.matchPot) || 0;
+
+  const potFormatted = isCompetition
+    ? pot.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+      })
+    : pot.toLocaleString("pt-BR");
 
   potEl.innerHTML = `
-    <div class="chip-stack" aria-label="Pote ${pot}">
-      ${buildChipStackHTML(pot)}
+    <div class="chip-stack" aria-label="Pote ${potFormatted}">
+      ${buildChipStackHTML(pot, isCompetition)}
     </div>
 
-    <div class="pot-label">
-      Pote: ${Number(pot).toLocaleString("pt-BR")}
-    </div>
+    <div class="pot-label ${isCompetition ? "competition-pot-label" : ""}">
+    ${
+      isCompetition
+        ? `
+          <span class="competition-pot-title">Pote:</span>
+          <span class="competition-pot-value">${potFormatted}</span>
+        `
+        : `Pote: ${potFormatted}`
+    }
+  </div>
   `;
 }
 
 
 // cria até 12 fichas só para visual (não precisa ser 1:1)
-function buildChipStackHTML(potValue) {
+function buildChipStackHTML(potValue, competition = false) {
   if (potValue <= 0) return "";
 
   // denominações (do maior pro menor)
-  const denoms = [5000, 1000, 500, 100, 50, 25, 5, 1];
+  const denoms = competition
+  ? [200, 100, 50, 20, 10, 5, 2, 1]
+  : [5000, 1000, 500, 100, 50, 25, 5, 1];
 
   // monta uma lista de fichas (ganancioso)
   let remaining = Math.floor(potValue);
@@ -3104,7 +3183,14 @@ function buildChipStackHTML(potValue) {
   let html = "";
   for (let i = 0; i < finalChips.length; i++) {
     const v = finalChips[i];
-    html += `<div class="chip chip-${v}" style="--i:${i}"></div>`;
+    html += `
+    <div
+      class="chip ${competition ? "competition-chip" : ""} chip-${v}"
+      style="--i:${i}"
+    >
+      ${competition ? `<span class="competition-chip-value">R$ ${v}</span>` : ""}
+    </div>
+  `;
   }
 
   return html;
@@ -3307,13 +3393,36 @@ export function renderEndMatchOverlay() {
     rootEl.appendChild(ov);
   }
 
-  const winner = state.players?.find(p => p.seat === state.matchWinnerSeat);
-  const winnerName = winner?.name || "—";
+    const winner = state.players?.find(
+      p => Number(p.seat) === Number(state.matchWinnerSeat)
+    );
+    const winnerName = winner?.name || "—";
 
-  const matchPot = Number(state.matchPot) || 0;
-  const houseRake = Number(state.houseRake) || 0;
-  const winnerPayout = Number(state.winnerPayout) || 0;
-  const houseRakePct = Math.round((Number(state.houseRakePct) || 0) * 100);
+    const isCompetition =
+    String(state.mode || "RECREATIONAL").toUpperCase() === "COMPETITION";
+
+  const matchPot = isCompetition
+    ? Number(state.competitionGross) || 0
+    : Number(state.matchPot) || 0;
+
+  const houseRake = isCompetition
+    ? Number(state.competitionOrganizationFee) || 0
+    : Number(state.houseRake) || 0;
+
+  const winnerPayout = isCompetition
+    ? Number(state.competitionPrizePool) || 0
+    : Number(state.winnerPayout) || 0;
+
+  const houseRakePct =
+    Math.round((Number(state.houseRakePct) || 0) * 100);
+
+  const formatEndMatchValue = (value) =>
+  isCompetition
+    ? Number(value || 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+      })
+    : Number(value || 0).toLocaleString("pt-BR");
 
   ov.innerHTML = `
     <div class="endmatch-modal">
@@ -3324,15 +3433,15 @@ export function renderEndMatchOverlay() {
         <div class="endmatch-line">🏆 venceu a partida</div>
 
         <div class="endmatch-line" style="margin-top:10px;">
-          Pote final: <b>${matchPot.toLocaleString("pt-BR")}</b>
+          Pote final: <b>${formatEndMatchValue(matchPot)}</b>
         </div>
 
         <div class="endmatch-line">
-          Taxa da casa: <b>${houseRake.toLocaleString("pt-BR")}</b> (${houseRakePct}%)
+          Taxa da casa: <b>${formatEndMatchValue(houseRake)}</b> (${houseRakePct}%)
         </div>
 
         <div class="endmatch-line">
-          Prêmio do vencedor: <b>${winnerPayout.toLocaleString("pt-BR")}</b>
+          Prêmio do vencedor: <b>${formatEndMatchValue(winnerPayout)}</b>
         </div>
 
       <div class="endmatch-actions" style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">

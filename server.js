@@ -224,9 +224,13 @@ function startNewRound(room) {
   room.batidaAnnouncement = "";
   room.batidaAnnouncementEndsAt = 0;
 
-  // cobra mini-ante dos sobreviventes
-  const miniAnteCollected = collectMiniAnte(room);
-  room.lastMiniAnteCollected = miniAnteCollected;
+  // cobra mini-ante somente nas mesas Recreativas
+  if (room.mode !== "COMPETITION") {
+    const miniAnteCollected = collectMiniAnte(room);
+    room.lastMiniAnteCollected = miniAnteCollected;
+  } else {
+    room.lastMiniAnteCollected = 0;
+  }
 
   // limpa mesa / obrigações
   room.tableMelds = [];
@@ -1048,60 +1052,499 @@ function hasRebuyChoices(room) {
   );
 }
 
+
+async function debitCompetitionEntries(room) {
+  const isCompetition =
+    String(room?.mode || "RECREATIONAL").toUpperCase() === "COMPETITION";
+
+  if (!isCompetition) {
+    return {
+      ok: false,
+      msg: "Esta mesa não é uma competição."
+    };
+  }
+
+  const entryFee =
+    competitionValueToCash(room.buyIn);
+
+  if (entryFee <= 0) {
+    return {
+      ok: false,
+      msg: "Valor de inscrição inválido."
+    };
+  }
+
+  const players = (room.playersBySeat || [])
+    .filter(pl => pl && pl.userId);
+
+  if (players.length === 0) {
+    return {
+      ok: false,
+      msg: "Nenhum jogador válido para cobrança."
+    };
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const chargedPlayers = [];
+
+    for (const pl of players) {
+      const result = await client.query(
+        `
+        UPDATE users
+        SET
+          cash_balance = cash_balance - $1,
+          updated_at = NOW()
+        WHERE id = $2
+          AND cash_balance >= $1
+        RETURNING
+          cash_balance,
+          cash_balance + $1 AS balance_before
+        `,
+        [entryFee, pl.userId]
+      );
+
+      if (result.rowCount === 0) {
+        throw new Error(
+          `INSUFFICIENT_CASH:${pl.userId}`
+        );
+      }
+
+      const balanceBefore =
+        Number(result.rows[0].balance_before) || 0;
+
+      const balanceAfter =
+        Number(result.rows[0].cash_balance) || 0;
+
+      await client.query(
+        `
+        INSERT INTO cash_transactions (
+          user_id,
+          type,
+          status,
+          amount,
+          balance_before,
+          balance_after,
+          reference_type,
+          reference_id,
+          description
+        )
+        VALUES (
+          $1,
+          'COMPETITION_ENTRY',
+          'COMPLETED',
+          $2,
+          $3,
+          $4,
+          'COMPETITION',
+          $5,
+          $6
+        )
+        `,
+        [
+          pl.userId,
+          -entryFee,
+          balanceBefore,
+          balanceAfter,
+          String(room.matchId || room.id),
+          `Inscrição na competição ${room.id}`
+        ]
+      );
+
+      chargedPlayers.push({
+        player: pl,
+        cashBalance: balanceAfter
+      });
+    }
+
+    await client.query("COMMIT");
+
+    // Atualiza a memória somente depois que
+    // todos os débitos foram confirmados no banco.
+    for (const item of chargedPlayers) {
+      const pl = item.player;
+      const newBalance = item.cashBalance;
+
+      pl.cashBalance = newBalance;
+
+      const connectedClient =
+        pl.clientId ? clients.get(pl.clientId) : null;
+
+      if (connectedClient) {
+        connectedClient.cashBalance = newBalance;
+      }
+    }
+
+    return {
+      ok: true,
+      entryFee,
+      chargedPlayers
+    };
+
+  } catch (err) {
+    try {
+      await client.query("ROLLBACK");
+    } catch (_) {}
+
+    if (
+      String(err?.message || "")
+        .startsWith("INSUFFICIENT_CASH:")
+    ) {
+      const userId =
+        String(err.message).split(":")[1] || null;
+
+      return {
+        ok: false,
+        reason: "INSUFFICIENT_CASH",
+        userId,
+        msg: "Um dos jogadores não possui saldo suficiente para a inscrição."
+      };
+    }
+
+    console.error(
+      "[COMPETITION] erro ao cobrar inscrições:",
+      err
+    );
+
+    return {
+      ok: false,
+      reason: "ERROR",
+      msg: "Erro ao processar as inscrições da competição."
+    };
+
+  } finally {
+    client.release();
+  }
+}
+
+
+function competitionValueToCash(value) {
+  const amount = Number(value) || 0;
+
+  if (amount <= 0) {
+    return 0;
+  }
+
+  return Number((amount / 100).toFixed(2));
+}
+
+
+function registerCompetitionMoney(room, amount, type = "entry") {
+  const isCompetition =
+    String(room?.mode || "RECREATIONAL").toUpperCase() === "COMPETITION";
+
+  if (!isCompetition) {
+    return {
+      ok: false,
+      msg: "Esta mesa não é uma competição."
+    };
+  }
+
+  const value = Number(amount) || 0;
+
+  if (value <= 0) {
+    return {
+      ok: false,
+      msg: "Valor inválido para a competição."
+    };
+  }
+
+  const organizationPct =
+    Number(room.competitionOrganizationPct) || 0.05;
+
+  const organizationFee =
+    Number((value * organizationPct).toFixed(2));
+
+  const prizeAmount =
+    Number((value - organizationFee).toFixed(2));
+
+  room.competitionGross =
+    Number((Number(room.competitionGross || 0) + value).toFixed(2));
+
+  room.competitionOrganizationFee =
+    Number((
+      Number(room.competitionOrganizationFee || 0) +
+      organizationFee
+    ).toFixed(2));
+
+  room.competitionPrizePool =
+    Number((
+      Number(room.competitionPrizePool || 0) +
+      prizeAmount
+    ).toFixed(2));
+
+  if (type === "reentry") {
+    room.competitionReentriesCount =
+      (Number(room.competitionReentriesCount) || 0) + 1;
+  } else {
+    room.competitionEntriesCount =
+      (Number(room.competitionEntriesCount) || 0) + 1;
+  }
+
+  return {
+    ok: true,
+    amount: value,
+    organizationFee,
+    prizeAmount
+  };
+}
+
+
 function getRebuyCost(room, p) {
   const ante = typeof room.buyIn === "number" && room.buyIn > 0 ? room.buyIn : 0;
   const times = Math.pow(2, p.rebuyCount || 0);
   return ante * times;
 }
 
-function applyPendingRebuys(room) {
+async function applyPendingRebuys(room) {
   // referência de pontos: volta com o maior totalPoints entre ativos
-  const active = (room.playersBySeat || []).filter(pl => pl && !pl.eliminated && !pl.pendingRebuy);
-  const maxPts = active.length ? Math.max(...active.map(pl => Number(pl.totalPoints) || 0)) : 0;
+  const active = (room.playersBySeat || []).filter(
+    pl => pl && !pl.eliminated && !pl.pendingRebuy
+  );
+
+  const maxPts = active.length
+    ? Math.max(...active.map(pl => Number(pl.totalPoints) || 0))
+    : 0;
 
   const appliedRebuys = [];
 
   for (let i = 0; i < (room.playersBySeat || []).length; i++) {
     const pl = room.playersBySeat[i];
+
     if (!pl || !pl.pendingRebuy) continue;
 
-  if ((pl.rebuyCount || 0) >= 3) {
-  pl.pendingRebuy = false;
-  pl.eliminated = true;
+    if ((pl.rebuyCount || 0) >= 3) {
+      pl.pendingRebuy = false;
+      pl.eliminated = true;
+      
 
-  // 👇 REMOVE se estiver desconectado
-  if (pl.disconnected) {
-    room.playersBySeat[i] = null;
-  }
+      // REMOVE se estiver desconectado
+      if (pl.disconnected) {
+        room.playersBySeat[i] = null;
+      }
 
-  continue;
-}
+      continue;
+    }
 
     const cost = Number(getRebuyCost(room, pl)) || 0;
 
     pl.chips = Number(pl.chips);
-    if (!Number.isFinite(pl.chips)) pl.chips = 0;
+    if (!Number.isFinite(pl.chips)) {
+      pl.chips = 0;
+    }
 
-  if (pl.chips < cost || cost <= 0) {
-  pl.pendingRebuy = false;
-  pl.eliminated = true;
+    if (
+      cost <= 0 ||
+      (room.mode !== "COMPETITION" && pl.chips < cost)
+    ) {
+      pl.pendingRebuy = false;
+      pl.eliminated = true;
 
-  // 👇 REMOVE se estiver desconectado
-  if (pl.disconnected) {
-    room.playersBySeat[i] = null;
-  }
+      // REMOVE se estiver desconectado
+      if (pl.disconnected) {
+        room.playersBySeat[i] = null;
+      }
 
-  continue;
-}
+      continue;
+    }
 
     const rebuyCountBefore = pl.rebuyCount || 0;
 
-    // paga rebuy
+    if (room.mode === "COMPETITION") {
+    const cashCost = competitionValueToCash(cost);
+
+    if (!pl.userId || cashCost <= 0) {
+      pl.pendingRebuy = false;
+      pl.eliminated = true;
+
+      if (pl.disconnected) {
+        room.playersBySeat[i] = null;
+      }
+
+      continue;
+    }
+
+    let dbClient;
+
+    try {
+      dbClient = await pool.connect();
+
+      await dbClient.query("BEGIN");
+
+      const debitResult = await dbClient.query(
+        `
+        UPDATE users
+        SET
+          cash_balance = cash_balance - $1,
+          updated_at = NOW()
+        WHERE id = $2
+          AND cash_balance >= $1
+        RETURNING
+          cash_balance,
+          cash_balance + $1 AS balance_before
+        `,
+        [cashCost, pl.userId]
+      );
+
+      if (debitResult.rowCount === 0) {
+          await dbClient.query("ROLLBACK");
+
+          console.log("[COMPETITION] Rebuy recusado por saldo insuficiente:", {
+            tableId: room.id,
+            player: pl.name,
+            userId: pl.userId,
+            rebuyNumber: rebuyCountBefore + 1,
+            cost: cashCost
+          });
+
+          pl.pendingRebuy = false;
+          pl.eliminated = true;
+
+          const playerClient =
+            pl.clientId ? clients.get(pl.clientId) : null;
+
+          if (playerClient?.ws && playerClient.ws.readyState === 1) {
+            playerClient.ws.send(JSON.stringify({
+              type: "error",
+              payload: {
+                message:
+                  `Saldo em dinheiro insuficiente para realizar este rebuy de ` +
+                  `${cashCost.toLocaleString("pt-BR", {
+                    style: "currency",
+                    currency: "BRL"
+                  })}.`
+              }
+            }));
+          }
+
+          if (pl.disconnected) {
+            room.playersBySeat[i] = null;
+          }
+
+          continue;
+        }
+
+      const balanceBefore =
+        Number(debitResult.rows[0].balance_before) || 0;
+
+      const balanceAfter =
+        Number(debitResult.rows[0].cash_balance) || 0;
+
+      await dbClient.query(
+        `
+        INSERT INTO cash_transactions (
+          user_id,
+          type,
+          status,
+          amount,
+          balance_before,
+          balance_after,
+          reference_type,
+          reference_id,
+          description
+        )
+        VALUES (
+          $1,
+          'COMPETITION_REENTRY',
+          'COMPLETED',
+          $2,
+          $3,
+          $4,
+          'COMPETITION',
+          $5,
+          $6
+        )
+        `,
+        [
+          pl.userId,
+          -cashCost,
+          balanceBefore,
+          balanceAfter,
+          String(room.matchId || room.id),
+          `Rebuy na competição ${room.id}`
+        ]
+      );
+
+      await dbClient.query("COMMIT");
+
+      const moneyResult = registerCompetitionMoney(
+        room,
+        cashCost,
+        "reentry"
+      );
+
+      if (!moneyResult.ok) {
+        console.error("[COMPETITION] falha ao registrar Rebuy na contabilidade:", {
+          tableId: room.id,
+          player: pl.name,
+          userId: pl.userId,
+          rebuyNumber: rebuyCountBefore + 1,
+          cost: cashCost,
+          message: moneyResult.msg
+        });
+      }
+
+      // Só atualiza a memória depois do COMMIT.
+      pl.cashBalance = balanceAfter;
+
+      const connectedClient =
+        pl.clientId ? clients.get(pl.clientId) : null;
+
+      if (connectedClient) {
+        connectedClient.cashBalance = balanceAfter;
+      }
+
+      console.log("[COMPETITION] Rebuy cobrado:", {
+        tableId: room.id,
+        player: pl.name,
+        userId: pl.userId,
+        rebuyNumber: rebuyCountBefore + 1,
+        cost: cashCost,
+        cashBalance: balanceAfter,
+        gross: room.competitionGross,
+        organizationFee: room.competitionOrganizationFee,
+        prizePool: room.competitionPrizePool,
+        entries: room.competitionEntriesCount,
+        reentries: room.competitionReentriesCount
+      });
+
+    } catch (err) {
+      if (dbClient) {
+        try {
+          await dbClient.query("ROLLBACK");
+        } catch (_) {}
+      }
+
+      console.error(
+        "[COMPETITION] erro ao cobrar Rebuy:",
+        err
+      );
+
+      pl.pendingRebuy = false;
+      pl.eliminated = true;
+
+      if (pl.disconnected) {
+        room.playersBySeat[i] = null;
+      }
+
+      continue;
+
+    } finally {
+      if (dbClient) {
+        dbClient.release();
+      }
+    }
+
+  } else {
+    // Recreativo: mantém exatamente a economia atual.
     pl.chips -= cost;
 
-    // entra no pote
     room.matchPot = Number(room.matchPot) || 0;
     room.matchPot += cost;
+  }
 
     pl.eliminated = false;
     pl.pendingRebuy = false;
@@ -1112,7 +1555,7 @@ function applyPendingRebuys(room) {
     pl.jogosBaixados = [];
     pl.obrigacaoBaixar = false;
 
-    // volta com pontos “pesados”
+    // volta com pontos "pesados"
     pl.totalPoints = maxPts;
 
     appliedRebuys.push({
@@ -1122,7 +1565,6 @@ function applyPendingRebuys(room) {
       rebuyCountAfter: pl.rebuyCount,
       cost
     });
-
   }
 
   return appliedRebuys;
@@ -1165,6 +1607,7 @@ function resetRoomForRematch(room) {
 
   room.roundNumber = 0;
   room.matchPot = 0;
+  room.competitionPot = 0;
 
   for (const p of room.playersBySeat || []) {
     if (!p) continue;
@@ -1231,7 +1674,7 @@ function tryPrepareRoomAfterRematchChoices(room) {
 
   room.roundNumber = 0;
   room.matchPot = 0;
-
+  room.competitionPot = 0;
   room.rebuyDecisionUntil = 0;
   room.crazyBatidaBurnedBySeat = {};
 
@@ -1262,7 +1705,7 @@ function tryPrepareRoomAfterRematchChoices(room) {
 
 
 
-function scheduleNextRoundWithRebuy(room, ms = 20000) {
+async function scheduleNextRoundWithRebuy(room, ms = 20000) {
   room.rebuyDecisionUntil = 0;
   room.lastAppliedRebuys = [];
 
@@ -1281,7 +1724,7 @@ function scheduleNextRoundWithRebuy(room, ms = 20000) {
     room.matchWinnerSeat = room.playersBySeat.indexOf(alivePlayers[0]) + 1;
 
 
-    finalizeMatchEconomy(room);
+    await finalizeMatchEconomy(room);
     if (room?.id) sendState(room.id);
     return;
   }
@@ -1309,7 +1752,7 @@ function scheduleNextRoundWithRebuy(room, ms = 20000) {
     if (!hasConnectedChoices) {
       room.rebuyDecisionUntil = 0;
 
-      const rebuys = applyPendingRebuys(room);
+      const rebuys = await applyPendingRebuys(room);
       room.lastAppliedRebuys = rebuys;
 
       // Recalcula vivos após aplicar os rebuys automáticos
@@ -1318,7 +1761,7 @@ function scheduleNextRoundWithRebuy(room, ms = 20000) {
         room.matchEnded = true;
         room.matchWinnerSeat = room.playersBySeat.indexOf(aliveAfterRebuy[0]) + 1;
 
-        finalizeMatchEconomy(room);
+        await finalizeMatchEconomy(room);
         if (room?.id) sendState(room.id);
         return;
       }
@@ -1339,9 +1782,9 @@ function scheduleNextRoundWithRebuy(room, ms = 20000) {
 
     room.rebuyDecisionUntil = Date.now() + ms;
 
-    room.nextRoundTimeoutId = setTimeout(() => {
-    room.nextRoundTimeoutId = null;
-    room.rebuyDecisionUntil = 0;
+    room.nextRoundTimeoutId = setTimeout(async () => {
+      room.nextRoundTimeoutId = null;
+      room.rebuyDecisionUntil = 0;
 
     // quem está conectado e não aceitou até o fim = recusou
     for (const pl of room.playersBySeat || []) {
@@ -1357,7 +1800,7 @@ function scheduleNextRoundWithRebuy(room, ms = 20000) {
       }
     }
 
-    const rebuys = applyPendingRebuys(room);
+    const rebuys = await applyPendingRebuys(room);
     room.lastAppliedRebuys = rebuys;
 
     // Recalcula vivos após decisões/rebuys
@@ -1366,7 +1809,7 @@ function scheduleNextRoundWithRebuy(room, ms = 20000) {
       room.matchEnded = true;
       room.matchWinnerSeat = room.playersBySeat.indexOf(aliveAfterWindow[0]) + 1;
 
-      finalizeMatchEconomy(room);
+      await finalizeMatchEconomy(room);
       if (room?.id) sendState(room.id);
       return;
     }
@@ -1800,7 +2243,7 @@ async function getAuthUserFromWsRequest(req) {
 
     const result = await pool.query(
       `
-      SELECT id, username, email, chips_balance, is_admin, is_blocked, session_version
+      SELECT id, username, email, chips_balance, cash_balance, is_admin, is_blocked, session_version
       FROM users
       WHERE id = $1
       LIMIT 1
@@ -1822,6 +2265,7 @@ async function getAuthUserFromWsRequest(req) {
       username: user.username,
       email: user.email,
       chipsBalance: Number(user.chips_balance) || 0,
+      cashBalance: Number(user.cash_balance) || 0,
       isAdmin: user.is_admin === true || user.is_admin === 1,
     };
   } catch (err) {
@@ -1834,19 +2278,35 @@ async function getAuthUserFromWsRequest(req) {
 // Config de mesas
 // --------------------
 const TABLES = [
-  { id: "S1", name: "Mesa 1", buyIn: 1000, variant: "CLASSIC" },
-  { id: "S2", name: "Mesa 2", buyIn: 5000, variant: "CLASSIC" },
-  { id: "S3", name: "Mesa 3", buyIn: 10000, variant: "CLASSIC" },
-  { id: "S4", name: "Mesa 4", buyIn: 20000, variant: "CLASSIC" },
-  { id: "S5", name: "Mesa 5", buyIn: 50000, variant: "CLASSIC" },
-  { id: "S6", name: "Mesa 6", buyIn: 100000, variant: "CLASSIC" },
 
-  { id: "C1", name: "Mesa 1", buyIn: 1000, variant: "CRAZY" },
-  { id: "C2", name: "Mesa 2", buyIn: 5000, variant: "CRAZY" },
-  { id: "C3", name: "Mesa 3", buyIn: 10000, variant: "CRAZY" },
-  { id: "C4", name: "Mesa 4", buyIn: 20000, variant: "CRAZY" },
-  { id: "C5", name: "Mesa 5", buyIn: 50000, variant: "CRAZY" },
-  { id: "C6", name: "Mesa 6", buyIn: 100000, variant: "CRAZY" }
+  { id: "S1", name: "Recreativo 1", buyIn: 1000, variant: "CLASSIC", mode: "RECREATIONAL" },
+  { id: "S2", name: "Recreativo 2", buyIn: 5000, variant: "CLASSIC", mode: "RECREATIONAL" },
+  { id: "S3", name: "Recreativo 3", buyIn: 10000, variant: "CLASSIC", mode: "RECREATIONAL" },
+  { id: "S4", name: "Recreativo 4", buyIn: 20000, variant: "CLASSIC", mode: "RECREATIONAL" },
+  { id: "S5", name: "Recreativo 5", buyIn: 50000, variant: "CLASSIC", mode: "RECREATIONAL" },
+  { id: "S6", name: "Recreativo 6", buyIn: 100000, variant: "CLASSIC", mode: "RECREATIONAL" },
+
+  { id: "SC1", name: "Competição 1", buyIn: 10000,  variant: "CLASSIC", mode: "COMPETITION" },
+  { id: "SC2", name: "Competição 2", buyIn: 20000,  variant: "CLASSIC", mode: "COMPETITION" },
+  { id: "SC3", name: "Competição 3", buyIn: 30000,  variant: "CLASSIC", mode: "COMPETITION" },
+  { id: "SC4", name: "Competição 4", buyIn: 50000,  variant: "CLASSIC", mode: "COMPETITION" },
+  { id: "SC5", name: "Competição 5", buyIn: 100000, variant: "CLASSIC", mode: "COMPETITION" },
+  { id: "SC6", name: "Competição 6", buyIn: 200000, variant: "CLASSIC", mode: "COMPETITION" },
+
+  { id: "C1", name: "Recreativo 1", buyIn: 1000, variant: "CRAZY", mode: "RECREATIONAL" },
+  { id: "C2", name: "Recreativo 2", buyIn: 5000, variant: "CRAZY", mode: "RECREATIONAL" },
+  { id: "C3", name: "Recreativo 3", buyIn: 10000, variant: "CRAZY", mode: "RECREATIONAL" },
+  { id: "C4", name: "Recreativo 4", buyIn: 20000, variant: "CRAZY", mode: "RECREATIONAL" },
+  { id: "C5", name: "Recreativo 5", buyIn: 50000, variant: "CRAZY", mode: "RECREATIONAL" },
+  { id: "C6", name: "Recreativo 6", buyIn: 100000, variant: "CRAZY", mode: "RECREATIONAL" },
+
+  { id: "CC1", name: "Competição 1", buyIn: 10000,  variant: "CRAZY", mode: "COMPETITION" },
+  { id: "CC2", name: "Competição 2", buyIn: 20000,  variant: "CRAZY", mode: "COMPETITION" },
+  { id: "CC3", name: "Competição 3", buyIn: 30000,  variant: "CRAZY", mode: "COMPETITION" },
+  { id: "CC4", name: "Competição 4", buyIn: 50000,  variant: "CRAZY", mode: "COMPETITION" },
+  { id: "CC5", name: "Competição 5", buyIn: 100000, variant: "CRAZY", mode: "COMPETITION" },
+  { id: "CC6", name: "Competição 6", buyIn: 200000, variant: "CRAZY", mode: "COMPETITION" }
+
 ];
 
 const rooms = new Map();
@@ -1973,8 +2433,10 @@ function findOrCreateRoomForGroup(tableGroupId, seat) {
   return room;
 }
 
+
 const clients = new Map(); // clientId -> { ws, name, tableId, seat, mode }
 const RECONNECT_GRACE_MS = 20000;
+
 
 function makeRoom(t) {
   return {
@@ -1988,6 +2450,7 @@ function makeRoom(t) {
     buyIn: Math.floor((Number(t.buyIn) || 1000) * 0.10), // 10% da mesa
 
     variant: String(t?.variant || "CLASSIC").toUpperCase(),
+    mode: String(t?.mode || "RECREATIONAL").toUpperCase(),
 
     playersBySeat: Array(6).fill(null),
     spectators: new Set(),
@@ -2019,6 +2482,22 @@ function makeRoom(t) {
     pointValue: 5,      // cada ponto vale 5 fichas
     houseRakePct: 0.05, // 5% do pote final
     matchPot: 0,        // pote acumulado da partida
+    competitionPot: 0,  // pote simulado da Competição
+
+    // economia real da Competição
+    competitionOrganizationPct: 0.05,
+    competitionGross: 0,
+    competitionOrganizationFee: 0,
+    competitionPrizePool: 0,
+    competitionEntriesCount: 0,
+    competitionReentriesCount: 0,
+    // controle de pagamento do prêmio da Competição
+    competitionPrizePaid: false,
+    competitionPrizePaidAmount: 0,
+    competitionPrizeWinnerSeat: null,
+    competitionPrizeWinnerUserId: null,
+    competitionPrizePaidAt: 0,
+
     matchId: null,
     roundNumber: 0,
     economicLogs: [],
@@ -2231,6 +2710,8 @@ function roomSnapshotPublic(room) {
     id: room.id,
     name: room.name,
     buyIn: room.buyIn,
+    variant: room.variant,
+    mode: room.mode,
     ante: Math.ceil((room.buyIn || 0) / 2),
     started: room.started,
     startAt: room.startAt || 0,
@@ -2361,6 +2842,11 @@ function cleanupEmptyRoomInstances() {
 async function persistMatchStats(room) {
   try {
     if (!room?.playersBySeat?.length) return;
+
+    // Competição não altera estatísticas, ranking, conquistas ou saldo de fichas do modo Recreativo.
+    if (room.mode === "COMPETITION") {
+      return;
+    }
 
     const winnerSeat = Number(room.matchWinnerSeat) || 0;
 
@@ -2495,6 +2981,11 @@ async function persistMatchStats(room) {
 
 async function recordDailyMissionMatches(room) {
   if (!room) return;
+
+  // Competição não conta para missões/recompensas
+  if (room.mode === "COMPETITION") {
+    return;
+  }
 
   // Impede que os vários caminhos de encerramento contem
   // a mesma partida mais de uma vez.
@@ -2636,24 +3127,174 @@ async function recordDailyMissionMatches(room) {
 
 
 
-function finalizeMatchEconomy(room) {
+async function finalizeMatchEconomy(room) {
   const winnerSeat = room.matchWinnerSeat;
   const winner = room.playersBySeat?.[winnerSeat - 1];
   if (!winner) return;
 
-  const rake = getHouseRake(room);
-  const payout = getWinnerPayout(room);
+  let rake = 0;
+  let payout = 0;
 
-  winner.chips += payout;
+  if (room.mode === "COMPETITION") {
+    rake = Number(room.competitionOrganizationFee) || 0;
+    payout = Number(room.competitionPrizePool) || 0;
 
-  for (const p of room.playersBySeat || []) {
-    if (!p) continue;
+    // Proteção em memória contra pagamento duplicado.
+    if (room.competitionPrizePaid === true) {
+      console.log("[COMPETITION] Prêmio já pago. Pagamento ignorado:", {
+        tableId: room.id,
+        matchId: room.matchId,
+        winnerSeat: room.competitionPrizeWinnerSeat,
+        winnerUserId: room.competitionPrizeWinnerUserId,
+        amount: room.competitionPrizePaidAmount
+      });
 
-    p.chips = Number(p.chips) || 0;
-    p.tableChips = Number(p.tableChips) || 0;
+    } else if (!winner.userId || payout <= 0) {
+      console.error("[COMPETITION] Prêmio não pago:", {
+        tableId: room.id,
+        matchId: room.matchId,
+        winnerSeat,
+        winnerName: winner.name,
+        winnerUserId: winner.userId || null,
+        prizePool: payout
+      });
 
-    p.chips += p.tableChips;
-    p.tableChips = 0;
+    } else {
+      let dbClient;
+
+      try {
+        dbClient = await pool.connect();
+
+        await dbClient.query("BEGIN");
+
+        const creditResult = await dbClient.query(
+          `
+          UPDATE users
+          SET
+            cash_balance = cash_balance + $1,
+            updated_at = NOW()
+          WHERE id = $2
+          RETURNING
+            cash_balance,
+            cash_balance - $1 AS balance_before
+          `,
+          [payout, winner.userId]
+        );
+
+        if (creditResult.rowCount === 0) {
+          throw new Error("WINNER_NOT_FOUND");
+        }
+
+        const balanceBefore =
+          Number(creditResult.rows[0].balance_before) || 0;
+
+        const balanceAfter =
+          Number(creditResult.rows[0].cash_balance) || 0;
+
+        await dbClient.query(
+          `
+          INSERT INTO cash_transactions (
+            user_id,
+            type,
+            status,
+            amount,
+            balance_before,
+            balance_after,
+            reference_type,
+            reference_id,
+            description
+          )
+          VALUES (
+            $1,
+            'COMPETITION_PRIZE',
+            'COMPLETED',
+            $2,
+            $3,
+            $4,
+            'COMPETITION',
+            $5,
+            $6
+          )
+          `,
+          [
+            winner.userId,
+            payout,
+            balanceBefore,
+            balanceAfter,
+            String(room.matchId || room.id),
+            `Prêmio da competição ${room.id}`
+          ]
+        );
+
+        await dbClient.query("COMMIT");
+
+        // Somente depois do COMMIT marcamos o prêmio como pago.
+        room.competitionPrizePaid = true;
+        room.competitionPrizePaidAmount = payout;
+        room.competitionPrizeWinnerSeat = winnerSeat;
+        room.competitionPrizeWinnerUserId = winner.userId;
+        room.competitionPrizePaidAt = Date.now();
+
+        winner.cashBalance = balanceAfter;
+
+        const connectedClient =
+          winner.clientId ? clients.get(winner.clientId) : null;
+
+        if (connectedClient) {
+          connectedClient.cashBalance = balanceAfter;
+        }
+
+        console.log("[COMPETITION] Prêmio pago:", {
+          tableId: room.id,
+          matchId: room.matchId,
+          winnerSeat,
+          winnerName: winner.name,
+          winnerUserId: winner.userId,
+          gross: room.competitionGross,
+          organizationFee: rake,
+          prizePool: payout,
+          balanceBefore,
+          balanceAfter
+        });
+
+      } catch (err) {
+        if (dbClient) {
+          try {
+            await dbClient.query("ROLLBACK");
+          } catch (_) {}
+        }
+
+        console.error("[COMPETITION] erro ao pagar prêmio:", {
+          tableId: room.id,
+          matchId: room.matchId,
+          winnerUserId: winner.userId,
+          amount: payout,
+          error: err?.message || err
+        });
+
+      } finally {
+        if (dbClient) {
+          dbClient.release();
+        }
+      }
+    }
+
+  } else {
+    // Recreativo: mantém exatamente a economia atual
+    rake = getHouseRake(room);
+    payout = getWinnerPayout(room);
+
+    winner.chips += payout;
+
+    for (const p of room.playersBySeat || []) {
+      if (!p) continue;
+
+      p.chips = Number(p.chips) || 0;
+      p.tableChips = Number(p.tableChips) || 0;
+
+      p.chips += p.tableChips;
+      p.tableChips = 0;
+    }
   }
 
   persistMatchStats(room);
@@ -2680,6 +3321,7 @@ function finalizeMatchEconomy(room) {
 
     matchPot: Number(room.matchPot) || 0,
     houseRakePct: getHouseRakePct(room),
+    
     houseRake: rake,
     winnerPayout: payout,
 
@@ -2724,6 +3366,7 @@ function sendState(roomId) {
     buyIn: room.buyIn,
     ante: Math.ceil((room.buyIn || 0) / 2),
     variant: getRoomVariant(room),
+    mode: String(room.mode || "RECREATIONAL").toUpperCase(),
     turnEndsAt: Number(room.turnEndsAt) || 0,
     turnMs: Number(room.turnMs) || 30000,
     buyEndsAt: Number(room.buyEndsAt) || 0,
@@ -2741,9 +3384,26 @@ function sendState(roomId) {
     lastDrawSeq: Number(room.lastDrawSeq) || 0,
     lastDrawCard: room.lastDrawSource === "DISCARD" ? (room.lastDrawCard || null) : null,
     matchPot: Number(room.matchPot) || 0,
-    houseRakePct: getHouseRakePct(room),
-    houseRake: getHouseRake(room),
-    winnerPayout: getWinnerPayout(room),
+
+    houseRakePct:
+      room.mode === "COMPETITION"
+        ? Number(room.competitionOrganizationPct) || 0.05
+        : getHouseRakePct(room),
+
+    houseRake:
+      room.mode === "COMPETITION"
+        ? Number(room.competitionOrganizationFee) || 0
+        : getHouseRake(room),
+
+    winnerPayout:
+      room.mode === "COMPETITION"
+        ? Number(room.competitionPrizePool) || 0
+        : getWinnerPayout(room),
+
+    competitionGross: Number(room.competitionGross) || 0,
+    competitionOrganizationFee: Number(room.competitionOrganizationFee) || 0,
+    competitionPrizePool: Number(room.competitionPrizePool) || 0,
+
     roundNumber: Number(room.roundNumber) || 0,
     batidaAnnouncement: String(room.batidaAnnouncement || ""),
     batidaAnnouncementEndsAt: Number(room.batidaAnnouncementEndsAt) || 0,
@@ -2888,20 +3548,31 @@ function removePlayerFromSeat(room, seat, clientId) {
   const p = room.playersBySeat?.[seat - 1];
   if (!p || p.clientId !== clientId) return false;
 
-  // Se a partida ainda não começou, devolve somente as fichas reservadas da mesa
+  // Se a partida ainda não começou, devolve as fichas
+  // reservadas somente no modo Recreativo.
   if (!room.started && !room.matchEnded) {
-    const tableChips = Number(p.tableChips) || 0;
-    const refund = tableChips;
 
-    p.chips = Number(p.chips) || 0;
-    p.chips += refund;
-    p.tableChips = 0;
+    if (room.mode === "COMPETITION") {
+      // Competição:
+      // tableChips são apenas fichas internas da partida.
+      // Não viram saldo Recreativo ao sair da mesa.
+      p.tableChips = 0;
 
-    const client = clients.get(clientId);
-    if (client) {
-      client.chips = Number(client.chips) || 0;
-      client.chips += refund;
-      client.chipsBalance = client.chips;
+    } else {
+      // Recreativo: mantém exatamente o comportamento atual.
+      const tableChips = Number(p.tableChips) || 0;
+      const refund = tableChips;
+
+      p.chips = Number(p.chips) || 0;
+      p.chips += refund;
+      p.tableChips = 0;
+
+      const client = clients.get(clientId);
+      if (client) {
+        client.chips = Number(client.chips) || 0;
+        client.chips += refund;
+        client.chipsBalance = client.chips;
+      }
     }
   }
 
@@ -2945,13 +3616,21 @@ function createPlayerForSeat(room, seat, clientId, client, avatarUrl) {
 
   const saldoAtual = Number(client.chips ?? client.chipsBalance ?? 0);
 
-  // cobra buy-in do saldo geral
-  /*client.chips = saldoAtual - mesaStack;*/ //caso queira cobrar o stack completo já no buy-in, use mesaStack ao invés de mesaStackLiquido/
-  client.chips = saldoAtual - mesaStackLiquido;
-  client.chipsBalance = client.chips;
+  if (room.mode === "COMPETITION") {
+    // Competição:
+    // não movimenta o saldo de fichas Recreativas ao sentar.
+    client.chips = saldoAtual;
+    client.chipsBalance = saldoAtual;
 
-  room.matchPot = Number(room.matchPot) || 0;
-  room.matchPot += buyIn;
+  } else {
+    // Recreativo: mantém exatamente a economia atual.
+    /*client.chips = saldoAtual - mesaStack;*/
+    client.chips = saldoAtual - mesaStackLiquido;
+    client.chipsBalance = client.chips;
+
+    room.matchPot = Number(room.matchPot) || 0;
+    room.matchPot += buyIn;
+  }
 
   room.playersBySeat[seat - 1] = {
     clientId,
@@ -3434,6 +4113,16 @@ function refreshStartCountdown(room) {
     // - espera 15 segundos por um humano
     // =====================================================
 
+// Competição: somente jogadores reais
+  if (room.mode === "COMPETITION") {
+    if (room._botJoinTimer) {
+      clearTimeout(room._botJoinTimer);
+      room._botJoinTimer = null;
+    }
+
+    return;
+  }
+
     const seatedPlayers =
       (room.playersBySeat || []).filter(Boolean);
 
@@ -3542,7 +4231,7 @@ function seatedCount(room) {
 
 
 
-function tryStartMatch(room) {
+async function tryStartMatch(room) {
 
   const minPlayers = Number(room.minPlayersToStart) || 2;
   const count = connectedSeatedCount(room);
@@ -3574,26 +4263,26 @@ function tryStartMatch(room) {
   resetStartCountdown(room);
 
 // RESET COMPLETO DE NOVA PARTIDA
-room.matchEnded = false;
-room.roundEnded = false;
-room.matchWinnerSeat = null;
-room.winnerSeat = null;
-room.rebuyDecisionUntil = 0;
-room.lastAppliedRebuys = [];
+  room.matchEnded = false;
+  room.roundEnded = false;
+  room.matchWinnerSeat = null;
+  room.winnerSeat = null;
+  room.rebuyDecisionUntil = 0;
+  room.lastAppliedRebuys = [];
 
-if (room.nextRoundTimeoutId) {
-  clearTimeout(room.nextRoundTimeoutId);
-  room.nextRoundTimeoutId = null;
-}
+  if (room.nextRoundTimeoutId) {
+    clearTimeout(room.nextRoundTimeoutId);
+    room.nextRoundTimeoutId = null;
+  }
 
-room.deck = [];
-room.discard = [];
-room.tableMelds = [];
-room.mustUseJokerBySeat = {};
-room.mustUseDiscardCardBySeat = {};
+  room.deck = [];
+  room.discard = [];
+  room.tableMelds = [];
+  room.mustUseJokerBySeat = {};
+  room.mustUseDiscardCardBySeat = {};
 
-const stake = Number(room.stake) || 1000;
-const initialTableChips = Math.max(0, stake - getBuyIn(room));
+  const stake = Number(room.stake) || 1000;
+  const initialTableChips = Math.max(0, stake - getBuyIn(room));
 
   for (const p of room.playersBySeat || []) {
     if (!p) continue;
@@ -3612,9 +4301,6 @@ const initialTableChips = Math.max(0, stake - getBuyIn(room));
     p.jogosBaixados = [];
     p.obrigacaoBaixar = false;
   }
-
-
-
 
   room.started = true;
   room.phase = "DEALING";
@@ -3639,7 +4325,81 @@ const initialTableChips = Math.max(0, stake - getBuyIn(room));
   room.matchId = makeMatchId();
   room.roundNumber = 1;
   room.matchPot = 0;
+  room.competitionPot = 0;
+
+  // zera a contabilidade real de uma nova Competição
+  room.competitionGross = 0;
+  room.competitionOrganizationFee = 0;
+  room.competitionPrizePool = 0;
+  room.competitionEntriesCount = 0;
+  room.competitionReentriesCount = 0;
+
+  // libera o pagamento do prêmio da nova Competição
+  room.competitionPrizePaid = false;
+  room.competitionPrizePaidAmount = 0;
+  room.competitionPrizeWinnerSeat = null;
+  room.competitionPrizeWinnerUserId = null;
+  room.competitionPrizePaidAt = 0;
+
   room.economicLogs = [];
+
+  if (room.mode === "COMPETITION") {
+    const debitResult = await debitCompetitionEntries(room);
+
+    if (!debitResult?.ok) {
+      console.log("[COMPETITION] competição não iniciada:", {
+        tableId: room.id,
+        reason: debitResult?.reason || "ERROR",
+        userId: debitResult?.userId || null,
+        message: debitResult?.msg || "Falha na cobrança."
+      });
+
+      room.started = false;
+      room.phase = "WAITING";
+      room.startAt = 0;
+
+      resetStartCountdown(room);
+
+      broadcastRoomState(room);
+      broadcastLobbyTable(room);
+
+      return;
+    }
+
+
+    for (const item of debitResult.chargedPlayers || []) {
+      registerCompetitionMoney(
+        room,
+        debitResult.entryFee,
+        "entry"
+      );
+    }
+
+    console.log("[COMPETITION] inscrições cobradas:", {
+      tableId: room.id,
+      players: debitResult.chargedPlayers?.length || 0,
+      entryFee: debitResult.entryFee
+    });
+
+
+
+
+
+
+    console.log("[COMPETITION] contabilidade após inscrições:", {
+  tableId: room.id,
+  gross: room.competitionGross,
+  organizationFee: room.competitionOrganizationFee,
+  prizePool: room.competitionPrizePool,
+  entries: room.competitionEntriesCount,
+  reentries: room.competitionReentriesCount
+});
+
+
+
+
+
+  }
 
   const buyIn = getBuyIn(room);
 
@@ -3661,9 +4421,12 @@ const initialTableChips = Math.max(0, stake - getBuyIn(room));
     p.chips = Number(p.chips) || 0;
     p.matchStartChips = Number(p.chips) || 0;
 
-    p.chips -= buyIn;
-    room.matchPot += buyIn;
-  }
+    if (room.mode !== "COMPETITION") {
+      p.chips -= buyIn;
+      room.matchPot += buyIn;
+    }
+
+    } // fecha o for
 
   room.deck = shuffle(makeDeck());
   room.discard = [];
@@ -3916,12 +4679,12 @@ function startTurnClock(room) {
 
   const turnMs =
     isFastAutoPlayer
-      ? 5000
+      ? 15000
       : normalTurnMs;
 
   const buyMs =
     isFastAutoPlayer
-      ? 2000
+      ? 10000
       : normalBuyMs;
 
   room.turnEndsAt = now + turnMs;
@@ -5242,7 +6005,7 @@ function handleAddToMeldAction(room, player, playerSeat, action) {
 // --------------------
 // Ações autoritativas
 // --------------------
-function handleAction(clientId, tableId, action) {
+async function handleAction(clientId, tableId, action) {
   const room = rooms.get(tableId);
   const client = clients.get(clientId);
 
@@ -5340,7 +6103,10 @@ case "rebuy": {
 
   const cost = Number(getRebuyCost(room, player)) || 0;
 
-  if ((Number(player.chips) || 0) < cost) {
+  if (
+    room.mode !== "COMPETITION" &&
+    (Number(player.chips) || 0) < cost
+  ) {
     return { ok: false, msg: "Saldo insuficiente para Rebuy." };
   }
 
@@ -5364,7 +6130,7 @@ case "rebuy": {
 
     room.rebuyDecisionUntil = 0;
 
-    const rebuys = applyPendingRebuys(room);
+    const rebuys = await applyPendingRebuys(room);
     room.lastAppliedRebuys = rebuys;
 
     const aliveAfterRebuy = (room.playersBySeat || []).filter(pl => pl && !pl.eliminated);
@@ -5373,7 +6139,7 @@ case "rebuy": {
       room.matchEnded = true;
       room.matchWinnerSeat = room.playersBySeat.indexOf(aliveAfterRebuy[0]) + 1;
 
-      finalizeMatchEconomy(room);
+      await finalizeMatchEconomy(room);
       if (room?.id) sendState(room.id);
       return { ok: true };
     }
@@ -5418,7 +6184,7 @@ case "declineRebuy": {
 
     room.rebuyDecisionUntil = 0;
 
-    const rebuys = applyPendingRebuys(room);
+    const rebuys = await applyPendingRebuys(room);
     room.lastAppliedRebuys = rebuys;
 
     const aliveAfterRebuy = (room.playersBySeat || []).filter(pl => pl && !pl.eliminated);
@@ -5427,7 +6193,7 @@ case "declineRebuy": {
       room.matchEnded = true;
       room.matchWinnerSeat = room.playersBySeat.indexOf(aliveAfterRebuy[0]) + 1;
 
-      finalizeMatchEconomy(room);
+      await finalizeMatchEconomy(room);
       if (room?.id) sendState(room.id);
       return { ok: true };
     }
@@ -5601,6 +6367,7 @@ wss.on("connection", async (ws, req) => {
 
   chips: authUser?.chipsBalance || 0,
   chipsBalance: authUser?.chipsBalance || 0,
+  cashBalance: authUser?.cashBalance || 0,
 
   tableId: null,
   seat: null,
@@ -5978,13 +6745,24 @@ const existing =
 
 const mesaStack = (Number(room.buyIn) || 0) * 10;
 
-if (clientChips < mesaStack) {
-  return send(ws, "error", {
-    message: "Saldo insuficiente para entrar nesta mesa."
-  });
-}
+  if (room.mode === "COMPETITION") {
+    const competitionEntryFee =
+      competitionValueToCash(room.buyIn);
 
+    const clientCashBalance =
+      Number(c.cashBalance) || 0;
 
+    if (clientCashBalance < competitionEntryFee) {
+      return send(ws, "error", {
+        message: "Saldo em dinheiro insuficiente para entrar nesta competição."
+      });
+    }
+
+  } else if (clientChips < mesaStack) {
+    return send(ws, "error", {
+      message: "Saldo insuficiente para entrar nesta mesa."
+    });
+  }
 
   // ===== JOGADOR NOVO =====
     const newPlayer = createPlayerForSeat(
@@ -6106,8 +6884,8 @@ if (msg.type === "keepSeatForNextMatch") {
       if (seq)
         c.lastSeq = seq;
 
-      const result = handleAction(clientId, tableId, action);
-
+      const result = await handleAction(clientId, tableId, action);
+      
       if (!result.ok)
         send(ws, "error", { message: result.msg });
 

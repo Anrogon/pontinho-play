@@ -46,6 +46,11 @@
           <span>Comprar fichas</span>
         </a>
 
+        <a href="#" id="navDepositCash">
+          <span class="nav-icon">💵</span>
+          <span>Fazer depósito</span>
+        </a>
+
         <a href="#" id="navProfile">
           <span class="nav-icon">👤</span>
           <span>Perfil</span>
@@ -106,6 +111,11 @@
           <span class="btn-text">Comprar fichas</span>
         </button>
 
+        <button type="button" id="btnDepositCash" class="primary" style="display:none;">
+          <span class="btn-icon">💵</span>
+          <span class="btn-text">Fazer depósito</span>
+        </button>
+
         <button type="button" id="btnHowToPlay" class="mobile-only-home-btn">
           <span class="btn-icon">📖</span>
           <span class="btn-text">Como Jogar</span>
@@ -138,7 +148,8 @@
             <img id="homeUserAvatar" class="home-user-avatar" src="/assets/avatars/avatar-01.png" alt="Avatar" />
             <div class="home-user-meta">
               <div id="homeUserName">Visitante</div>
-              <div id="homeUserBalance">Saldo: —</div>
+              <div id="homeUserBalance">Fichas: —</div>
+              <div id="homeUserCashBalance">Saldo: —</div>
             </div>
           </div>
         </div>
@@ -241,8 +252,10 @@
     <div class="wallet-card">
       <button id="walletCloseBtn" class="wallet-close" type="button">×</button>
 
-      <h2>Comprar fichas</h2>
-      <p class="wallet-subtitle">Escolha um pacote e pague via PIX.</p>
+      <h2 id="walletTitle">Comprar fichas</h2>
+        <p id="walletSubtitle" class="wallet-subtitle">
+          Escolha um pacote e pague via PIX.
+        </p>
 
       <div id="walletPackages" class="wallet-packages"></div>
 

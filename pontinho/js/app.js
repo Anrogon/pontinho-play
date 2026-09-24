@@ -383,6 +383,7 @@ if (pub.tableId) {
   state.dealerSeat =
   Number(pub.dealerSeat) || 0;
   state.variant = String(pub.variant || "CLASSIC").toUpperCase();
+  state.mode = String(pub.mode || "RECREATIONAL").toUpperCase();
   state.turnEndsAt = Number(pub.turnEndsAt) || 0;
   state.buyEndsAt = Number(pub.buyEndsAt) || 0;
   const safeTurnMs = Number(pub.turnMs);
@@ -595,6 +596,14 @@ state.deckCount = pub.deckCount ?? 0;
   state.houseRakePct = Number(pub.houseRakePct) || 0;
   state.houseRake = Number(pub.houseRake) || 0;
   state.winnerPayout = Number(pub.winnerPayout) || 0;
+  state.competitionGross =
+    Number(pub.competitionGross) || 0;
+
+  state.competitionOrganizationFee =
+    Number(pub.competitionOrganizationFee) || 0;
+
+  state.competitionPrizePool =
+    Number(pub.competitionPrizePool) || 0;
   state.roundNumber = Number(pub.roundNumber) || 0;
 
   // 🔥 sincroniza snapshot das mesas para a tela do lobby
@@ -1633,8 +1642,15 @@ function requireAuthOrRedirect() {
 }
 
 
-async function openWalletModal() {
+async function openWalletModal(purpose = "CHIPS") {
+  purpose = String(purpose || "CHIPS").toUpperCase();
+
+  if (!["CHIPS", "CASH"].includes(purpose)) {
+    purpose = "CHIPS";
+  }
   const walletModal = document.getElementById("walletModal");
+  const walletTitle = document.getElementById("walletTitle");
+  const walletSubtitle = document.getElementById("walletSubtitle");
   const walletPackages = document.getElementById("walletPackages");
   const walletMsg = document.getElementById("walletMsg");
   const walletPixArea = document.getElementById("walletPixArea");
@@ -1643,6 +1659,20 @@ async function openWalletModal() {
   const walletCopyPixBtn = document.getElementById("walletCopyPixBtn");
   const walletHistoryList = document.getElementById("walletHistoryList");
 
+  if (walletTitle) {
+    walletTitle.textContent =
+      purpose === "CASH"
+        ? "Fazer depósito"
+        : "Comprar fichas";
+  }
+
+  if (walletSubtitle) {
+    walletSubtitle.textContent =
+      purpose === "CASH"
+        ? "Escolha o valor do depósito e pague via PIX."
+        : "Escolha um pacote e pague via PIX.";
+  }
+  
   walletModal?.classList.remove("hidden");
 
   if (walletPackages) walletPackages.innerHTML = "";
@@ -1665,12 +1695,30 @@ async function openWalletModal() {
 
     if (walletMsg) walletMsg.textContent = "";
 
-    walletPackages.innerHTML = data.packages.map(p => `
-      <button class="wallet-package-btn" type="button" data-package-id="${p.id}">
-        <span>${p.label}</span>
-        <span>R$ ${(p.priceCents / 100).toFixed(2).replace(".", ",")}</span>
-      </button>
-    `).join("");
+    const packages =
+      purpose === "CASH"
+        ? data.cashPackages
+        : data.packages;
+
+    walletPackages.innerHTML = packages.map(p => {
+      const amountCents =
+        purpose === "CASH"
+          ? Number(p.amountCents) || 0
+          : Number(p.priceCents) || 0;
+
+      return `
+        <button class="wallet-package-btn" type="button" data-package-id="${p.id}">
+          ${
+            purpose === "CASH"
+              ? `<span>${p.label}</span>`
+              : `
+                <span>${p.label}</span>
+                <span>R$ ${(amountCents / 100).toFixed(2).replace(".", ",")}</span>
+              `
+          }
+        </button>
+      `;
+    }).join("");
 
     walletPackages.querySelectorAll(".wallet-package-btn").forEach(btn => {
       btn.onclick = async () => {
@@ -1686,7 +1734,10 @@ async function openWalletModal() {
               "Content-Type": "application/json",
             },
             credentials: "include",
-            body: JSON.stringify({ packageId }),
+            body: JSON.stringify({
+              packageId,
+              purpose
+            }),
           });
 
           const depData = await depRes.json();
@@ -1730,8 +1781,15 @@ async function openWalletModal() {
                 clearInterval(pollInterval);
 
                 if (walletMsg) {
-                  walletMsg.textContent =
-                    `Pagamento aprovado. ${statusData.chips} fichas creditadas.`;
+                  if (statusData.purpose === "CASH") {
+                    walletMsg.textContent =
+                      `Pagamento aprovado. R$ ${Number(statusData.amount || 0)
+                        .toFixed(2)
+                        .replace(".", ",")} creditados no saldo.`;
+                  } else {
+                    walletMsg.textContent =
+                      `Pagamento aprovado. ${statusData.chips} fichas creditadas.`;
+                  }
                 }
 
                 if (walletPixArea) {
@@ -1816,11 +1874,23 @@ function bindHomeButtons() {
     const loggedUser = localStorage.getItem("pontinhoAuthUser");
 
     btnBuyChips.style.display = loggedUser ? "flex" : "none";
+    if (btnDepositCash) {
+      btnDepositCash.style.display = loggedUser ? "flex" : "none";
+    }
 
     btnBuyChips.onclick = () => {
       if (!requireAuthOrRedirect()) return;
       openWalletModal();
     };
+
+    if (btnDepositCash) {
+      btnDepositCash.onclick = () => {
+        if (!requireAuthOrRedirect()) return;
+
+        openWalletModal("CASH");
+      };
+    }
+
   }
 
   const walletCloseBtn = document.getElementById("walletCloseBtn");
@@ -1868,6 +1938,16 @@ function bindHomeButtons() {
     navBuyChips.onclick = (e) => {
       e.preventDefault();
       document.getElementById("btnBuyChips")?.click();
+    };
+  }
+
+  if (navDepositCash) {
+    navDepositCash.onclick = (e) => {
+      e.preventDefault();
+
+      if (!requireAuthOrRedirect()) return;
+
+      openWalletModal("CASH");
     };
   }
 
@@ -1927,6 +2007,7 @@ function bindHomeButtons() {
 async function refreshHomeUser() {
   const homeUserName = document.getElementById("homeUserName");
   const homeUserBalance = document.getElementById("homeUserBalance");
+  const homeUserCashBalance = document.getElementById("homeUserCashBalance");
   const homeUserAvatar = document.getElementById("homeUserAvatar");
 
   const topNav = document.getElementById("topNav");
@@ -1940,6 +2021,7 @@ async function refreshHomeUser() {
   const btnClassic = document.getElementById("btnClassic");
 
   const btnBuyChips = document.getElementById("btnBuyChips");
+  const btnDepositCash = document.getElementById("btnDepositCash");
   const walletModal = document.getElementById("walletModal");
   const walletCloseBtn = document.getElementById("walletCloseBtn");
   const btnCrazy = document.getElementById("btnCrazy");
@@ -1947,6 +2029,7 @@ async function refreshHomeUser() {
   function setLoggedOutHome() {
     if (homeUserName) homeUserName.textContent = "Visitante";
     if (homeUserBalance) homeUserBalance.textContent = "Saldo: —";
+    if (homeUserCashBalance) homeUserCashBalance.textContent = "Saldo: —";
     if (homeUserAvatar) homeUserAvatar.src = "/assets/avatars/avatar-01.png";
 
     if (topNav) topNav.style.display = "none";
@@ -1959,6 +2042,7 @@ async function refreshHomeUser() {
     if (btnProfile) btnProfile.style.display = "none";
     if (btnRewards) btnRewards.style.display = "none";
     if (btnBuyChips) btnBuyChips.style.display = "none";
+    if (btnDepositCash) btnDepositCash.style.display = "none";
 
     if (walletCloseBtn) {
       walletCloseBtn.onclick = () => {
@@ -1978,7 +2062,16 @@ async function refreshHomeUser() {
     if (homeUserName) homeUserName.textContent = user.username || "Usuário";
 
     if (homeUserBalance) {
-      homeUserBalance.textContent = `Saldo: ${(Number(user.chipsBalance) || 0).toLocaleString("pt-BR")}`;
+      homeUserBalance.textContent =
+        `Fichas: ${(Number(user.chipsBalance) || 0).toLocaleString("pt-BR")}`;
+    }
+
+    if (homeUserCashBalance) {
+      homeUserCashBalance.textContent =
+        `Saldo: ${(Number(user.cashBalance) || 0).toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL"
+        })}`;
     }
 
     if (homeUserAvatar) {
@@ -1995,6 +2088,7 @@ async function refreshHomeUser() {
     if (btnProfile) btnProfile.style.display = "";
     if (btnRewards) btnRewards.style.display = "";
     if (btnBuyChips) btnBuyChips.style.display = "";
+    if (btnDepositCash) btnDepositCash.style.display = "";
     if (btnClassic) btnClassic.style.display = "";
     if (btnCrazy) btnCrazy.style.display = "";
   }
@@ -2186,6 +2280,8 @@ export function renderTablesScreen() {
   if (controls) {
     const isCrazyMode = String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";
 
+    const selectedMode = String(state.selectedMode || "RECREATIONAL").toUpperCase();
+
     controls.innerHTML = `
       <div class="tables-header">
         <button
@@ -2197,23 +2293,27 @@ export function renderTablesScreen() {
         </button>
       </div>
 
-      <div class="tables-tabs-wrapper">
+      <div class="tables-mode-wrapper">
         <div class="tables-tabs">
-          <button
-            id="btnTabClassic"
-            class="tables-tab ${!isCrazyMode ? "active" : ""}"
-            type="button"
-          >
-            Pontinho Clássico
-          </button>
 
-          <button
-            id="btnTabCrazy"
-            class="tables-tab ${isCrazyMode ? "active" : ""}"
-            type="button"
-          >
-            Pontinho Crazy
-          </button>
+          ${selectedMode === "RECREATIONAL" ? `
+            <button
+              id="btnModeCompetition"
+              class="tables-tab"
+              type="button"
+            >
+              Jogar Modo Competição
+            </button>
+          ` : `
+            <button
+              id="btnModeRecreational"
+              class="tables-tab"
+              type="button"
+            >
+              Jogar Modo Recreativo
+            </button>
+          `}
+
         </div>
       </div>
     `;
@@ -2223,22 +2323,24 @@ export function renderTablesScreen() {
         showScreen("home");
       };
     }
-    const btnTabClassic = document.getElementById("btnTabClassic");
-    const btnTabCrazy = document.getElementById("btnTabCrazy");
 
-    if (btnTabClassic) {
-      btnTabClassic.onclick = () => {
-        state.selectedVariant = "CLASSIC";
+    const btnModeRecreational = document.getElementById("btnModeRecreational");
+    const btnModeCompetition = document.getElementById("btnModeCompetition");
+
+    if (btnModeRecreational) {
+      btnModeRecreational.onclick = () => {
+        state.selectedMode = "RECREATIONAL";
         renderTablesScreen();
       };
     }
 
-    if (btnTabCrazy) {
-      btnTabCrazy.onclick = () => {
-        state.selectedVariant = "CRAZY";
+    if (btnModeCompetition) {
+      btnModeCompetition.onclick = () => {
+        state.selectedMode = "COMPETITION";
         renderTablesScreen();
       };
     }
+
   }
 
   let selected = { tableId: null, seat: null };
@@ -2247,17 +2349,26 @@ export function renderTablesScreen() {
   const tables = Array.isArray(state.tableList) ? state.tableList : [];
 
   const selectedVariant = String(state.selectedVariant || "CLASSIC").toUpperCase();
+  const selectedMode = String(state.selectedMode || "RECREATIONAL").toUpperCase();
 
   const visibleTables = (tables || []).filter(t => {
-  const liveTable = window.state?.tables?.[t.id];
-  const variant =
-    String(
-      t.variant ||
-      liveTable?.variant ||
-      (String(t.id || "").toUpperCase().startsWith("C") ? "CRAZY" : "CLASSIC")
-    ).toUpperCase();
+    const liveTable = window.state?.tables?.[t.id];
 
-  return variant === selectedVariant;
+    const variant =
+      String(
+        t.variant ||
+        liveTable?.variant ||
+        (String(t.id || "").toUpperCase().startsWith("C") ? "CRAZY" : "CLASSIC")
+      ).toUpperCase();
+
+    const mode =
+      String(
+        t.mode ||
+        liveTable?.mode ||
+        "RECREATIONAL"
+      ).toUpperCase();
+
+    return variant === selectedVariant && mode === selectedMode;
   });
 
   visibleTables.forEach((t) => {
@@ -2283,19 +2394,19 @@ export function renderTablesScreen() {
   Number(startAt) > 0;
 
   if (shouldShowTimer) {
-  const leftMs = Math.max(0, Math.min(30000, startAt - Date.now()));
+    const leftMs = Math.max(0, Math.min(30000, startAt - Date.now()));
 
-  countdownHtml = `
-    <div class="table-start-wrap" data-start-at="${startAt}">
-      <div class="table-start-bar">
-        <div
-          class="table-start-bar-fill"
-          style="animation: tableStartShrink ${leftMs}ms linear forwards;"
-        ></div>
+    countdownHtml = `
+      <div class="table-start-wrap" data-start-at="${startAt}">
+        <div class="table-start-bar">
+          <div
+            class="table-start-bar-fill"
+            style="animation: tableStartShrink ${leftMs}ms linear forwards;"
+          ></div>
+        </div>
       </div>
-    </div>
-  `;
-}
+    `;
+  }
 
   if (t.id === "S1") {
   console.log("[COUNTDOWN CHECK]", {
@@ -2310,9 +2421,26 @@ export function renderTablesScreen() {
   }
 
     const isCrazyMode = String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";
-    const tableTitle = isCrazyMode ? `${t.name} Crazy` : t.name;
+    const tableTitle = isCrazyMode
+    ? `${t.name}<span class="table-variant">Crazy</span>`
+    : `${t.name}<span class="table-variant">Clássico</span>`;
 
-
+    const tableValue = selectedMode === "COMPETITION"
+      ? `
+          <span class="table-value-label">Entrada:</span>
+          <span class="table-value-amount">
+            ${(Number(t.buyIn) / 100).toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL"
+            })}
+          </span>
+        `
+      : `
+          <span class="table-value-label">Entrada:</span>
+          <span class="table-value-amount">
+            ${formatBR((Number(t.buyIn) || 0) * 10)}
+          </span>
+        `;
 
     card.innerHTML = `
       <div class="table-title">${tableTitle}</div>
@@ -2328,7 +2456,7 @@ export function renderTablesScreen() {
         <div class="seats-overlay" data-table="${t.id}"></div>
       </div>
 
-      <div class="table-value">Aposta: ${formatBR((Number(t.buyIn) || 0) * 10)}</div>
+      <div class="table-value">${tableValue}</div>
       <div class="table-hint">Clique em um assento vazio para entrar</div>
 
       <div class="table-actions">

@@ -36,6 +36,7 @@ winnerNet: 0,              // lucro líquido (se tiver chipsStart)
 jaComprouNoTurno: false,
 turnoTravado: false,
 rodadaEncerrada: false,
+selectedMode: "RECREATIONAL",
 partidaEncerrada: false,
   
 };

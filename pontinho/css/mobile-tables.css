@@ -29,6 +29,68 @@
     margin-bottom: 10px !important;
   }
 
+  .tables-mode-wrapper {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+
+    margin: 6px 0 14px !important;
+  }
+
+  .tables-tabs {
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  .tables-tabs .tables-tab {
+    width: auto !important;
+    min-width: 0 !important;
+
+    padding: 9px 16px !important;
+
+    border-radius: 10px !important;
+
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+
+    white-space: nowrap !important;
+  }
+
+  /* Botão que leva para o Modo Competição */
+  #btnModeCompetition {
+    background: linear-gradient(
+      180deg,
+      rgba(35, 35, 35, 0.95),
+      rgba(10, 10, 10, 0.95)
+    ) !important;
+
+    border: 1px solid #d8b84c !important;
+    color: #ffe36e !important;
+
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 227, 110, 0.12),
+      0 2px 6px rgba(0, 0, 0, 0.25) !important;
+  }
+
+
+/* Botão que leva para o Modo Recreativo */
+  #btnModeRecreational {
+    background: linear-gradient(
+      180deg,
+      rgba(20, 126, 198, 0.95),
+      rgba(9, 84, 145, 0.95)
+    ) !important;
+
+    border: 1px solid rgba(120, 205, 255, 0.75) !important;
+    color: #ffffff !important;
+
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 2px 6px rgba(0, 0, 0, 0.22) !important;
+  }
+
+
   #tablesGrid {
     width: 100% !important;
     max-width: 100% !important;
@@ -51,7 +113,7 @@
     min-width: 0 !important;
 
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) 100px !important;
+    grid-template-columns: minmax(0, 1fr) 200px !important;
     grid-template-areas:
       "title   visual"
       "value   visual"
@@ -80,8 +142,13 @@
     font-weight: 900 !important;
     line-height: 1.1 !important;
 
-    text-align: left !important;
+    text-align: center !important;
   }
+
+  #tablesGrid > .table-card .table-title .table-variant {
+  display: block !important;
+  margin-top: 5px !important;
+}
 
   #tablesGrid > .table-card .table-value,
   #tablesGrid > .table-card .table-buyin {
@@ -92,9 +159,35 @@
     font-size: 13px !important;
     line-height: 1.2 !important;
 
-    text-align: left !important;
+    text-align: center !important;
     opacity: 0.96 !important;
   }
+
+  #tablesGrid > .table-card .table-value-label {
+  display: block !important;
+
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+#tablesGrid > .table-card .table-value-amount {
+  display: inline-block !important;
+
+  margin-top: 5px !important;
+  padding: 4px 10px !important;
+
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 215, 80, 0.75) !important;
+
+  background: rgba(0, 0, 0, 0.42) !important;
+
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+
+  color: #ffe36e !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65) !important;
+}
 
   #tablesGrid > .table-card .table-hint {
     display: none !important;
@@ -105,7 +198,7 @@
 
     display: flex !important;
     align-items: center !important;
-    justify-content: flex-start !important;
+    justify-content: center !important;
     flex-wrap: wrap !important;
     gap: 6px !important;
 

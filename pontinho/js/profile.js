@@ -119,6 +119,11 @@ async function loadProfile() {
     document.getElementById("profileUsername").textContent = user.username || "—";
     document.getElementById("profileEmail").textContent = user.email || "—";
     document.getElementById("profileBalance").textContent = formatBalance(user.chipsBalance);
+    document.getElementById("profileCashBalance").textContent =
+      (Number(user.cashBalance) || 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+      });
     document.getElementById("profileCreatedAt").textContent = formatDate(user.createdAt);
 
     document.getElementById("profileAccountType").textContent =

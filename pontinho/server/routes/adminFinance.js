@@ -1,6 +1,7 @@
 const express = require("express");
 const pool = require("../config/db");
 const { requireAuth, requireAdmin } = require("../middleware/auth");
+const { cancelWithdrawal, completeWithdrawal } = require("../services/cashWalletService");
 
 const router = express.Router();
 
@@ -70,5 +71,126 @@ router.get("/summary", requireAuth, requireAdmin, async (req, res) => {
     });
   }
 });
+
+
+// =========================================================
+// SAQUES — LISTAR PENDENTES
+// =========================================================
+router.get("/withdrawals/pending", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT
+        wr.id,
+        wr.user_id,
+        u.username,
+        u.email,
+        wr.amount,
+        wr.pix_key_type,
+        wr.pix_key,
+        wr.status,
+        wr.requested_at
+      FROM withdrawal_requests wr
+      LEFT JOIN users u ON u.id = wr.user_id
+      WHERE wr.status = 'PENDING'
+      ORDER BY wr.requested_at ASC
+    `);
+
+    return res.json({
+      ok: true,
+      withdrawals: result.rows,
+    });
+  } catch (err) {
+    console.error("GET /admin/finance/withdrawals/pending error:", err);
+
+    return res.status(500).json({
+      ok: false,
+      message: "Erro ao carregar saques pendentes.",
+    });
+  }
+});
+
+// =========================================================
+// SAQUES — CANCELAR SOLICITAÇÃO
+// =========================================================
+router.post(
+  "/withdrawals/:withdrawalId/cancel",
+  requireAuth,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const withdrawalId = Number(req.params.withdrawalId);
+
+      const adminNote =
+        req.body?.adminNote != null
+          ? String(req.body.adminNote).trim()
+          : null;
+
+      const result = await cancelWithdrawal({
+        withdrawalId,
+        adminNote,
+      });
+
+      return res.json({
+        ok: true,
+        withdrawal: result,
+      });
+
+    } catch (err) {
+      console.error(
+        "POST /admin/finance/withdrawals/:withdrawalId/cancel error:",
+        err
+      );
+
+      return res.status(400).json({
+        ok: false,
+        message:
+          err.message ||
+          "Não foi possível cancelar a solicitação de saque.",
+      });
+    }
+  }
+);
+
+// =========================================================
+// SAQUES — CONCLUIR SOLICITAÇÃO
+// =========================================================
+router.post(
+  "/withdrawals/:withdrawalId/complete",
+  requireAuth,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const withdrawalId = Number(req.params.withdrawalId);
+
+      const adminNote =
+        req.body?.adminNote != null
+          ? String(req.body.adminNote).trim()
+          : null;
+
+      const result = await completeWithdrawal({
+        withdrawalId,
+        adminNote,
+      });
+
+      return res.json({
+        ok: true,
+        withdrawal: result,
+      });
+
+    } catch (err) {
+      console.error(
+        "POST /admin/finance/withdrawals/:withdrawalId/complete error:",
+        err
+      );
+
+      return res.status(400).json({
+        ok: false,
+        message:
+          err.message ||
+          "Não foi possível concluir a solicitação de saque.",
+      });
+    }
+  }
+);
 
 module.exports = router;

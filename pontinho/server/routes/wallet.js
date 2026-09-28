@@ -3,6 +3,7 @@ const pool = require("../config/db");
 const { requireAuth } = require("../middleware/auth");
 const {  CHIP_PACKAGES, CASH_PACKAGES, getChipPackage, getCashPackage} = require("../config/chipPackages");
 const { createPixPayment, getPaymentById } = require("../services/mercadoPago");
+const { createWithdrawalRequest } = require("../services/cashWalletService");
 
 
 
@@ -143,38 +144,245 @@ router.post("/deposit", requireAuth, async (req, res) => {
 
 router.get("/history", requireAuth, async (req, res) => {
   try {
-    const result = await pool.query(
+    // =====================================================
+    // PAGINAÇÃO
+    // =====================================================
+
+    const requestedPage = Number(req.query.page);
+    const requestedLimit = Number(req.query.limit);
+
+    const page =
+      Number.isInteger(requestedPage) && requestedPage > 0
+        ? requestedPage
+        : 1;
+
+    const limit =
+      Number.isInteger(requestedLimit) &&
+      requestedLimit > 0 &&
+      requestedLimit <= 100
+        ? requestedLimit
+        : 50;
+
+    const offset = (page - 1) * limit;
+
+    // =====================================================
+    // FILTRO POR PERÍODO
+    // =====================================================
+
+    const startDate =
+      typeof req.query.startDate === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(req.query.startDate)
+        ? req.query.startDate
+        : null;
+
+    const endDate =
+      typeof req.query.endDate === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(req.query.endDate)
+        ? req.query.endDate
+        : null;
+
+    if (
+      req.query.startDate &&
+      !startDate
+    ) {
+      return res.status(400).json({
+        ok: false,
+        message: "Data inicial inválida.",
+      });
+    }
+
+    if (
+      req.query.endDate &&
+      !endDate
+    ) {
+      return res.status(400).json({
+        ok: false,
+        message: "Data final inválida.",
+      });
+    }
+
+    if (
+      startDate &&
+      endDate &&
+      startDate > endDate
+    ) {
+      return res.status(400).json({
+        ok: false,
+        message: "A data inicial não pode ser posterior à data final.",
+      });
+    }
+
+    // =====================================================
+    // TOTAL DE MOVIMENTAÇÕES
+    // =====================================================
+
+    const countResult = await pool.query(
       `
       SELECT
-        id,
-        type,
-        status,
-        amount_cents,
-        chips_amount,
-        provider,
-        provider_payment_id,
-        created_at,
-        updated_at
-      FROM wallet_transactions
-      WHERE user_id = $1
-      ORDER BY created_at DESC
-      LIMIT 50
+        (
+          SELECT COUNT(*)
+          FROM wallet_transactions wt
+          WHERE
+            wt.user_id = $1
+            AND COALESCE(wt.purpose, 'CHIPS') = 'CHIPS'
+            AND (
+              $2::DATE IS NULL
+              OR wt.created_at >= $2::DATE
+            )
+            AND (
+              $3::DATE IS NULL
+              OR wt.created_at < ($3::DATE + INTERVAL '1 day')
+            )
+        )
+        +
+        (
+          SELECT COUNT(*)
+          FROM cash_transactions ct
+          WHERE
+            ct.user_id = $1
+            AND (
+              $2::DATE IS NULL
+              OR ct.created_at >= $2::DATE
+            )
+            AND (
+              $3::DATE IS NULL
+              OR ct.created_at < ($3::DATE + INTERVAL '1 day')
+            )
+        ) AS total
       `,
-      [req.auth.userId]
+      [
+        req.auth.userId,
+        startDate,
+        endDate,
+      ]
+    );
+
+    const total =
+      Number(countResult.rows[0]?.total) || 0;
+
+    const totalPages =
+      total > 0
+        ? Math.ceil(total / limit)
+        : 0;
+
+    // =====================================================
+    // HISTÓRICO UNIFICADO
+    // =====================================================
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM (
+        -- =================================================
+        -- FICHAS
+        -- =================================================
+        SELECT
+          wt.id,
+          wt.type,
+          wt.status,
+          wt.amount_cents,
+          wt.chips_amount,
+          wt.provider,
+          wt.provider_payment_id,
+          wt.created_at,
+          wt.updated_at,
+          'CHIPS' AS category,
+          NULL::NUMERIC AS cash_amount,
+          NULL::VARCHAR AS description
+
+        FROM wallet_transactions wt
+
+        WHERE
+          wt.user_id = $1
+          AND COALESCE(wt.purpose, 'CHIPS') = 'CHIPS'
+
+          AND (
+            $2::DATE IS NULL
+            OR wt.created_at >= $2::DATE
+          )
+
+          AND (
+            $3::DATE IS NULL
+            OR wt.created_at < ($3::DATE + INTERVAL '1 day')
+          )
+
+        UNION ALL
+
+        -- =================================================
+        -- DINHEIRO REAL
+        -- =================================================
+        SELECT
+          ct.id,
+          ct.type,
+          ct.status,
+          NULL::INTEGER AS amount_cents,
+          NULL::INTEGER AS chips_amount,
+          ct.provider,
+          ct.provider_transaction_id AS provider_payment_id,
+          ct.created_at,
+          ct.updated_at,
+          'CASH' AS category,
+          ct.amount AS cash_amount,
+          ct.description
+
+        FROM cash_transactions ct
+
+        WHERE
+          ct.user_id = $1
+
+          AND (
+            $2::DATE IS NULL
+            OR ct.created_at >= $2::DATE
+          )
+
+          AND (
+            $3::DATE IS NULL
+            OR ct.created_at < ($3::DATE + INTERVAL '1 day')
+          )
+
+      ) AS history
+
+      ORDER BY created_at DESC
+
+      LIMIT $4
+      OFFSET $5
+      `,
+      [
+        req.auth.userId,
+        startDate,
+        endDate,
+        limit,
+        offset,
+      ]
     );
 
     return res.json({
       ok: true,
       transactions: result.rows,
+
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+
+      filters: {
+        startDate,
+        endDate,
+      },
     });
+
   } catch (err) {
     console.error("GET /wallet/history error:", err);
+
     return res.status(500).json({
       ok: false,
       message: "Erro ao carregar histórico.",
     });
   }
 });
+
 
 async function creditApprovedDepositByPaymentId(paymentId) {
   const paymentIdStr = String(paymentId || "");
@@ -724,6 +932,41 @@ router.get("/deposit/:transactionId/status", requireAuth, async (req, res) => {
   }
 });
 
+
+
+// =========================================================
+// SAQUE — CRIAR SOLICITAÇÃO
+// =========================================================
+router.post("/withdraw", requireAuth, async (req, res) => {
+  try {
+    const userId = Number(req.auth?.userId || req.auth?.id);
+
+    const {
+      amount,
+      pixKeyType,
+      pixKey,
+    } = req.body || {};
+
+    const result = await createWithdrawalRequest({
+      userId,
+      amount,
+      pixKeyType,
+      pixKey,
+    });
+
+    return res.json({
+      ok: true,
+      withdrawal: result,
+    });
+  } catch (err) {
+    console.error("[WALLET] Erro ao solicitar saque:", err);
+
+    return res.status(400).json({
+      ok: false,
+      error: err.message || "Não foi possível solicitar o saque.",
+    });
+  }
+});
 
 
 module.exports = router;

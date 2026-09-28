@@ -1834,7 +1834,7 @@ function isMobileLandscapeTable() {
 let landscapeTableOriginalParent = null;
 let landscapeTableOriginalNextSibling = null;
 
-function updateTableLayoutModeClasses() {
+export function updateTableLayoutModeClasses() {
   const body = document.body;
 
   const isPortrait =
@@ -1845,6 +1845,14 @@ function updateTableLayoutModeClasses() {
 
   const isDesktop =
     !isPortrait && !isLandscape;
+
+    const isCompetition =
+      String(state.mode || "RECREATIONAL").toUpperCase() === "COMPETITION";
+
+    body.classList.toggle(
+      "competition-table-mode",
+      isCompetition
+    );
 
 
   body.classList.toggle(

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Histórico Financeiro - Pontinho Play</title>
+
+  <link rel="stylesheet" href="./css/reset.css">
+  <link rel="stylesheet" href="./css/layout.css">
+  <link rel="stylesheet" href="./css/pages.css">
+
+  <style>
+    .financial-history-page {
+      width: min(1100px, calc(100% - 32px));
+      margin: 32px auto;
+    }
+
+    .financial-history-header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .financial-history-header h1 {
+      margin: 0 0 8px;
+    }
+
+    .financial-history-header p {
+      margin: 0;
+      opacity: 0.85;
+    }
+
+    .financial-history-card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .financial-history-filters {
+    display: flex;
+    align-items: end;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 22px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+    }
+
+    .financial-history-filters > div:not(.financial-history-filter-actions) {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    }
+
+    .financial-history-filters label {
+    font-size: 13px;
+    font-weight: 700;
+    }
+
+    .financial-history-filters input {
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    font: inherit;
+    }
+
+    .financial-history-filter-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    }
+
+    .financial-history-filter-actions button {
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    }
+    .financial-history-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .financial-history-summary {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
+    .financial-history-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .financial-history-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    .financial-history-table th,
+    .financial-history-table td {
+      padding: 12px 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+      font-size: 14px;
+    }
+
+    .financial-history-table th {
+      font-weight: 700;
+    }
+
+    .financial-history-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .financial-status {
+      display: inline-block;
+      min-width: 90px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .financial-status.approved {
+      background: rgba(34, 197, 94, 0.20);
+    }
+
+    .financial-status.pending {
+      background: rgba(234, 179, 8, 0.20);
+    }
+
+    .financial-status.cancelled {
+      background: rgba(148, 163, 184, 0.20);
+    }
+
+    .financial-history-pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .financial-history-pagination button,
+    .financial-history-actions button {
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: #f0c14b;
+      color: #1a1a1a;
+    }
+
+    .financial-history-pagination button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .financial-history-page-info {
+      min-width: 120px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    .financial-history-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .financial-history-empty {
+      text-align: center;
+      padding: 24px 12px;
+      opacity: 0.8;
+    }
+
+    @media (max-width: 700px) {
+      .financial-history-page {
+        width: min(100% - 20px, 1100px);
+        margin: 20px auto;
+      }
+
+      .financial-history-card {
+        padding: 14px;
+      }
+
+      .financial-history-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+
+    .financial-history-filters {
+    align-items: stretch;
+    flex-direction: column;
+    }
+
+    .financial-history-filter-actions button {
+    flex: 1;
+    }
+  </style>
+</head>
+
+<body>
+
+  <main class="financial-history-page">
+
+    <header class="financial-history-header">
+      <h1>Histórico Financeiro</h1>
+
+      <p>
+        Consulte suas movimentações financeiras no Pontinho Play.
+      </p>
+    </header>
+
+    <section class="financial-history-card">
+
+      <div class="financial-history-filters">
+
+        <div>
+            <label for="financialStartDate">
+            Data inicial
+            </label>
+
+            <input
+            type="date"
+            id="financialStartDate"
+            >
+        </div>
+
+        <div>
+            <label for="financialEndDate">
+            Data final
+            </label>
+
+            <input
+            type="date"
+            id="financialEndDate"
+            >
+        </div>
+
+        <div class="financial-history-filter-actions">
+            <button
+            id="btnFinancialFilter"
+            type="button"
+            >
+            Filtrar
+            </button>
+
+            <button
+            id="btnFinancialClearFilter"
+            type="button"
+            >
+            Limpar
+            </button>
+        </div>
+
+        </div>
+      
+        <div class="financial-history-toolbar">
+
+        <div>
+          <strong>Movimentações</strong>
+        </div>
+
+        <div
+          id="financialHistorySummary"
+          class="financial-history-summary"
+        >
+          Carregando...
+        </div>
+
+      </div>
+
+      <div class="financial-history-table-wrap">
+
+        <table class="financial-history-table">
+
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Operação</th>
+              <th>Categoria</th>
+              <th>Valor</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody id="financialHistoryTableBody">
+
+            <tr>
+              <td colspan="5">
+                <div class="financial-history-empty">
+                  Carregando histórico financeiro...
+                </div>
+              </td>
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      <div class="financial-history-pagination">
+
+        <button
+          id="btnFinancialPrevious"
+          type="button"
+          disabled
+        >
+          Anterior
+        </button>
+
+        <div
+          id="financialHistoryPageInfo"
+          class="financial-history-page-info"
+        >
+          Página —
+        </div>
+
+        <button
+          id="btnFinancialNext"
+          type="button"
+          disabled
+        >
+          Próxima
+        </button>
+
+      </div>
+
+    </section>
+
+    <div class="financial-history-actions">
+
+      <button
+        id="btnFinancialBackProfile"
+        class="primary"
+        type="button"
+        >
+        Voltar ao Perfil
+      </button>
+
+    </div>
+
+  </main>
+
+  <script src="./js/financial-history.js"></script>
+
+</body>
+</html>

@@ -5,8 +5,15 @@ import { state } from "./state.js";
 import { initPlayers,  nextPlayer, unlockAudio, dealInitialCardsAnimated, collectAnte, requestRebuy } from "./actions.js";
 import { renderNextPlayerButton, renderPot, renderRebuyOverlay, renderEndMatchOverlay, renderScoreboard, renderDealOverlay } from "./render.js";
 import { startTurnTimer } from "./turnTimer.js";
-import {  renderRebuyButton, playPendingHandToTableAnimation, playPendingHudDiscardAnimation, playPendingHudDrawAnimation, playDealToHudAnimation} from "./render.js";
 import { showScreen } from "./screens.js";
+import {
+  renderRebuyButton,
+  playPendingHandToTableAnimation,
+  playPendingHudDiscardAnimation,
+  playPendingHudDrawAnimation,
+  playDealToHudAnimation,
+  updateTableLayoutModeClasses
+} from "./render.js";
 
 window.openTablesFromHome = function (variant) {
   state.selectedVariant = variant;
@@ -902,7 +909,8 @@ window.wsSendAction = wsSendAction;
 // RENDER GERAL
 // =============================
 export function renderAll() {
-  
+
+  updateTableLayoutModeClasses();
   renderPlayerInfo();
   renderHand();
   renderTable();
@@ -1621,6 +1629,7 @@ async function validateCurrentSession() {
 // ===== BOTÕES DA HOME =====
 function openTablesFromHome(variant) {
   state.selectedVariant = variant;
+  state.selectedMode = "RECREATIONAL";
 
   renderTablesScreen();
 
@@ -2264,13 +2273,19 @@ function getLoggedPlayerName() {
 
 export function renderTablesScreen() {
   const tablesScreenEl = document.getElementById("tablesScreen");
+
   if (tablesScreenEl) {
-    const isCrazyMode = String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";
+    const isCrazyMode =
+      String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";
+
+    const isCompetitionMode =
+      String(state.selectedMode || "RECREATIONAL").toUpperCase() === "COMPETITION";
+
     tablesScreenEl.classList.toggle("tables-crazy-mode", isCrazyMode);
+    tablesScreenEl.classList.toggle("tables-competition-mode", isCompetitionMode);
   }
 
   let controls = document.getElementById("tablesVariantSwitch");
-
 
   const grid = document.getElementById("tablesGrid");
   if (!grid) return;
@@ -2293,6 +2308,8 @@ export function renderTablesScreen() {
         </button>
       </div>
 
+
+      
       <div class="tables-mode-wrapper">
         <div class="tables-tabs">
 
@@ -2315,6 +2332,9 @@ export function renderTablesScreen() {
           `}
 
         </div>
+      </div>
+      <div class="tables-portrait-hint">
+        Clique em um assento vazio para entrar
       </div>
     `;
     const btnBackHomeFromTables = document.getElementById("btnBackHomeFromTables");
@@ -2404,7 +2424,7 @@ export function renderTablesScreen() {
             style="animation: tableStartShrink ${leftMs}ms linear forwards;"
           ></div>
         </div>
-      </div>
+      </div> 
     `;
   }
 
@@ -2420,21 +2440,32 @@ export function renderTablesScreen() {
   });
   }
 
-    const isCrazyMode = String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";
-    const tableTitle = isCrazyMode
-    ? `${t.name}<span class="table-variant">Crazy</span>`
-    : `${t.name}<span class="table-variant">Clássico</span>`;
+    const isCrazyMode =
+      String(state.selectedVariant || "CLASSIC").toUpperCase() === "CRAZY";
+
+    const tableNumber = String(t.name).match(/\d+/)?.[0] || "";
+
+    const modeName =
+      selectedMode === "COMPETITION"
+        ? "Competição"
+        : "Recreativo";
+
+    const tableTitle = `
+      ${modeName}
+      <span class="table-variant">${isCrazyMode ? "Crazy" : "Clássico"}</span>
+      Mesa ${tableNumber}
+    `;
 
     const tableValue = selectedMode === "COMPETITION"
-      ? `
-          <span class="table-value-label">Entrada:</span>
-          <span class="table-value-amount">
-            ${(Number(t.buyIn) / 100).toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL"
-            })}
-          </span>
-        `
+  ? `
+      <span class="table-value-label">Inscrição</span>
+      <span class="table-value-amount">
+        ${(Number(t.buyIn) / 100).toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL"
+        })}
+      </span>
+    `
       : `
           <span class="table-value-label">Entrada:</span>
           <span class="table-value-amount">
@@ -2442,11 +2473,16 @@ export function renderTablesScreen() {
           </span>
         `;
 
+
+    const tableImage = selectedMode === "COMPETITION"
+    ? "./assets/image/table-competition.png"
+    : "./assets/image/table-pon.png";
+
     card.innerHTML = `
       <div class="table-title">${tableTitle}</div>
 
       <div class="table-visual">
-        <img src="./assets/image/table-pon.png" alt="${t.name}" onerror="this.style.display='none'">
+        <img src="${tableImage}" alt="${t.name}" onerror="this.style.display='none'">
 
         <div class="table-center-info">
           <div class="table-players-count">${seatedCount}/${maxSeats}</div>
@@ -2456,11 +2492,14 @@ export function renderTablesScreen() {
         <div class="seats-overlay" data-table="${t.id}"></div>
       </div>
 
-      <div class="table-value">${tableValue}</div>
       <div class="table-hint">Clique em um assento vazio para entrar</div>
 
-      <div class="table-actions">
-        <button class="secondary" data-watch="${t.id}">Assistir</button>
+      <div class="table-bottom-row">
+        <div class="table-value">${tableValue}</div>
+
+        <div class="table-actions">
+          <button class="secondary" data-watch="${t.id}">Assistir</button>
+        </div>
       </div>
     `;
 

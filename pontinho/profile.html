@@ -281,19 +281,73 @@
   <div id="profileWalletHistory" class="wallet-history-list">
     Carregando histórico...
   </div>
+
+  <div style="text-align: center; margin-top: 14px;">
+  <button
+    type="button"
+    class="primary"
+    onclick="window.location.href='./financial-history.html'"
+  >
+    Ver histórico completo
+  </button>
+</div>
+
 </div>
 
 <div class="password-wrap" style="margin-top:18px;">
-  <div class="password-title">Resgatar fichas</div>
+  <div class="password-title">Saque</div>
 
   <div class="profile-line">
-    <strong>Status:</strong> Em breve
+    <strong>Saldo disponível:</strong>
+    <span id="withdrawCashBalance">—</span>
   </div>
 
-  <div class="profile-line">
-    No momento, as fichas são usadas apenas dentro do Pontinho Play.
-    O resgate ainda não está disponível.
+  <div class="actions" style="margin-top:14px;">
+    <button id="btnWithdrawCash" class="primary" type="button">
+      Solicitar saque
+    </button>
   </div>
+
+  <div id="withdrawForm" style="display:none; margin-top:14px;">
+
+    <div class="password-fields">
+      <input
+        type="text"
+        id="withdrawAmount"
+        inputmode="decimal"
+        autocomplete="off"
+        placeholder="Valor do saque"
+      >
+
+      <select id="withdrawPixKeyType">
+        <option value="">Tipo da chave PIX</option>
+        <option value="CPF">CPF</option>
+        <option value="CNPJ">CNPJ</option>
+        <option value="EMAIL">E-mail</option>
+        <option value="PHONE">Telefone</option>
+        <option value="RANDOM">Chave aleatória</option>
+      </select>
+
+      <input
+        type="text"
+        id="withdrawPixKey"
+        placeholder="Chave PIX"
+      >
+    </div>
+
+    <div class="actions" style="margin-top:14px;">
+      <button id="btnConfirmWithdraw" class="primary" type="button">
+        Confirmar saque
+      </button>
+
+      <button id="btnCancelWithdraw" class="secondary" type="button">
+        Cancelar
+      </button>
+    </div>
+
+    <div id="withdrawMsg" class="msg"></div>
+  </div>
+
 </div>
 
     <div class="password-wrap">

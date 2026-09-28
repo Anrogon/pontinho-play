@@ -1,3 +1,7 @@
+.tables-portrait-hint {
+  display: none;
+}
+
 /* =========================================================
    MOBILE TABLES
    Sala de mesas mobile em 1 coluna estilo app
@@ -35,6 +39,23 @@
     justify-content: center !important;
 
     margin: 6px 0 14px !important;
+  }
+
+  /* Título — Modo Competição */
+  .competition-mode-title {
+    width: fit-content;
+    margin: 2px auto 8px;
+    padding: 5px 18px;
+
+    color: #f0c14b;
+    font-size: 15px;
+    font-weight: 900;
+    letter-spacing: 1.6px;
+
+    border-top: 1px solid rgba(240, 193, 75, 0.45);
+    border-bottom: 1px solid rgba(240, 193, 75, 0.45);
+
+    text-align: center;
   }
 
   .tables-tabs {
@@ -115,9 +136,9 @@
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) 200px !important;
     grid-template-areas:
-      "title   visual"
-      "value   visual"
-      "actions visual" !important;
+    "title   title"
+    "value   visual"
+    "actions visual" !important;
 
     align-items: center !important;
 
@@ -136,8 +157,7 @@
   #tablesGrid > .table-card .table-title {
     grid-area: title !important;
 
-    margin: 0 !important;
-
+    margin: 0 0 12px 0 !important;
     font-size: 14px !important;
     font-weight: 900 !important;
     line-height: 1.1 !important;
@@ -146,8 +166,9 @@
   }
 
   #tablesGrid > .table-card .table-title .table-variant {
-  display: block !important;
-  margin-top: 5px !important;
+  display: inline !important;
+  margin-left: 6px !important;
+  margin-top: 0 !important;
 }
 
   #tablesGrid > .table-card .table-value,
@@ -174,7 +195,7 @@
   display: inline-block !important;
 
   margin-top: 5px !important;
-  padding: 4px 10px !important;
+  padding: 3px 5px !important;
 
   border-radius: 12px !important;
   border: 1px solid rgba(255, 215, 80, 0.75) !important;
@@ -275,35 +296,37 @@
 
   #tablesGrid > .table-card .seat.pos1 {
     left: 50% !important;
-    top: 75% !important;
+    top: 73% !important;
     transform: translateX(-50%) !important;
   }
 
   #tablesGrid > .table-card .seat.pos2 {
-    left: -5% !important;
-    top: 50% !important;
+    left: -1% !important;
+    top: 52% !important;
     transform: translateY(-50%) !important;
   }
 
   #tablesGrid > .table-card .seat.pos3 {
-    left: 18% !important;
-    top: 18px !important;
+    left: 16% !important;
+    top: 10px !important;
+    transform: translateY(-50%) !important;
   }
 
   #tablesGrid > .table-card .seat.pos4 {
     left: 50% !important;
-    top: 1px !important;
-    transform: translateX(-50%) !important;
+    top: 10px !important;
+    transform: translateY(-50%) !important;
   }
 
   #tablesGrid > .table-card .seat.pos5 {
     left: 80% !important;
-    top: 18px !important;
+    top: 10px !important;
+    transform: translateY(-50%) !important;
   }
 
   #tablesGrid > .table-card .seat.pos6 {
-    left: 90% !important;
-    top: 50% !important;
+    left: 88% !important;
+    top: 52% !important;
     transform: translateY(-50%) !important;
   }
 
@@ -332,7 +355,24 @@
   }
   
   #tablesGrid > .table-card .table-visual{
-    width: 200px !important;
+    width: 190px !important;
     height: auto !important;
   }
+
+  #tablesGrid > .table-card .table-bottom-row {
+  display: contents !important;
 }
+
+.tables-portrait-hint {
+  display: block;
+  margin: 2px 0 6px;
+
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+
+  color: rgba(255, 255, 255, 0.72);
+}
+
+}
+

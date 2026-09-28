@@ -35,6 +35,18 @@
       position: relative;
   }
 
+  /* =========================================================
+   MODO COMPETIÇÃO — FUNDO PORTRAIT
+========================================================= */
+
+body.mobile-table-mode.competition-table-mode #game {
+  background:
+    #11191f
+    url("/assets/image/bg-competition.png")
+    center center / cover
+    no-repeat !important;
+}
+
   #tableArea {
     height: 100vh !important;
     padding-top: 120px !important;

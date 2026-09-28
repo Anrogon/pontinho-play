@@ -83,7 +83,7 @@
   padding: 10px 18px;
   border-radius: 10px;
   border: 1px solid rgba(255,255,255,0.18);
-  background: #0562AE;
+  background: #802917;
   color: #fff;
   font-weight: 800;
   font-size: 14px;
@@ -197,6 +197,10 @@
     background-size: 93% 600px;
     background-position: center top;
     background-repeat: no-repeat;
+  }
+
+  body.desktop-table-mode.competition-table-mode #game {
+    background-image: url("/assets/image/mesa-competition.png");
   }
 
   #desktopTableLayout {

@@ -2,29 +2,267 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Pontinho Play - Admin Financeiro</title>
-  <link rel="stylesheet" href="./css/layout.css">
+
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: linear-gradient(180deg, #0b3c66, #0a2238);
+      font-family: Arial, Helvetica, sans-serif;
+      color: #fff;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    .wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .brand h1 {
+      margin: 0 0 6px;
+      font-size: 32px;
+    }
+
+    .brand p {
+      margin: 0;
+      color: #dbeafe;
+      font-size: 14px;
+    }
+
+    .badge-admin {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(240,193,75,0.18);
+      border: 1px solid rgba(240,193,75,0.35);
+      color: #ffe08a;
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .msg {
+      text-align: center;
+      margin-bottom: 18px;
+      color: #ffd38a;
+      min-height: 22px;
+      font-size: 14px;
+    }
+
+    .hero {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      margin-bottom: 20px;
+    }
+
+    .hero h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+    }
+
+    .hero p {
+      margin: 0;
+      color: #dbeafe;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .finance-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .finance-card,
+    .panel-card {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    .finance-card span {
+      display: block;
+      color: #dbeafe;
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .finance-card strong {
+      display: block;
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .panel-card {
+      margin-bottom: 20px;
+    }
+
+    .panel-card h2 {
+      margin: 0 0 16px;
+      font-size: 20px;
+    }
+
+    .finance-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .finance-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    .finance-table th,
+    .finance-table td {
+      padding: 12px 10px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.10);
+      font-size: 14px;
+    }
+
+    .finance-table th {
+      color: #ffe08a;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .finance-table td {
+      color: #fff;
+    }
+
+    .finance-table tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    button {
+      padding: 12px 14px;
+      border: 0;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .btn-primary {
+      background: #f0c14b;
+      color: #1a1a1a;
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .btn-danger {
+      background: #b91c1c;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .footer-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    @media (max-width: 1000px) {
+      .finance-cards {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 700px) {
+      .finance-cards {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar,
+      .toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
 </head>
-<body class="admin-page">
 
-  <div class="admin-wrap">
-    <h1>💰 Admin Financeiro</h1>
+<body>
+  <div class="wrap">
 
-    <div class="admin-actions">
-      <button onclick="window.location.href='./admin-home.html'">
-        Voltar ao painel
-      </button>
+    <div class="topbar">
+      <div class="brand">
+        <h1>Admin • Financeiro</h1>
+        <p>Pontinho Play • visão geral das movimentações financeiras</p>
+      </div>
 
-      <button onclick="loadFinance()">
-        Atualizar
-      </button>
+      <div class="badge-admin">Área administrativa</div>
     </div>
 
-    <div id="financeMessage" class="admin-message">
+    <div id="financeMessage" class="msg">
       Carregando financeiro...
     </div>
 
-    <div class="finance-cards">
+    <section class="hero">
+      <h2>Resumo financeiro</h2>
+      <p>
+        Acompanhe os valores arrecadados, depósitos, saques
+        e as últimas movimentações financeiras do sistema.
+      </p>
+    </section>
+
+    <div class="toolbar">
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button
+          class="btn-secondary"
+          type="button"
+          onclick="loadFinance()"
+        >
+          Atualizar
+        </button>
+      </div>
+
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <button
+          class="btn-secondary"
+          type="button"
+          onclick="window.location.href='./admin-home.html'"
+        >
+          Voltar à Administração
+        </button>
+      </div>
+    </div>
+
+    <section class="finance-cards">
 
       <div class="finance-card">
         <span>Receita Hoje</span>
@@ -55,30 +293,72 @@
         <span>Depósitos pendentes</span>
         <strong id="financePendingCount">0</strong>
       </div>
+
+    </section>
+
+    <section class="panel-card">
+      <h2>Saques pendentes</h2>
+
+      <div class="finance-table-wrap">
+        <table class="finance-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Usuário</th>
+              <th>E-mail</th>
+              <th>Valor</th>
+              <th>Tipo PIX</th>
+              <th>Chave PIX</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+
+          <tbody id="withdrawalTableBody">
+            <tr>
+              <td colspan="8">Carregando saques...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel-card">
+      <h2>Últimas transações</h2>
+
+      <div class="finance-table-wrap">
+        <table class="finance-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Usuário</th>
+              <th>E-mail</th>
+              <th>Valor</th>
+              <th>Fichas</th>
+              <th>Status</th>
+              <th>Pagamento</th>
+            </tr>
+          </thead>
+
+          <tbody id="financeTableBody">
+            <tr>
+              <td colspan="7">Carregando...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="footer-actions">
+      <button
+        class="btn-primary"
+        type="button"
+        onclick="window.location.href='./admin-home.html'"
+      >
+        Voltar para a Administração
+      </button>
     </div>
 
-    <h2>Últimas transações</h2>
-
-    <div class="finance-table-wrap">
-      <table class="finance-table">
-        <thead>
-          <tr>
-            <th>Data</th>
-            <th>Usuário</th>
-            <th>E-mail</th>
-            <th>Valor</th>
-            <th>Fichas</th>
-            <th>Status</th>
-            <th>Pagamento</th>
-          </tr>
-        </thead>
-        <tbody id="financeTableBody">
-          <tr>
-            <td colspan="7">Carregando...</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
   </div>
 
   <script src="./js/admin-finance.js"></script>

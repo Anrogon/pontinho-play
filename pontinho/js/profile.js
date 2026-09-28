@@ -124,6 +124,17 @@ async function loadProfile() {
         style: "currency",
         currency: "BRL"
       });
+
+      const withdrawCashBalance = document.getElementById("withdrawCashBalance");
+
+      if (withdrawCashBalance) {
+        withdrawCashBalance.textContent =
+          (Number(user.cashBalance) || 0).toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL"
+          });
+      }
+
     document.getElementById("profileCreatedAt").textContent = formatDate(user.createdAt);
 
     document.getElementById("profileAccountType").textContent =
@@ -245,29 +256,79 @@ async function loadWalletHistory() {
 
     el.innerHTML = transactions.map(t => {
       const status = String(t.status || "").toLowerCase();
+      const category = String(t.category || "CHIPS").toUpperCase();
+      const type = String(t.type || "").toUpperCase();
 
       const statusClass =
-        status === "approved" ? "approved" :
+        status === "approved" || status === "completed" ? "approved" :
         status === "pending" ? "pending" :
         "other";
 
-      const typeLabel =
-        t.type === "deposit" ? "Depósito PIX" :
-        t.type === "withdraw" ? "Saque" :
-        t.type || "Transação";
+      let typeLabel = "Transação";
+      let detailLabel = "";
+      let valueLabel = "";
+
+      // ===================================================
+      // FICHAS
+      // ===================================================
+      if (category === "CHIPS") {
+        typeLabel =
+          type === "DEPOSIT" ? "Depósito PIX" :
+          type === "WITHDRAW" ? "Saque" :
+          t.type || "Transação";
+
+        detailLabel =
+          `${Number(t.chips_amount || 0).toLocaleString("pt-BR")} fichas`;
+
+        valueLabel = formatMoneyFromCents(t.amount_cents);
+      }
+
+      // ===================================================
+      // DINHEIRO REAL
+      // ===================================================
+      else if (category === "CASH") {
+        typeLabel =
+          type === "DEPOSIT" ? "Depósito" :
+          type === "WITHDRAWAL" ? "Saque" :
+          type === "COMPETITION_ENTRY" ? "Inscrição - Competição" :
+          type === "COMPETITION_REENTRY" ? "Reentrada - Competição" :
+          type === "COMPETITION_PRIZE" ? "Prêmio - Competição" :
+          t.type || "Transação";
+
+        const cashAmount = Number(t.cash_amount) || 0;
+
+        valueLabel = Math.abs(cashAmount).toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+        });
+
+        if (type === "WITHDRAWAL" && status === "cancelled") {
+          detailLabel = "Saque cancelado";
+        } else {
+          detailLabel =
+            cashAmount > 0
+              ? "Crédito em dinheiro"
+              : cashAmount < 0
+                ? "Débito em dinheiro"
+                : "Movimentação em dinheiro";
+        }
+      }
 
       return `
         <div class="wallet-history-item">
           <div>
             <strong>${typeLabel}</strong>
-            <span>${Number(t.chips_amount || 0).toLocaleString("pt-BR")} fichas</span>
+            <span>${detailLabel}</span>
           </div>
 
           <div>
             <span class="wallet-status ${statusClass}">
               ${getWalletStatusLabel(t.status)}
             </span>
-            <small>${formatMoneyFromCents(t.amount_cents)} · ${formatDate(t.created_at)}</small>
+
+            <small>
+              ${valueLabel} · ${formatDate(t.created_at)}
+            </small>
           </div>
         </div>
       `;
@@ -275,7 +336,9 @@ async function loadWalletHistory() {
 
   } catch (err) {
     console.error("Erro ao carregar histórico financeiro:", err);
-    el.innerHTML = `<div class="wallet-history-empty">Erro ao carregar histórico financeiro.</div>`;
+
+    el.innerHTML =
+      `<div class="wallet-history-empty">Erro ao carregar histórico financeiro.</div>`;
   }
 }
 
@@ -319,6 +382,102 @@ async function saveAvatar() {
     setMsg(`Erro ao salvar avatar. (${err.message})`, true);
   }
 }
+
+
+async function requestWithdrawal() {
+  const amountRaw =
+    document.getElementById("withdrawAmount")?.value.trim() || "";
+
+  const pixKeyType =
+    document.getElementById("withdrawPixKeyType")?.value || "";
+
+  const pixKey =
+    document.getElementById("withdrawPixKey")?.value.trim() || "";
+
+  const withdrawMsg = document.getElementById("withdrawMsg");
+  const btnConfirmWithdraw = document.getElementById("btnConfirmWithdraw");
+
+  // Aceita tanto 20,50 quanto 20.50
+  const amount = Number(
+    amountRaw
+      .replace(/\s/g, "")
+      .replace(",", ".")
+  );
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    if (withdrawMsg) {
+      withdrawMsg.textContent = "Informe um valor de saque válido.";
+    }
+    return;
+  }
+
+  if (!pixKeyType) {
+    if (withdrawMsg) {
+      withdrawMsg.textContent = "Selecione o tipo da chave PIX.";
+    }
+    return;
+  }
+
+  if (!pixKey) {
+    if (withdrawMsg) {
+      withdrawMsg.textContent = "Informe a chave PIX.";
+    }
+    return;
+  }
+
+  if (withdrawMsg) {
+    withdrawMsg.textContent = "Enviando solicitação de saque...";
+  }
+
+  if (btnConfirmWithdraw) {
+    btnConfirmWithdraw.disabled = true;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/wallet/withdraw`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        amount,
+        pixKeyType,
+        pixKey,
+      }),
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok || !data?.ok) {
+      if (withdrawMsg) {
+        withdrawMsg.textContent =
+          data?.error ||
+          data?.message ||
+          `Não foi possível solicitar o saque. (HTTP ${res.status})`;
+      }
+      return;
+    }
+
+    if (withdrawMsg) {
+      withdrawMsg.textContent =
+        "Solicitação de saque enviada com sucesso.";
+    }
+
+  } catch (err) {
+    console.error("Erro ao solicitar saque:", err);
+
+    if (withdrawMsg) {
+      withdrawMsg.textContent =
+        `Erro ao solicitar saque. (${err.message})`;
+    }
+  } finally {
+    if (btnConfirmWithdraw) {
+      btnConfirmWithdraw.disabled = false;
+    }
+  }
+}
+
 
 async function changePassword() {
   const currentPassword = document.getElementById("currentPassword")?.value || "";
@@ -474,6 +633,46 @@ function bindEvents() {
   document.getElementById("btnBackHome")?.addEventListener("click", () => {
     window.location.href = "./index.html";
   });
+
+  const btnWithdrawCash = document.getElementById("btnWithdrawCash");
+  const btnCancelWithdraw = document.getElementById("btnCancelWithdraw");
+  const withdrawForm = document.getElementById("withdrawForm");
+
+  if (btnWithdrawCash && withdrawForm) {
+    btnWithdrawCash.onclick = () => {
+      withdrawForm.style.display = "block";
+      btnWithdrawCash.style.display = "none";
+    };
+  }
+
+  if (btnCancelWithdraw && withdrawForm) {
+    btnCancelWithdraw.onclick = () => {
+      withdrawForm.style.display = "none";
+
+      if (btnWithdrawCash) {
+        btnWithdrawCash.style.display = "";
+      }
+
+      const withdrawAmount = document.getElementById("withdrawAmount");
+      const withdrawPixKeyType = document.getElementById("withdrawPixKeyType");
+      const withdrawPixKey = document.getElementById("withdrawPixKey");
+      const withdrawMsg = document.getElementById("withdrawMsg");
+
+      if (withdrawAmount) withdrawAmount.value = "";
+      if (withdrawPixKeyType) withdrawPixKeyType.value = "";
+      if (withdrawPixKey) withdrawPixKey.value = "";
+      if (withdrawMsg) withdrawMsg.textContent = "";
+    };
+  }
+
+  const btnConfirmWithdraw =
+    document.getElementById("btnConfirmWithdraw");
+
+  if (btnConfirmWithdraw) {
+    btnConfirmWithdraw.onclick = requestWithdrawal;
+  }
+
+
 }
 
 document.addEventListener("DOMContentLoaded", () => {

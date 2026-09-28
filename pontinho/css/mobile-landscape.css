@@ -22,8 +22,8 @@
     position: fixed;
     inset: 0;
 
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     min-width: 0;
     min-height: 0;
     max-width: none;
@@ -39,6 +39,16 @@
     background: url("/assets/image/mesa-landscape.png")
       center / cover no-repeat;
   }
+
+  /* =========================================================
+   MODO COMPETIÇÃO — MESA LANDSCAPE
+========================================================= */
+
+  body.mobile-landscape-table-mode.competition-table-mode #game {
+    background-image: url("/assets/image/mesa-landscape-competition.png");
+  }
+
+
   body.mobile-landscape-table-mode
   #mobileLandscapeTableLayout {
     position: fixed;
@@ -991,5 +1001,122 @@ body.mobile-landscape-table-mode #table .grupo-table {
   flex: 0 0 auto !important;
   pointer-events: auto !important;
 }
+/* =========================================================
+   MOBILE LANDSCAPE
+   Sala de mesas + Home
+========================================================= */
+
+
+
+  /* =====================================================
+     SALA DE MESAS
+     Permite rolagem ao voltar do jogo para as mesas
+  ===================================================== */
+
+  html,
+  body {
+    height: auto !important;
+    min-height: 100% !important;
+
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  #tablesScreen {
+    height: auto !important;
+    min-height: 100vh !important;
+
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+
+    padding-bottom: 24px !important;
+  }
+
+
+  /* =====================================================
+     HOME
+     Logo à esquerda + ações à direita
+  ===================================================== */
+
+  #homeScreen {
+    width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+
+    margin: 0 !important;
+    padding: 10px !important;
+
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Menu superior — ajuste exclusivo do landscape */
+  #homeScreen #topNav {
+    margin: 0 auto !important;
+  }
+
+  #homeScreen .home-shell {
+    width: min(94vw, 970px) !important;
+    height: calc(100vh - 90px) !important;
+
+    margin: 8px auto 0 !important;
+    padding: 5px 20px 16px !important;
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 1.15fr)
+      minmax(280px, .85fr) !important;
+
+    align-items: start !important;
+    gap: 24px !important;
+
+    box-sizing: border-box !important;
+  }
+
+  /* Logo */
+  #homeScreen .home-logo {
+    width: 100% !important;
+    height: auto !important;
+
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+  }
+
+  #homeScreen .home-logo img {
+    width: min(90%, 390px) !important;
+    max-height: 88% !important;
+    object-fit: contain !important;
+  }
+
+  /* Menu */
+  #homeScreen .home-menu {
+    width: 100% !important;
+    max-width: 330px !important;
+
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+
+    gap: 8px !important;
+    margin: 0 auto !important;
+  }
+
+  #homeScreen .home-menu button {
+    width: 100% !important;
+    min-height: 40px !important;
+
+    padding: 8px 12px !important;
+    border-radius: 12px !important;
+
+    font-size: 15px !important;
+  }
+
+  /* Elementos desnecessários na Home landscape */
+  #homeScreen .home-status-wrap,
+  #homeScreen .home-banner,
+  #homeScreen .home-tip-section,
+  #homeScreen .home-footer {
+    display: none !important;
+  }
 
 }

@@ -1089,6 +1089,21 @@ async function debitCompetitionEntries(room) {
   try {
     await client.query("BEGIN");
 
+    await client.query(
+      `
+      INSERT INTO competition_matches (
+        match_id,
+        table_id,
+        status
+      )
+      VALUES ($1, $2, 'ACTIVE')
+      `,
+      [
+        String(room.matchId),
+        String(room.id)
+      ]
+    );
+
     const chargedPlayers = [];
 
     for (const pl of players) {
@@ -1441,7 +1456,7 @@ async function applyPendingRebuys(room) {
           status,
           amount,
           balance_before,
-          balance_after,
+          balance_after,q
           reference_type,
           reference_id,
           description
@@ -3125,7 +3140,270 @@ async function recordDailyMissionMatches(room) {
   }
 }
 
+async function recoverInterruptedCompetitionMatches() {
+  const client = await pool.connect();
 
+  try {
+    const activeResult = await client.query(
+      `
+      SELECT
+        match_id,
+        table_id,
+        started_at
+      FROM competition_matches
+      WHERE status = 'ACTIVE'
+      ORDER BY started_at ASC
+      `
+    );
+
+    if (activeResult.rowCount === 0) {
+      console.log(
+        "[COMPETITION RECOVERY] Nenhuma competição interrompida encontrada."
+      );
+      return;
+    }
+
+    console.log(
+      `[COMPETITION RECOVERY] ${activeResult.rowCount} competição(ões) ACTIVE encontrada(s).`
+    );
+
+    for (const match of activeResult.rows) {
+    try {
+      await client.query("BEGIN");
+
+      const lockResult = await client.query(
+        `
+        SELECT
+          match_id,
+          table_id,
+          status,
+          started_at
+        FROM competition_matches
+        WHERE match_id = $1
+        FOR UPDATE
+        `,
+        [match.match_id]
+      );
+
+      if (lockResult.rowCount !== 1) {
+        await client.query("ROLLBACK");
+
+        console.error(
+          "[COMPETITION RECOVERY] Competição não encontrada:",
+          match.match_id
+        );
+
+        continue;
+      }
+
+      const lockedMatch = lockResult.rows[0];
+
+      // Pode ter sido tratada por outro processo enquanto aguardávamos o lock.
+      if (lockedMatch.status !== "ACTIVE") {
+        await client.query("ROLLBACK");
+
+        console.log(
+          "[COMPETITION RECOVERY] Competição já tratada:",
+          {
+            matchId: lockedMatch.match_id,
+            status: lockedMatch.status
+          }
+        );
+
+        continue;
+      }
+
+      const prizeResult = await client.query(
+        `
+        SELECT id
+        FROM cash_transactions
+        WHERE reference_type = 'COMPETITION'
+          AND reference_id = $1
+          AND type = 'COMPETITION_PRIZE'
+          AND status = 'COMPLETED'
+        LIMIT 1
+        `,
+        [lockedMatch.match_id]
+      );
+
+      if (prizeResult.rowCount > 0) {
+        await client.query(
+          `
+          UPDATE competition_matches
+          SET
+            status = 'FINISHED',
+            finished_at = NOW()
+          WHERE match_id = $1
+            AND status = 'ACTIVE'
+          `,
+          [lockedMatch.match_id]
+        );
+
+        await client.query("COMMIT");
+
+        console.log(
+          "[COMPETITION RECOVERY] Prêmio já havia sido pago; competição marcada como FINISHED:",
+          {
+            matchId: lockedMatch.match_id,
+            tableId: lockedMatch.table_id
+          }
+        );
+
+        continue;
+      }
+
+      console.log(
+        "[COMPETITION RECOVERY] Competição ACTIVE confirmada para recuperação:",
+        {
+          matchId: lockedMatch.match_id,
+          tableId: lockedMatch.table_id,
+          startedAt: lockedMatch.started_at
+        }
+      );
+      const debitResult = await client.query(
+        `
+        SELECT
+          user_id,
+          SUM(-amount) AS refund_amount
+        FROM cash_transactions
+        WHERE reference_type = 'COMPETITION'
+          AND reference_id = $1
+          AND status = 'COMPLETED'
+          AND type IN (
+            'COMPETITION_ENTRY',
+            'COMPETITION_REENTRY'
+          )
+          AND amount < 0
+        GROUP BY user_id
+        ORDER BY user_id
+        `,
+        [lockedMatch.match_id]
+      );
+
+      if (debitResult.rowCount === 0) {
+        throw new Error(
+          `COMPETITION_RECOVERY_NO_DEBITS:${lockedMatch.match_id}`
+        );
+      }
+
+      for (const debit of debitResult.rows) {
+        const userId = debit.user_id;
+        const refundAmount = Number(debit.refund_amount) || 0;
+
+        if (refundAmount <= 0) {
+          continue;
+        }
+
+        const creditResult = await client.query(
+          `
+          UPDATE users
+          SET
+            cash_balance = cash_balance + $1,
+            updated_at = NOW()
+          WHERE id = $2
+          RETURNING
+            cash_balance,
+            cash_balance - $1 AS balance_before
+          `,
+          [refundAmount, userId]
+        );
+
+        if (creditResult.rowCount !== 1) {
+          throw new Error(
+            `COMPETITION_REFUND_USER_NOT_FOUND:${userId}`
+          );
+        }
+
+        const balanceBefore =
+          Number(creditResult.rows[0].balance_before) || 0;
+
+        const balanceAfter =
+          Number(creditResult.rows[0].cash_balance) || 0;
+
+        await client.query(
+          `
+          INSERT INTO cash_transactions (
+            user_id,
+            type,
+            status,
+            amount,
+            balance_before,
+            balance_after,
+            reference_type,
+            reference_id,
+            description
+          )
+          VALUES (
+            $1,
+            'COMPETITION_REFUND',
+            'COMPLETED',
+            $2,
+            $3,
+            $4,
+            'COMPETITION',
+            $5,
+            $6
+          )
+          `,
+          [
+            userId,
+            refundAmount,
+            balanceBefore,
+            balanceAfter,
+            lockedMatch.match_id,
+            `Estorno automático da competição interrompida ${lockedMatch.table_id}`
+          ]
+        );
+      }
+
+      const cancelResult = await client.query(
+        `
+        UPDATE competition_matches
+        SET
+          status = 'CANCELLED',
+          cancelled_at = NOW()
+        WHERE match_id = $1
+          AND status = 'ACTIVE'
+        `,
+        [lockedMatch.match_id]
+      );
+
+      if (cancelResult.rowCount !== 1) {
+        throw new Error(
+          `COMPETITION_CANCEL_FAILED:${lockedMatch.match_id}`
+        );
+      }
+
+      await client.query("COMMIT");
+
+      console.log(
+        "[COMPETITION RECOVERY] Competição cancelada e valores estornados:",
+        {
+          matchId: lockedMatch.match_id,
+          tableId: lockedMatch.table_id,
+          refundedPlayers: debitResult.rowCount
+        }
+      );
+
+    } catch (err) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (_) {}
+
+      console.error(
+        "[COMPETITION RECOVERY] Erro ao validar competição:",
+        {
+          matchId: match.match_id,
+          error: err.message
+        }
+      );
+    }
+  }
+
+  } finally {
+    client.release();
+  }
+}
 
 async function finalizeMatchEconomy(room) {
   const winnerSeat = room.matchWinnerSeat;
@@ -3225,6 +3503,24 @@ async function finalizeMatchEconomy(room) {
             `Prêmio da competição ${room.id}`
           ]
         );
+
+        const finishResult = await dbClient.query(
+          `
+          UPDATE competition_matches
+          SET
+            status = 'FINISHED',
+            finished_at = NOW()
+          WHERE match_id = $1
+            AND status = 'ACTIVE'
+          `,
+          [String(room.matchId)]
+        );
+
+        if (finishResult.rowCount !== 1) {
+          throw new Error(
+            `COMPETITION_MATCH_NOT_ACTIVE:${room.matchId}`
+          );
+        }
 
         await dbClient.query("COMMIT");
 
@@ -6945,11 +7241,6 @@ if (msg.type === "keepSeatForNextMatch") {
 
   });
 
-  server.listen(PORT, () => {
-    console.log(`🃏 Pontinho Play rodando em http://localhost:${PORT}`);
-  });
-
-
 
 function collectMiniAnte(room) {
   const miniAnte = getMiniAnte(room);
@@ -6978,3 +7269,23 @@ function collectMiniAnte(room) {
 
   return collected;
 }
+
+async function startServer() {
+  try {
+    await recoverInterruptedCompetitionMatches();
+
+    server.listen(PORT, () => {
+      console.log(`🃏 Pontinho Play rodando em http://localhost:${PORT}`);
+    });
+
+  } catch (err) {
+    console.error(
+      "[STARTUP] Falha na recuperação das competições interrompidas:",
+      err
+    );
+
+    process.exit(1);
+  }
+}
+
+startServer();

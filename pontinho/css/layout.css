@@ -68,7 +68,7 @@ body{
   margin: 0 auto;
   /*border: 1px solid #f30808;*/
   /* “miolo” dentro do roxo */
-  min-height: 300px;
+  min-height: 275px;
   display: flex;
   flex-direction: row;
   justify-content: center;
@@ -1623,7 +1623,7 @@ html, body {
     position:absolute;
 
     left:18px;
-    bottom:22px;
+    bottom:35px;
 
     display:flex;
     flex-direction:column;

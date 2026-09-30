@@ -1073,7 +1073,7 @@ body.mobile-landscape-table-mode #table .grupo-table {
     width: min(94vw, 970px) !important;
     height: calc(100vh - 90px) !important;
 
-    margin: 8px auto 0 !important;
+    margin: -12px auto 0 !important;
     padding: 5px 20px 16px !important;
     display: grid !important;
     grid-template-columns:

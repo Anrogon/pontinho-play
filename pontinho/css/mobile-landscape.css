@@ -352,32 +352,12 @@
    * Distribuição Assentos:
    */
 
-  
   .landscape-seat.pos1 { left: 10%;  top: 30%; transform: translate(-50%, -50%); }
   .landscape-seat.pos2 { left: 22%; top: 17%; transform: translate(-50%, -50%); }
   .landscape-seat.pos3 { left: 40%; top: 17%; transform: translate(-50%, -50%); }
   .landscape-seat.pos4 { left: 58%; top: 17%; transform: translate(-50%, -50%); }
   .landscape-seat.pos5 { left: 75%; top: 17%; transform: translate(-50%, -50%); }
   .landscape-seat.pos6 { left: 90%; top: 30%; transform: translate(-50%, -50%); }
-
-
-
-
-
-
-
-
-
-  /*
-   Distribuição Assentos:
-   
-
-  .landscape-seat.pos1 { left: 10%;  top: 62%; transform: translate(-50%, -50%); }
-  .landscape-seat.pos2 { left: 9%;  top: 34%; transform: translate(-50%, -50%); }
-  .landscape-seat.pos3 { left: 32%; top: 14%; transform: translate(-50%, -50%); }
-  .landscape-seat.pos4 { left: 68%; top: 14%; transform: translate(-50%, -50%); }
-  .landscape-seat.pos5 { left: 91%; top: 34%; transform: translate(-50%, -50%); }
-  .landscape-seat.pos6 { left: 90%; top: 62%; transform: translate(-50%, -50%); }
 
 
   /* =======================================================
@@ -1001,17 +981,24 @@ body.mobile-landscape-table-mode #table .grupo-table {
   flex: 0 0 auto !important;
   pointer-events: auto !important;
 }
-/* =========================================================
-   MOBILE LANDSCAPE
-   Sala de mesas + Home
-========================================================= */
 
 
+/* =====================================================
+   POSIÇÕES DOS ASSENTOS — SALA DE MESAS LANDSCAPE
+===================================================== */
 
-  /* =====================================================
-     SALA DE MESAS
-     Permite rolagem ao voltar do jogo para as mesas
-  ===================================================== */
+#tablesScreen .seat.pos1 {  left: 50%;  top: 80%;  transform: translate(-50%, -50%);}
+
+#tablesScreen .seat.pos2 {  left: 3%;  top: 52%;  transform: translate(-50%, -50%);}
+
+#tablesScreen .seat.pos3 {  left: 20%;  top: 17%;  transform: translate(-50%, -50%);}
+
+#tablesScreen .seat.pos4 {  left: 50%;  top: 17%;  transform: translate(-50%, -50%);}
+
+#tablesScreen .seat.pos5 {  left: 80%;  top: 17%;  transform: translate(-50%, -50%);}
+
+#tablesScreen .seat.pos6 {  left: 98%;  top: 52%;  transform: translate(-50%, -50%);}
+
 
   html,
   body {
@@ -1050,9 +1037,36 @@ body.mobile-landscape-table-mode #table .grupo-table {
     box-sizing: border-box !important;
   }
 
-  /* Menu superior — ajuste exclusivo do landscape */
+  /* =====================================================
+   MENU SUPERIOR — HOME LANDSCAPE
+===================================================== */
+
   #homeScreen #topNav {
+    width: calc(100% - 20px) !important;
+    max-width: none !important;
+
     margin: 0 auto !important;
+    box-sizing: border-box !important;
+  }
+
+  #homeScreen #topNav .top-nav-right {
+    width: 100% !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+
+    gap: 4px !important;
+  }
+
+  #homeScreen #topNav .top-nav-right > a {
+    min-width: 0 !important;
+
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+
+    flex: 0 1 auto !important;
+    white-space: nowrap !important;
   }
 
   #homeScreen .home-shell {
@@ -1115,7 +1129,8 @@ body.mobile-landscape-table-mode #table .grupo-table {
   #homeScreen .home-status-wrap,
   #homeScreen .home-banner,
   #homeScreen .home-tip-section,
-  #homeScreen .home-footer {
+  #homeScreen .home-footer,
+  #homeScreen #btnLogout {
     display: none !important;
   }
 

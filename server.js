@@ -6910,34 +6910,98 @@ if (msg.type === "joinTableGroup") {
   }
 
 // =====================================================
-// IMPEDE A MESMA CONTA EM DUAS CADEIRAS DA MESMA MESA
+// IMPEDE A MESMA CONTA EM MAIS DE UMA MESA
+//
+// RECREATIONAL:
+// mantém a regra atual — não permite duas cadeiras
+// dentro da mesma sala.
+//
+// COMPETITION:
+// a conta só pode participar de uma mesa de
+// competição por vez.
 // =====================================================
 
 if (c.userId != null) {
-  const sameAccountSeatIndex =
-    room.playersBySeat.findIndex(player =>
-      player &&
-      player.userId != null &&
-      String(player.userId) === String(c.userId)
-    );
 
-  if (sameAccountSeatIndex !== -1) {
-    const sameAccountPlayer =
-      room.playersBySeat[sameAccountSeatIndex];
+  // ---------------------------------------------------
+  // COMPETITION
+  // Procura esta conta em qualquer sala de competição.
+  // ---------------------------------------------------
+  if (room.mode === "COMPETITION") {
 
-    const sameAccountSeat =
-      sameAccountSeatIndex + 1;
+    for (const existingRoom of rooms.values()) {
 
-    const isLegitimateReconnect =
-      Boolean(reconnectToken) &&
-      sameAccountPlayer.reconnectToken === reconnectToken &&
-      sameAccountSeat === s;
+      if (existingRoom.mode !== "COMPETITION") {
+        continue;
+      }
 
-    if (!isLegitimateReconnect) {
-      return send(ws, "error", {
-        message:
-          "Você já está participando desta mesa em outra aba ou janela."
-      });
+      const sameAccountSeatIndex =
+        (existingRoom.playersBySeat || []).findIndex(player =>
+          player &&
+          player.isBot !== true &&
+          player.userId != null &&
+          String(player.userId) === String(c.userId) &&
+          !player.eliminated
+        );
+
+      if (sameAccountSeatIndex === -1) {
+        continue;
+      }
+
+      const sameAccountPlayer =
+        existingRoom.playersBySeat[sameAccountSeatIndex];
+
+      const sameAccountSeat =
+        sameAccountSeatIndex + 1;
+
+      // Reconexão legítima à própria cadeira.
+      const isLegitimateReconnect =
+        existingRoom.id === room.id &&
+        Boolean(reconnectToken) &&
+        sameAccountPlayer.reconnectToken === reconnectToken &&
+        sameAccountSeat === s;
+
+      if (!isLegitimateReconnect) {
+        return send(ws, "error", {
+          message:
+            "Você já está participando de outra mesa no modo Competição."
+        });
+      }
+    }
+  }
+
+  // ---------------------------------------------------
+  // RECREATIONAL
+  // Mantém exatamente a proteção que já existia.
+  // ---------------------------------------------------
+  else {
+
+    const sameAccountSeatIndex =
+      room.playersBySeat.findIndex(player =>
+        player &&
+        player.userId != null &&
+        String(player.userId) === String(c.userId)
+      );
+
+    if (sameAccountSeatIndex !== -1) {
+
+      const sameAccountPlayer =
+        room.playersBySeat[sameAccountSeatIndex];
+
+      const sameAccountSeat =
+        sameAccountSeatIndex + 1;
+
+      const isLegitimateReconnect =
+        Boolean(reconnectToken) &&
+        sameAccountPlayer.reconnectToken === reconnectToken &&
+        sameAccountSeat === s;
+
+      if (!isLegitimateReconnect) {
+        return send(ws, "error", {
+          message:
+            "Você já está participando desta mesa em outra aba ou janela."
+        });
+      }
     }
   }
 }

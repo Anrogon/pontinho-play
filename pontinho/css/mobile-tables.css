@@ -294,42 +294,20 @@
 
 /*Posições dos assentos na visualização da mesa em mobile*/
 
-  #tablesGrid > .table-card .seat.pos1 {
-    left: 50% !important;
-    top: 73% !important;
-    transform: translateX(-50%) !important;
-  }
+  #tablesGrid > .table-card .seat.pos1 { left: 50%; top: 73%; transform: translateX(-50%); }
 
-  #tablesGrid > .table-card .seat.pos2 {
-    left: -1% !important;
-    top: 52% !important;
-    transform: translateY(-50%) !important;
-  }
+  #tablesGrid > .table-card .seat.pos2 { left: -3%; top: 52%; transform: translateY(-50%); }
 
-  #tablesGrid > .table-card .seat.pos3 {
-    left: 16% !important;
-    top: 10px !important;
-    transform: translateY(-50%) !important;
-  }
+  #tablesGrid > .table-card .seat.pos3 { left: 10%; top: 5px; transform: translateY(-50%); }
 
-  #tablesGrid > .table-card .seat.pos4 {
-    left: 50% !important;
-    top: 10px !important;
-    transform: translateY(-50%) !important;
-  }
+  #tablesGrid > .table-card .seat.pos4 { left: 45%; top: 5px; transform: translateY(-50%); }
 
-  #tablesGrid > .table-card .seat.pos5 {
-    left: 80% !important;
-    top: 10px !important;
-    transform: translateY(-50%) !important;
-  }
+  #tablesGrid > .table-card .seat.pos5 { left: 80%; top: 5px; transform: translateY(-50%); }
 
-  #tablesGrid > .table-card .seat.pos6 {
-    left: 88% !important;
-    top: 52% !important;
-    transform: translateY(-50%) !important;
-  }
+  #tablesGrid > .table-card .seat.pos6 { left: 90%; top: 52%; transform: translateY(-50%); }
 
+  
+  
   #tablesGrid > .table-card .watch-text {
     display: none !important;
   }

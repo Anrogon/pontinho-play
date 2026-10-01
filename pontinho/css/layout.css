@@ -332,9 +332,9 @@ body{
   background:
     radial-gradient(
       circle at 50% 0%,
-      rgba(176, 126, 20, 0.16) 0%,
-      rgba(12, 18, 22, 0.35) 38%,
-      rgba(5, 10, 14, 0.82) 100%
+      rgba(240, 166, 7, 0.16) 0%,
+      rgba(24, 133, 206, 0.35) 38%,
+      rgba(36, 130, 207, 0.82) 100%
     ),
     linear-gradient(
       135deg,

@@ -1192,8 +1192,8 @@ body{
   background:
     linear-gradient(
       180deg,
-      #4d88ff,
-      #2f5fd3
+      #003E00 0%,
+      #00A600 100%
     );
 
   color: #fff;
@@ -1275,6 +1275,11 @@ body{
   font-weight: 900;
   text-align: center;
 }
+
+#homeScreen #btnLogout {
+    background:
+      linear-gradient(180deg, #4A0000, #E50914);
+  }
 
   /* banner */
   .home-banner {
@@ -2103,7 +2108,9 @@ html, body {
   }
 }
 #btnCrazy {
-  background: linear-gradient(180deg, #3b82f6, #1e40af) !important;
+  background: linear-gradient(
+  #003E00 0%,
+  #00A600 100%) !important;
   color: #fff !important;
 }
 

@@ -42,7 +42,7 @@
 body.mobile-table-mode.competition-table-mode #game {
   background:
     #11191f
-    url("/assets/image/bg-competition.png")
+    url("/assets/image/bg-az.png")
     center center / cover
     no-repeat !important;
 }

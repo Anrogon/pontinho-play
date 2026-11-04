@@ -90,6 +90,37 @@
       color: #fff;
       font-weight: 700;
     }
+
+    .terms-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 3px;
+    }
+
+    .terms-accept a,
+    .terms-accept a:visited {
+      color: #f7c548;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .terms-accept a:hover {
+      text-decoration: underline;
+    }
+
+  @media(max-width:600px){
+
+    .auth-card{
+      padding:26px 20px;
+      width:min(420px,80vw);
+    }
+
+    .auth-card h1{
+      font-size:30px;
+    }
+
+  }
   </style>
 </head>
 <body>
@@ -103,12 +134,19 @@
 
     <div class="terms-accept">
       <label>
-        <input type="checkbox" id="acceptTerms">
 
-        Li e aceito os
-        <a href="./terms.html" target="_blank">Termos de Uso</a>
-        e a
-        <a href="./privacy.html" target="_blank">Política de Privacidade</a>.
+        <span class="terms-content">
+          <span class="terms-title">Li e aceito:</span>
+
+          <a href="./terms.html" target="_blank">
+            - Termos de Uso
+          </a>
+          <a href="./privacy.html" target="_blank">
+            - Política de Privacidade
+          </a>
+        </span>
+
+        <input type="checkbox" id="acceptTerms">
       </label>
     </div>
 

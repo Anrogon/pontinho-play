@@ -46,6 +46,9 @@
 
   body.mobile-landscape-table-mode.competition-table-mode #game {
     background-image: url("/assets/image/mesa-landscape-competition.png");
+    background-position: center top;
+    background-size: 98% 98%;
+    background-repeat: no-repeat;
   }
 
 
@@ -1084,6 +1087,7 @@ body.mobile-landscape-table-mode #table .grupo-table {
     gap: 24px !important;
 
     box-sizing: border-box !important;
+    
   }
 
   /* Logo */
@@ -1123,6 +1127,12 @@ body.mobile-landscape-table-mode #table .grupo-table {
     border-radius: 12px !important;
 
     font-size: 15px !important;
+    background:
+    linear-gradient(
+      180deg,
+      #003E00 0%,
+      #00A600 100%
+    );
   }
 
   /* Elementos desnecessários na Home landscape */

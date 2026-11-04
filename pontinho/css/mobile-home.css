@@ -56,8 +56,8 @@
     background:
       linear-gradient(
         180deg,
-        #4383f5 0%,
-        #2862d5 100%
+        #003E00 0%,
+        #00A600 100%
       );
 
     color: #fff;
@@ -87,28 +87,24 @@
   #homeScreen #btnClassic {
     background:
       linear-gradient(
-        180deg,
-        #2178de 0%,
-        #1550ad 100%
-      );
+      180deg,
+      #003E00 0%,
+      #00A600 100%
+    );
   }
 
   #homeScreen #btnCrazy {
     background:
       linear-gradient(
-        180deg,
-        #3f71e8 0%,
-        #204fc5 100%
-      );
+      180deg,
+      #003E00 0%,
+      #00A600 100%
+    );
   }
 
   #homeScreen #btnLogout {
     background:
-      linear-gradient(
-        180deg,
-        #356fcf 0%,
-        #2455aa 100%
-      );
+      linear-gradient(to right, #4A0000, #E50914);
   }
 
   #homeScreen .home-menu button[style*="display:none"],

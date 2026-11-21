@@ -8,6 +8,10 @@ const router = express.Router();
 const { startLuckyCardSession, chooseLuckyCard} = require("../services/luckyCardService");
 const { getUserAchievementsStatus} = require("../services/achievementService");
 const { getMonthlyRankingStatus} = require("../services/monthlyRankingService");
+const { createEmailVerificationToken, verifyEmailToken, canResendVerificationEmail,} = require("../services/emailVerificationService");
+const { sendVerificationEmail,} = require("../services/emailService");
+const { createPasswordResetToken, resetPasswordWithToken,} = require("../services/passwordResetService");
+const { sendPasswordResetEmail,} = require("../services/emailService");
 
 
 const LOGIN_STREAK_REWARDS = [100, 150, 200, 300, 400, 500, 750];
@@ -555,14 +559,75 @@ function sanitizeUser(user) {
   };
 }
 
+
 router.post("/signup", async (req, res) => {
   try {
     const username = String(req.body?.username || "").trim();
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
+    
     const avatarUrl = String(req.body?.avatarUrl || "").trim() || null;
+    const turnstileToken = String(req.body?.turnstileToken || "").trim();
+
+    // Validação do Cloudflare Turnstile
+    if (!turnstileToken) {
+      return res.status(400).json({
+        ok: false,
+        message: "Confirme a verificação Sou humano antes de criar sua conta.",
+      });
+    }
+
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+
+    if (!turnstileSecret) {
+      console.error("TURNSTILE_SECRET_KEY não configurada.");
+      return res.status(500).json({
+        ok: false,
+        message: "Verificação de segurança indisponível.",
+      });
+    }
+
+    let turnstileResult;
+
+    try {
+      const response = await fetch(
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            secret: turnstileSecret,
+            response: turnstileToken,
+          }),
+          signal: AbortSignal.timeout(10000),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Cloudflare respondeu HTTP ${response.status}`);
+      }
+
+      turnstileResult = await response.json();
+    } catch (error) {
+      console.error("Erro ao validar Turnstile:", error);
+
+      return res.status(503).json({
+        ok: false,
+        message: "Não foi possível verificar o Sou humano. Tente novamente.",
+      });
+    }
+
+    if (turnstileResult?.success !== true) {
+      return res.status(403).json({
+        ok: false,
+        message: "Verificação Sou humano inválida ou expirada. Tente novamente.",
+      });
+    }
 
     if (!username || username.length < 3) {
+
       return res.status(400).json({
         ok: false,
         message: "Nome de usuário deve ter pelo menos 3 caracteres.",
@@ -576,10 +641,10 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    if (!password || password.length < 6) {
+    if (typeof password !== "string" || password.length < 8) {
       return res.status(400).json({
         ok: false,
-        message: "A senha deve ter pelo menos 6 caracteres.",
+        message: "A senha deve ter pelo menos 8 caracteres.",
       });
     }
 
@@ -600,9 +665,24 @@ router.post("/signup", async (req, res) => {
       avatarUrl,
     });
 
+    // Gera o token de confirmação, válido por 24 horas.
+    const token = await createEmailVerificationToken(user.id);
+
+    // Envia o link de confirmação pela Brevo.
+    try {
+      await sendVerificationEmail({
+        to: email,
+        username,
+        token,
+      });
+    } catch (emailErr) {
+      console.error("Erro ao enviar e-mail de confirmação:", emailErr);
+    }
+
     return res.status(201).json({
       ok: true,
-      user: sanitizeUser(user),
+      message:
+        "Cadastro realizado com sucesso! Enviamos um link de confirmação para seu e-mail.",
     });
   } catch (err) {
     console.error("POST /signup error:", err);
@@ -612,6 +692,249 @@ router.post("/signup", async (req, res) => {
     });
   }
 });
+
+
+
+router.get("/verify-email", async (req, res) => {
+  try {
+    const token = String(req.query?.token || "").trim();
+
+    const result = await verifyEmailToken(token);
+
+    const success = result.ok === true;
+
+    const title = success
+      ? "E-mail confirmado!"
+      : "Link inválido ou expirado";
+
+    const message = success
+      ? "Seu e-mail foi confirmado com sucesso! Você já pode acessar sua conta."
+      : "O link de confirmação é inválido ou expirou. Solicite um novo link de confirmação.";
+
+    const loginUrl = `${
+      process.env.FRONTEND_BASE_URL || "http://localhost:3000"
+    }/login.html`;
+
+    return res.status(success ? 200 : 400).send(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${title} - Pontinho Play</title>
+        <style>
+          * { box-sizing: border-box; }
+
+          body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background: #f3f5f8;
+            font-family: Arial, sans-serif;
+          }
+
+          .card {
+            width: 100%;
+            max-width: 440px;
+            padding: 32px 24px;
+            background: #fff;
+            border-radius: 14px;
+            text-align: center;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.1);
+          }
+
+          h1 {
+            color: #173b70;
+            font-size: 25px;
+          }
+
+          p {
+            color: #475467;
+            line-height: 1.6;
+          }
+
+          a {
+            display: inline-block;
+            margin-top: 18px;
+            padding: 13px 24px;
+            background: #1769aa;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body>
+        <main class="card">
+          <h1>Pontinho Play</h1>
+          <h2>${title}</h2>
+          <p>${message}</p>
+          <a href="${loginUrl}">Ir para o Login</a>
+        </main>
+      </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error("GET /verify-email error:", err);
+
+    return res.status(500).send(
+      "Não foi possível confirmar seu e-mail. Tente novamente mais tarde."
+    );
+  }
+});
+
+
+
+router.post("/resend-verification", async (req, res) => {
+  const response = {
+    ok: true,
+    message:
+      "Solicitação recebida! Se houver uma conta pendente, enviaremos um novo link de confirmação.",
+  };
+
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({
+        ok: false,
+        message: "Informe um e-mail válido.",
+      });
+    }
+
+    const user = await findUserByEmail(email);
+
+    // Não revela se o endereço está cadastrado.
+    if (!user || user.email_verified === true) {
+      return res.json(response);
+    }
+
+    // Evita reenviar antes de completar 5 minutos.
+    const canResend = await canResendVerificationEmail(user.id);
+
+    if (!canResend) {
+      return res.json(response);
+    }
+
+    const token = await createEmailVerificationToken(user.id);
+
+    try {
+      await sendVerificationEmail({
+        to: email,
+        username: user.username,
+        token,
+      });
+    } catch (emailErr) {
+      console.error(
+        "Erro ao reenviar e-mail de confirmação:",
+        emailErr
+      );
+    }
+
+    return res.json(response);
+  } catch (err) {
+    console.error("POST /resend-verification error:", err);
+
+    return res.status(500).json({
+      ok: false,
+      message: "Não foi possível processar a solicitação.",
+    });
+  }
+});
+
+
+router.post("/forgot-password", async (req, res) => {
+  const response = {
+    ok: true,
+    message: "Solicitação recebida! Confira sua caixa de entrada.",
+  };
+
+  try {
+    const email = String(req.body?.email || "").trim().toLowerCase();
+
+    if (!email || !email.includes("@")) {
+      return res.status(400).json({
+        ok: false,
+        message: "Informe um e-mail válido.",
+      });
+    }
+
+    const user = await findUserByEmail(email);
+
+    // Não revela se existe uma conta com este e-mail.
+    if (!user) {
+      return res.json(response);
+    }
+
+    const token = await createPasswordResetToken(user.id);
+
+    try {
+      await sendPasswordResetEmail({
+        to: email,
+        username: user.username,
+        token,
+      });
+    } catch (emailErr) {
+      console.error(
+        "Erro ao enviar e-mail de recuperação:",
+        emailErr
+      );
+    }
+
+    return res.json(response);
+  } catch (err) {
+    console.error("POST /forgot-password error:", err);
+
+    return res.status(500).json({
+      ok: false,
+      message: "Não foi possível processar a solicitação.",
+    });
+  }
+});
+
+
+router.post("/reset-password", async (req, res) => {
+  try {
+    const token = String(req.body?.token || "").trim();
+    const newPassword = String(req.body?.newPassword || "");
+
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
+      return res.status(400).json({
+        ok: false,
+        message: "A nova senha deve ter pelo menos 8 caracteres.",
+      });
+    }
+
+    const result = await resetPasswordWithToken(token, newPassword);
+
+    if (!result.ok) {
+      return res.status(400).json({
+        ok: false,
+        message:
+          "O link de recuperação é inválido ou expirou. Solicite um novo link.",
+      });
+    }
+
+    return res.json({
+      ok: true,
+      message:
+        "Senha redefinida com sucesso! Você já pode acessar sua conta.",
+    });
+  } catch (err) {
+    console.error("POST /reset-password error:", err);
+
+    return res.status(500).json({
+      ok: false,
+      message: "Não foi possível redefinir sua senha.",
+    });
+  }
+});
+
+
 
 router.post("/login", async (req, res) => {
   try {
@@ -651,6 +974,12 @@ router.post("/login", async (req, res) => {
     }
 
 
+    if (user.email_verified === false) {
+      return res.status(403).json({
+        ok: false,
+        message: "Seu e-mail ainda não foi confirmado.",
+      });
+    }
 
     const token = jwt.sign(
   {
@@ -714,10 +1043,10 @@ router.patch("/settings", requireAuth, async (req, res) => {
     const params = [username, avatarUrl, req.auth.userId];
 
     if (newPassword) {
-      if (newPassword.length < 6) {
+      if (typeof newPassword !== "string" || newPassword.length < 8) {
         return res.status(400).json({
           ok: false,
-          message: "A nova senha deve ter pelo menos 6 caracteres.",
+          message: "A nova senha deve ter pelo menos 8 caracteres.",
         });
       }
 
@@ -1336,10 +1665,10 @@ router.post("/me/change-password", requireAuth, async (req, res) => {
       });
     }
 
-    if (newPassword.length < 4) {
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
       return res.status(400).json({
         ok: false,
-        message: "A nova senha deve ter pelo menos 4 caracteres.",
+        message: "A nova senha deve ter pelo menos 8 caracteres.",
       });
     }
 
@@ -1589,10 +1918,10 @@ router.post("/change-password-required", requireAuth, async (req, res) => {
       });
     }
 
-    if (newPassword.length < 4) {
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
       return res.status(400).json({
         ok: false,
-        message: "A nova senha deve ter pelo menos 4 caracteres.",
+        message: "A nova senha deve ter pelo menos 8 caracteres.",
       });
     }
 
@@ -1930,6 +2259,7 @@ router.post("/admin/users/:id/unblock", requireAuth, requireAdmin, async (req, r
 
 
 
+
 router.post("/admin/users/:id/reset-password", requireAuth, requireAdmin, async (req, res) => {
   try {
     const targetUserId = Number(req.params.id);
@@ -1942,44 +2272,10 @@ router.post("/admin/users/:id/reset-password", requireAuth, requireAdmin, async 
       });
     }
 
-    if (!newPassword || newPassword.length < 4) {
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
       return res.status(400).json({
         ok: false,
-        message: "Informe uma nova senha com pelo menos 4 caracteres.",
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 10);
-
-    await pool.query(
-      `
-      UPDATE users
-      SET
-        password_hash = $2,
-        must_reset_password = true,
-        session_version = COALESCE(session_version, 1) + 1,
-        updated_at = NOW()
-      WHERE id = $1
-      `,
-      [targetUserId, passwordHash]
-    );
-
-    router.post("/admin/users/:id/reset-password", requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const targetUserId = Number(req.params.id);
-    const newPassword = String(req.body?.newPassword || "").trim();
-
-    if (!targetUserId) {
-      return res.status(400).json({
-        ok: false,
-        message: "ID do usuário inválido.",
-      });
-    }
-
-    if (!newPassword || newPassword.length < 4) {
-      return res.status(400).json({
-        ok: false,
-        message: "Informe uma nova senha com pelo menos 4 caracteres.",
+        message: "Informe uma nova senha com pelo menos 8 caracteres.",
       });
     }
 
@@ -2026,17 +2322,7 @@ router.post("/admin/users/:id/reset-password", requireAuth, requireAdmin, async 
       message: "Erro ao redefinir senha.",
     });
   }
-  });
-
-  } catch (err) {
-    console.error("POST /admin/users/:id/reset-password error:", err);
-    return res.status(500).json({
-      ok: false,
-      message: "Erro ao redefinir senha.",
-    });
-  }
 });
-
 
 
 router.post("/admin/users/:id/end-sessions", requireAuth, requireAdmin, async (req, res) => {

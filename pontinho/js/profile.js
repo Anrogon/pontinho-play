@@ -489,8 +489,8 @@ async function changePassword() {
     return;
   }
 
-  if (newPassword.length < 4) {
-    setMsg("A nova senha deve ter pelo menos 4 caracteres.", true);
+  if (newPassword.length < 8) {
+    setMsg("A nova senha deve ter pelo menos 8 caracteres.", true);
     return;
   }
 

@@ -35,10 +35,14 @@ async function requireAuth(req, res, next) {
       return res.status(403).json({ ok: false, message: "Conta bloqueada." });
     }
 
-    const tokenSessionVersion = Number(decoded.sessionVersion || 1);
-    const dbSessionVersion = Number(user.session_version || 1);
+    const tokenSessionVersion = decoded.sessionVersion;
+    const dbSessionVersion = Number(user.session_version);
 
-    if (tokenSessionVersion !== dbSessionVersion) {
+    if (
+      !Number.isInteger(tokenSessionVersion) ||
+      tokenSessionVersion < 1 ||
+      tokenSessionVersion !== dbSessionVersion
+    ) {
       return res.status(401).json({ ok: false, message: "Sessão expirada." });
     }
 

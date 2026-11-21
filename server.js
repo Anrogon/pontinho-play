@@ -1314,275 +1314,264 @@ function getRebuyCost(room, p) {
   return ante * times;
 }
 
-async function applyPendingRebuys(room) {
-  // referência de pontos: volta com o maior totalPoints entre ativos
-  const active = (room.playersBySeat || []).filter(
-    pl => pl && !pl.eliminated && !pl.pendingRebuy
+// Reconstitui a contabilidade a partir das cobranças efetivamente confirmadas.
+// Atribuição (em vez de soma) impede contabilizar duas vezes um mesmo Rebuy.
+async function syncCompetitionMoneyFromDatabase(room) {
+  if (room.mode !== "COMPETITION" || !room.matchId) {
+    throw new Error("COMPETITION_LEDGER_INVALID_MATCH");
+  }
+
+  const result = await pool.query(
+    `SELECT type, amount
+       FROM cash_transactions
+      WHERE reference_type = 'COMPETITION'
+        AND reference_id = $1
+        AND type IN ('COMPETITION_ENTRY', 'COMPETITION_REENTRY')
+        AND status = 'COMPLETED'
+        AND amount < 0`,
+    [String(room.matchId)]
   );
 
-  const maxPts = active.length
-    ? Math.max(...active.map(pl => Number(pl.totalPoints) || 0))
-    : 0;
+  const pct = Number(room.competitionOrganizationPct ?? 0.05);
+  if (!Number.isFinite(pct) || pct < 0 || pct >= 1) {
+    throw new Error("COMPETITION_LEDGER_INVALID_FEE");
+  }
 
-  const appliedRebuys = [];
+  let grossCents = 0;
+  let feeCents = 0;
+  let entries = 0;
+  let reentries = 0;
 
-  for (let i = 0; i < (room.playersBySeat || []).length; i++) {
-    const pl = room.playersBySeat[i];
+  for (const row of result.rows) {
+    const amountCents = Math.round(-Number(row.amount) * 100);
+    if (!Number.isSafeInteger(amountCents) || amountCents <= 0) {
+      throw new Error("COMPETITION_LEDGER_INVALID_AMOUNT");
+    }
+    grossCents += amountCents;
+    feeCents += Math.round(amountCents * pct);
+    if (row.type === 'COMPETITION_REENTRY') reentries++;
+    else entries++;
+  }
 
-    if (!pl || !pl.pendingRebuy) continue;
+  room.competitionGross = grossCents / 100;
+  room.competitionOrganizationFee = feeCents / 100;
+  room.competitionPrizePool = (grossCents - feeCents) / 100;
+  room.competitionEntriesCount = entries;
+  room.competitionReentriesCount = reentries;
+}
 
-    if ((pl.rebuyCount || 0) >= 3) {
-      pl.pendingRebuy = false;
-      pl.eliminated = true;
-      
+async function applyPendingRebuys(room) {
+  if (room.applyingRebuys) return room.applyingRebuys;
 
-      // REMOVE se estiver desconectado
-      if (pl.disconnected) {
-        room.playersBySeat[i] = null;
+  const processing = (async () => {
+    const active = (room.playersBySeat || []).filter(
+      pl => pl && !pl.eliminated && !pl.pendingRebuy
+    );
+    const maxPts = active.length
+      ? Math.max(...active.map(pl => Number(pl.totalPoints) || 0))
+      : 0;
+    const appliedRebuys = [];
+
+    for (let i = 0; i < (room.playersBySeat || []).length; i++) {
+      const pl = room.playersBySeat[i];
+      if (!pl || !pl.pendingRebuy) continue;
+
+      const rebuyCountBefore = Number(pl.rebuyCount) || 0;
+      const cost = Number(getRebuyCost(room, pl)) || 0;
+      pl.chips = Number.isFinite(Number(pl.chips)) ? Number(pl.chips) : 0;
+
+      if (rebuyCountBefore >= 3 || cost <= 0 ||
+          (room.mode !== "COMPETITION" && pl.chips < cost)) {
+        pl.pendingRebuy = false;
+        pl.eliminated = true;
+        if (pl.disconnected) room.playersBySeat[i] = null;
+        continue;
       }
 
-      continue;
-    }
-
-    const cost = Number(getRebuyCost(room, pl)) || 0;
-
-    pl.chips = Number(pl.chips);
-    if (!Number.isFinite(pl.chips)) {
-      pl.chips = 0;
-    }
-
-    if (
-      cost <= 0 ||
-      (room.mode !== "COMPETITION" && pl.chips < cost)
-    ) {
-      pl.pendingRebuy = false;
-      pl.eliminated = true;
-
-      // REMOVE se estiver desconectado
-      if (pl.disconnected) {
-        room.playersBySeat[i] = null;
-      }
-
-      continue;
-    }
-
-    const rebuyCountBefore = pl.rebuyCount || 0;
-
-    if (room.mode === "COMPETITION") {
-    const cashCost = competitionValueToCash(cost);
-
-    if (!pl.userId || cashCost <= 0) {
-      pl.pendingRebuy = false;
-      pl.eliminated = true;
-
-      if (pl.disconnected) {
-        room.playersBySeat[i] = null;
-      }
-
-      continue;
-    }
-
-    let dbClient;
-
-    try {
-      dbClient = await pool.connect();
-
-      await dbClient.query("BEGIN");
-
-      const debitResult = await dbClient.query(
-        `
-        UPDATE users
-        SET
-          cash_balance = cash_balance - $1,
-          updated_at = NOW()
-        WHERE id = $2
-          AND cash_balance >= $1
-        RETURNING
-          cash_balance,
-          cash_balance + $1 AS balance_before
-        `,
-        [cashCost, pl.userId]
-      );
-
-      if (debitResult.rowCount === 0) {
-          await dbClient.query("ROLLBACK");
-
-          console.log("[COMPETITION] Rebuy recusado por saldo insuficiente:", {
-            tableId: room.id,
-            player: pl.name,
-            userId: pl.userId,
-            rebuyNumber: rebuyCountBefore + 1,
-            cost: cashCost
-          });
-
+      if (room.mode === "COMPETITION") {
+        const cashCost = competitionValueToCash(cost);
+        if (!pl.userId || cashCost <= 0 || !room.matchId) {
           pl.pendingRebuy = false;
           pl.eliminated = true;
-
-          const playerClient =
-            pl.clientId ? clients.get(pl.clientId) : null;
-
-          if (playerClient?.ws && playerClient.ws.readyState === 1) {
-            playerClient.ws.send(JSON.stringify({
-              type: "error",
-              payload: {
-                message:
-                  `Saldo em dinheiro insuficiente para realizar este rebuy de ` +
-                  `${cashCost.toLocaleString("pt-BR", {
-                    style: "currency",
-                    currency: "BRL"
-                  })}.`
-              }
-            }));
-          }
-
-          if (pl.disconnected) {
-            room.playersBySeat[i] = null;
-          }
-
+          if (pl.disconnected) room.playersBySeat[i] = null;
           continue;
         }
 
-      const balanceBefore =
-        Number(debitResult.rows[0].balance_before) || 0;
+        const rebuyNumber = rebuyCountBefore + 1;
+        const matchId = String(room.matchId);
+        let dbClient;
+        let commitAttempted = false;
+        let confirmed = false;
 
-      const balanceAfter =
-        Number(debitResult.rows[0].cash_balance) || 0;
-
-      await dbClient.query(
-        `
-        INSERT INTO cash_transactions (
-          user_id,
-          type,
-          status,
-          amount,
-          balance_before,
-          balance_after,q
-          reference_type,
-          reference_id,
-          description
-        )
-        VALUES (
-          $1,
-          'COMPETITION_REENTRY',
-          'COMPLETED',
-          $2,
-          $3,
-          $4,
-          'COMPETITION',
-          $5,
-          $6
-        )
-        `,
-        [
-          pl.userId,
-          -cashCost,
-          balanceBefore,
-          balanceAfter,
-          String(room.matchId || room.id),
-          `Rebuy na competição ${room.id}`
-        ]
-      );
-
-      await dbClient.query("COMMIT");
-
-      const moneyResult = registerCompetitionMoney(
-        room,
-        cashCost,
-        "reentry"
-      );
-
-      if (!moneyResult.ok) {
-        console.error("[COMPETITION] falha ao registrar Rebuy na contabilidade:", {
-          tableId: room.id,
-          player: pl.name,
-          userId: pl.userId,
-          rebuyNumber: rebuyCountBefore + 1,
-          cost: cashCost,
-          message: moneyResult.msg
-        });
-      }
-
-      // Só atualiza a memória depois do COMMIT.
-      pl.cashBalance = balanceAfter;
-
-      const connectedClient =
-        pl.clientId ? clients.get(pl.clientId) : null;
-
-      if (connectedClient) {
-        connectedClient.cashBalance = balanceAfter;
-      }
-
-      console.log("[COMPETITION] Rebuy cobrado:", {
-        tableId: room.id,
-        player: pl.name,
-        userId: pl.userId,
-        rebuyNumber: rebuyCountBefore + 1,
-        cost: cashCost,
-        cashBalance: balanceAfter,
-        gross: room.competitionGross,
-        organizationFee: room.competitionOrganizationFee,
-        prizePool: room.competitionPrizePool,
-        entries: room.competitionEntriesCount,
-        reentries: room.competitionReentriesCount
-      });
-
-    } catch (err) {
-      if (dbClient) {
         try {
-          await dbClient.query("ROLLBACK");
-        } catch (_) {}
+          dbClient = await pool.connect();
+          await dbClient.query("BEGIN");
+
+          // Serializa operações financeiras desta partida entre conexões.
+          const matchResult = await dbClient.query(
+            `SELECT status FROM competition_matches
+              WHERE match_id = $1 FOR UPDATE`,
+            [matchId]
+          );
+          if (matchResult.rowCount !== 1 ||
+              matchResult.rows[0].status !== "ACTIVE") {
+            throw new Error(`COMPETITION_MATCH_NOT_ACTIVE:${matchId}`);
+          }
+
+          // Uma tentativa anterior pode ter sido confirmada antes da queda
+          // da conexão. Nesse caso, não debita outra vez.
+          const existing = await dbClient.query(
+            `SELECT amount FROM cash_transactions
+              WHERE reference_type = 'COMPETITION'
+                AND reference_id = $1 AND user_id = $2
+                AND competition_rebuy_number = $3
+                AND type = 'COMPETITION_REENTRY'
+                AND status = 'COMPLETED'`,
+            [matchId, pl.userId, rebuyNumber]
+          );
+
+          if (existing.rowCount > 0) {
+            if (existing.rowCount !== 1 ||
+                Math.round(-Number(existing.rows[0].amount) * 100) !==
+                Math.round(cashCost * 100)) {
+              throw new Error("COMPETITION_REBUY_AMOUNT_MISMATCH");
+            }
+            await dbClient.query("COMMIT");
+            confirmed = true;
+          } else {
+            const debit = await dbClient.query(
+              `UPDATE users
+                  SET cash_balance = cash_balance - $1,
+                      updated_at = NOW()
+                WHERE id = $2 AND cash_balance >= $1
+                RETURNING cash_balance,
+                          cash_balance + $1 AS balance_before`,
+              [cashCost, pl.userId]
+            );
+
+            if (debit.rowCount === 0) {
+              await dbClient.query("ROLLBACK");
+              pl.pendingRebuy = false;
+              pl.eliminated = true;
+              const playerClient = pl.clientId ? clients.get(pl.clientId) : null;
+              if (playerClient?.ws?.readyState === 1) {
+                playerClient.ws.send(JSON.stringify({
+                  type: "error",
+                  payload: { message: `Saldo em dinheiro insuficiente para realizar este rebuy de ${cashCost.toLocaleString("pt-BR", {style:"currency",currency:"BRL"})}.` }
+                }));
+              }
+              if (pl.disconnected) room.playersBySeat[i] = null;
+              continue;
+            }
+
+            await dbClient.query(
+              `INSERT INTO cash_transactions
+                 (user_id, type, status, amount, balance_before,
+                  balance_after, reference_type, reference_id,
+                  competition_rebuy_number, description)
+               VALUES ($1, 'COMPETITION_REENTRY', 'COMPLETED',
+                       $2, $3, $4, 'COMPETITION', $5, $6, $7)`,
+              [pl.userId, -cashCost,
+               Number(debit.rows[0].balance_before),
+               Number(debit.rows[0].cash_balance), matchId, rebuyNumber,
+               `Rebuy na competição ${room.id}`]
+            );
+
+            commitAttempted = true;
+            await dbClient.query("COMMIT");
+            confirmed = true;
+          }
+        } catch (err) {
+          if (dbClient) {
+            try { await dbClient.query("ROLLBACK"); } catch (_) {}
+          }
+
+          // Tanto COMMIT incerto quanto índice UNIQUE: verifica a cobrança
+          // registrada antes de tomar qualquer decisão sobre o jogador.
+          let check;
+          try {
+            check = await pool.query(
+              `SELECT amount FROM cash_transactions
+                WHERE reference_type = 'COMPETITION'
+                  AND reference_id = $1 AND user_id = $2
+                  AND competition_rebuy_number = $3
+                  AND type = 'COMPETITION_REENTRY'
+                  AND status = 'COMPLETED'`,
+              [matchId, pl.userId, rebuyNumber]
+            );
+          } catch (checkErr) {
+            console.error("[COMPETITION] Rebuy sem confirmação; partida interrompida:", checkErr);
+            throw checkErr;
+          }
+
+          if (check.rowCount === 1 &&
+              Math.round(-Number(check.rows[0].amount) * 100) ===
+              Math.round(cashCost * 100)) {
+            confirmed = true;
+          } else {
+            // Erros técnicos não podem ser interpretados como recusa de Rebuy.
+            // Especialmente após um COMMIT incerto, não avançar a rodada.
+            console.error("[COMPETITION] Falha financeira no Rebuy:", {
+              matchId, userId: pl.userId, rebuyNumber, commitAttempted, err
+            });
+            throw err;
+          }
+        } finally {
+          if (dbClient) dbClient.release();
+        }
+
+        if (!confirmed) throw new Error("COMPETITION_REBUY_NOT_CONFIRMED");
+
+        // Reconstitui os totais sem somar a mesma transação duas vezes.
+        // Se a consulta falhar, não aplica a reentrada nem avança a rodada.
+        await syncCompetitionMoneyFromDatabase(room);
+        const balanceResult = await pool.query(
+          "SELECT cash_balance FROM users WHERE id = $1", [pl.userId]
+        );
+        if (balanceResult.rowCount !== 1) {
+          throw new Error("COMPETITION_REBUY_BALANCE_NOT_FOUND");
+        }
+        const balance = Number(balanceResult.rows[0].cash_balance);
+        if (!Number.isFinite(balance)) {
+          throw new Error("COMPETITION_REBUY_BALANCE_INVALID");
+        }
+        pl.cashBalance = balance;
+        const connectedClient = pl.clientId ? clients.get(pl.clientId) : null;
+        if (connectedClient) connectedClient.cashBalance = balance;
+
+        console.log("[COMPETITION] Rebuy confirmado/aplicado:", {
+          matchId, userId: pl.userId, rebuyNumber, cashCost
+        });
+      } else {
+        // Recreativo: comportamento preservado.
+        pl.chips -= cost;
+        room.matchPot = (Number(room.matchPot) || 0) + cost;
       }
 
-      console.error(
-        "[COMPETITION] erro ao cobrar Rebuy:",
-        err
-      );
-
+      // Uma reentrada aplicada incrementa rebuyCount. Uma nova chamada
+      // não reutiliza a mesma cobrança porque pendingRebuy passa a false.
+      pl.eliminated = false;
       pl.pendingRebuy = false;
-      pl.eliminated = true;
-
-      if (pl.disconnected) {
-        room.playersBySeat[i] = null;
-      }
-
-      continue;
-
-    } finally {
-      if (dbClient) {
-        dbClient.release();
-      }
+      pl.rebuyDeclined = false;
+      pl.rebuyCount = rebuyCountBefore + 1;
+      pl.hand = [];
+      pl.jogosBaixados = [];
+      pl.obrigacaoBaixar = false;
+      pl.totalPoints = maxPts;
+      appliedRebuys.push({
+        seat: i + 1, name: pl.name, rebuyCountBefore,
+        rebuyCountAfter: pl.rebuyCount, cost
+      });
     }
+    return appliedRebuys;
+  })();
 
-  } else {
-    // Recreativo: mantém exatamente a economia atual.
-    pl.chips -= cost;
-
-    room.matchPot = Number(room.matchPot) || 0;
-    room.matchPot += cost;
+  room.applyingRebuys = processing;
+  try {
+    return await processing;
+  } finally {
+    if (room.applyingRebuys === processing) room.applyingRebuys = null;
   }
-
-    pl.eliminated = false;
-    pl.pendingRebuy = false;
-    pl.rebuyDeclined = false;
-    pl.rebuyCount = rebuyCountBefore + 1;
-
-    pl.hand = [];
-    pl.jogosBaixados = [];
-    pl.obrigacaoBaixar = false;
-
-    // volta com pontos "pesados"
-    pl.totalPoints = maxPts;
-
-    appliedRebuys.push({
-      seat: i + 1,
-      name: pl.name,
-      rebuyCountBefore,
-      rebuyCountAfter: pl.rebuyCount,
-      cost
-    });
-  }
-
-  return appliedRebuys;
 }
 
 /* Revanche*/
@@ -2270,10 +2259,16 @@ async function getAuthUserFromWsRequest(req) {
     if (!user) return null;
     if (user.is_blocked === true) return null;
 
-    const tokenSessionVersion = Number(decoded.sessionVersion || 1);
-    const dbSessionVersion = Number(user.session_version || 1);
+    const tokenSessionVersion = decoded.sessionVersion;
+    const dbSessionVersion = Number(user.session_version);
 
-    if (tokenSessionVersion !== dbSessionVersion) return null;
+    if (
+      !Number.isInteger(tokenSessionVersion) ||
+      tokenSessionVersion < 1 ||
+      tokenSessionVersion !== dbSessionVersion
+    ) {
+      return null;
+    }
 
     return {
       id: user.id,
@@ -3414,8 +3409,10 @@ async function finalizeMatchEconomy(room) {
   let payout = 0;
 
   if (room.mode === "COMPETITION") {
-    rake = Number(room.competitionOrganizationFee) || 0;
-    payout = Number(room.competitionPrizePool) || 0;
+    // Confere a arrecadação e a taxa por transação antes do prêmio.
+    await syncCompetitionMoneyFromDatabase(room);
+    rake = room.competitionOrganizationFee;
+    payout = room.competitionPrizePool;
 
     // Proteção em memória contra pagamento duplicado.
     if (room.competitionPrizePaid === true) {
@@ -3811,10 +3808,33 @@ function resetStartCountdown(room) {
   clearStartTimer(room);
 }
 
-function getClientPlayer(room, client) {
-  const seat = client?.seat;
-  if (!seat) return null;
-  return room?.playersBySeat?.[seat - 1] || null;
+function getClientPlayer(room, client, clientId) {
+  if (!room || !client || !clientId) return null;
+
+  if (client.tableId !== room.id) return null;
+  if (client.mode !== "player") return null;
+
+  const seat = Number(client.seat);
+
+  if (!Number.isInteger(seat) || seat < 1 || seat > 6) {
+    return null;
+  }
+
+  const player = room.playersBySeat?.[seat - 1];
+
+  if (!player) return null;
+
+  if (player.clientId !== clientId) return null;
+
+  if (
+    player.userId == null ||
+    client.userId == null ||
+    String(player.userId) !== String(client.userId)
+  ) {
+    return null;
+  }
+
+  return player;
 }
 
 function isOutOfTurnAllowed(actionType) {
@@ -6317,7 +6337,7 @@ async function handleAction(clientId, tableId, action) {
   }
 
   const playerSeat = client.seat;
-  const player = getClientPlayer(room, client);
+  const player = getClientPlayer(room, client, clientId);
 
   if (!player) {
     return { ok: false, msg: "Você não está sentado nesta mesa." };
@@ -6901,6 +6921,14 @@ if (msg.type === "joinTableGroup") {
     return;
   }
 
+    // Jogadores precisam estar autenticados.
+  // Espectadores continuam permitidos.
+  if (c.userId == null) {
+    return send(ws, "error", {
+      message: "Você precisa estar conectado à sua conta para jogar."
+    });
+  }
+
   const s = Number(seat);
 
   if (!(s >= 1 && s <= 6)) {
@@ -7029,6 +7057,9 @@ const existing =
     const canReclaim =
       reconnectToken &&
       existing.reconnectToken === reconnectToken &&
+      existing.userId != null &&
+      c.userId != null &&
+      String(existing.userId) === String(c.userId) &&
       !existing.eliminated;
    
     // se não pode reconectar, o assento continua ocupado
@@ -7089,19 +7120,6 @@ const existing =
       message: "A rodada já começou. Entre apenas como espectador."
     });
   }
-/*
-    if (typeof c.chips !== "number") {
-    c.chips = 200000;
-    }
-
-  const mesaStack = (Number(room.buyIn) || 0) * 10;
-
-  if ((Number(c.chips) || 0) < mesaStack) {
-  return send(ws, "error", {
-    message: "Saldo insuficiente para entrar nesta mesa."
-  });
-  }
-*/
 
 const mesaStack = (Number(room.buyIn) || 0) * 10;
 
@@ -7176,6 +7194,57 @@ if (msg.type === "keepSeatForNextMatch") {
 
   if (!p || p.clientId !== clientId) {
     return send(ws, "error", { message: "Jogador inválido na mesa." });
+  }
+
+  // COMPETIÇÃO — verifica o saldo antes de aceitar a revanche.
+  if (room.mode === "COMPETITION") {
+    const entryFee = competitionValueToCash(room.buyIn);
+
+    try {
+      const balanceResult = await pool.query(
+        `SELECT cash_balance FROM users WHERE id = $1`,
+        [p.userId]
+      );
+
+      const balance = Number(balanceResult.rows[0]?.cash_balance);
+
+      if (
+        balanceResult.rowCount !== 1 ||
+        !Number.isFinite(balance) ||
+        balance < entryFee
+      ) {
+        send(ws, "error", {
+          message: "Você não possui saldo suficiente para a revanche."
+        });
+
+        removePlayerFromSeat(room, seat, clientId);
+
+        c.tableId = null;
+        c.seat = null;
+        c.mode = null;
+
+        send(ws, "leftTable", { tableId });
+
+        tryPrepareRoomAfterRematchChoices(room);
+        refreshStartCountdown(room);
+        broadcastRoomState(room);
+        broadcastLobbyTable(room);
+        return;
+      }
+
+      c.cashBalance = balance;
+      p.cashBalance = balance;
+
+    } catch (err) {
+      console.error(
+        "[COMPETITION] Erro ao verificar saldo para revanche:",
+        err
+      );
+
+      return send(ws, "error", {
+        message: "Não foi possível verificar seu saldo. Tente novamente."
+      });
+    }
   }
 
   // Este jogador escolheu ficar sentado para a próxima.

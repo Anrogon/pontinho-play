@@ -28,8 +28,8 @@ async function submitForcedPasswordChange() {
   const newPassword = document.getElementById("newPassword")?.value?.trim() || "";
   const confirmPassword = document.getElementById("confirmPassword")?.value?.trim() || "";
 
-  if (!newPassword || newPassword.length < 4) {
-    setMsg("A nova senha deve ter pelo menos 4 caracteres.", true);
+  if (!newPassword || newPassword.length < 8) {
+    setMsg("A nova senha deve ter pelo menos 8 caracteres.", true);
     changeBusy = false;
     if (btn) btn.disabled = false;
     return;

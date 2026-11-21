@@ -1028,6 +1028,7 @@ body.mobile-landscape-table-mode #table .grupo-table {
      Logo à esquerda + ações à direita
   ===================================================== */
 
+  
   #homeScreen {
     width: 100vw !important;
     height: 100vh !important;
@@ -1036,9 +1037,11 @@ body.mobile-landscape-table-mode #table .grupo-table {
     margin: 0 !important;
     padding: 10px !important;
 
-    overflow: hidden !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
     box-sizing: border-box !important;
   }
+
 
   /* =====================================================
    MENU SUPERIOR — HOME LANDSCAPE
@@ -1135,9 +1138,91 @@ body.mobile-landscape-table-mode #table .grupo-table {
     );
   }
 
+
+/* Divulgação dos jogos — Home landscape */
+  
+  #homeScreen .home-games-cards {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    gap: 8px !important;
+
+    position: relative !important;
+    width: min(94vw, 760px) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    flex-shrink: 0 !important;
+
+    margin: 12px auto !important;
+    padding: 12px !important;
+
+    background: linear-gradient(135deg, #0e67b5, #032a52) !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+  }
+
+
+  #homeScreen .home-games-title {
+    width: 100% !important;
+    margin: 0 0 4px !important;
+    text-align: center !important;
+    font-size: 16px !important;
+    color: #fff !important;
+  }
+
+  #homeScreen .home-game-card {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 10px !important;
+
+    background: #074480 !important;
+    border-radius: 10px !important;
+  }
+
+  #homeScreen .home-game-logo {
+    width: 65px !important;
+    height: 65px !important;
+    object-fit: contain !important;
+    flex-shrink: 0 !important;
+  }
+
+  #homeScreen .home-game-info {
+    flex: 1 !important;
+    min-width: 0 !important;
+    text-align: left !important;
+  }
+
+  #homeScreen .home-game-info h3 {
+    margin: 0 0 5px !important;
+    font-size: 15px !important;
+  }
+
+  #homeScreen .home-game-info p {
+    margin: 0 0 8px !important;
+    font-size: 12px !important;
+  }
+
+  #homeScreen .home-game-info a {
+    display: inline-block !important;
+    padding: 6px 10px !important;
+    border-radius: 7px !important;
+    background: #f0c14b !important;
+    color: #1a1a1a !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-decoration: none !important;
+  }
+
+  /* Links do portrait não aparecem no landscape */
+  #homeScreen .home-other-games {
+    display: none !important;
+  }
   /* Elementos desnecessários na Home landscape */
   #homeScreen .home-status-wrap,
-  #homeScreen .home-banner,
   #homeScreen .home-tip-section,
   #homeScreen .home-footer,
   #homeScreen #btnLogout {

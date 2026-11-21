@@ -43,8 +43,8 @@ async function saveSettings() {
   }
 
   if (newPassword || confirmPassword) {
-    if (newPassword.length < 6) {
-      setMsg("A nova senha deve ter pelo menos 6 caracteres.", true);
+    if (newPassword.length < 8) {
+      setMsg("A nova senha deve ter pelo menos 8 caracteres.", true);
       return;
     }
 

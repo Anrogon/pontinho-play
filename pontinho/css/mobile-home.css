@@ -150,6 +150,47 @@
     gap: 12px;
   }
 
+
+  /* Divulgação dos outros jogos — somente portrait */
+  #homeScreen .home-other-games {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    width: min(92vw, 320px);
+    max-width: 320px;
+    margin: 12px auto 16px;
+  }
+
+  #homeScreen .home-other-games-title {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 4px;
+  }
+
+  #homeScreen .home-other-games a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 50px;
+    padding: 0 12px;
+    box-sizing: border-box;
+
+    border-radius: 14px;
+    background: linear-gradient(180deg, #005000, #00a000);
+    color: #fff;
+
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .18);
+  }
+
+
   #homeScreen .home-user-avatar {
     width: 52px;
     height: 52px;

@@ -36,6 +36,7 @@ async function doSignup() {
     return;
   }
 
+  
   if (!acceptTerms?.checked) {
     showMessage("Você precisa aceitar os Termos de Uso e a Política de Privacidade.", true);
     signupBusy = false;
@@ -43,7 +44,17 @@ async function doSignup() {
     return;
   }
 
+  const turnstileToken = window.turnstile?.getResponse() || "";
+
+  if (!turnstileToken) {
+    showMessage("Confirme a verificação Sou humano antes de criar sua conta.", true);
+    signupBusy = false;
+    if (btn) btn.disabled = false;
+    return;
+  }
+
   showMessage("Criando conta...");
+
 
   try {
     const res = await fetch(`${API_BASE}/auth/signup`, {
@@ -52,13 +63,16 @@ async function doSignup() {
         "Content-Type": "application/json",
       },
       credentials: "include",
+      
       body: JSON.stringify({
         username,
         email,
         password,
         avatarUrl,
         acceptedTerms: true,
+        turnstileToken,
       }),
+
     });
 
     const data = await res.json().catch(() => null);

@@ -47,7 +47,7 @@ async function loadPendingWithdrawals() {
 
   tbody.innerHTML = `
     <tr>
-      <td colspan="8">Carregando saques...</td>
+      <td colspan="9">Carregando saques...</td>
     </tr>
   `;
 
@@ -64,7 +64,7 @@ async function loadPendingWithdrawals() {
     if (!res.ok || !data?.ok) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8">
+          <td colspan="9">
             ${data?.message || "Não foi possível carregar os saques pendentes."}
           </td>
         </tr>
@@ -79,7 +79,7 @@ async function loadPendingWithdrawals() {
     if (!withdrawals.length) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="8">Nenhum saque pendente.</td>
+          <td colspan="9">Nenhum saque pendente.</td>
         </tr>
       `;
       return;
@@ -94,9 +94,10 @@ async function loadPendingWithdrawals() {
           style: "currency",
           currency: "BRL"
         })}</td>
-        <td>${w.pix_key_type || "—"}</td>
+        <td>${w.pix_key_type === "PHONE" ? "Telefone" : (w.pix_key_type || "—")}</td>
         <td>${w.pix_key || "—"}</td>
-        <td>${w.status || "—"}</td>
+        <td>${w.pix_holder_name || "—"}</td>
+        <td>${w.status === "PENDING" ? "Pendente" : (w.status || "—")}</td>
         <td>
           <button
             type="button"
@@ -122,7 +123,7 @@ async function loadPendingWithdrawals() {
 
     tbody.innerHTML = `
       <tr>
-        <td colspan="8">Erro ao carregar saques pendentes.</td>
+        <td colspan="9">Erro ao carregar saques pendentes.</td>
       </tr>
     `;
   }

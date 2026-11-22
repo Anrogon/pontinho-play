@@ -5,6 +5,7 @@ async function createWithdrawalRequest({
   amount,
   pixKeyType,
   pixKey,
+  pixHolderName,
 }) {
   const withdrawalAmount = Number(amount);
 
@@ -39,11 +40,22 @@ async function createWithdrawalRequest({
     throw new Error("Tipo de chave PIX inválido.");
   }
 
-  if (!normalizedPixKey) {
-    throw new Error("Chave PIX inválida.");
-  }
+    if (!normalizedPixKey) {
+      throw new Error("Chave PIX inválida.");
+    }
 
-  let dbClient = null;
+    const normalizedPixHolderName = String(
+      pixHolderName || ""
+    ).trim().replace(/\s+/g, " ");
+
+    if (
+      normalizedPixHolderName.length < 3 ||
+      normalizedPixHolderName.length > 150
+    ) {
+      throw new Error("Informe o nome completo do titular da chave PIX.");
+    }
+
+    let dbClient = null;
 
   try {
     dbClient = await pool.connect();
@@ -113,22 +125,24 @@ async function createWithdrawalRequest({
     // CRIA SOLICITAÇÃO DE SAQUE
     // =====================================================
 
-    const withdrawalResult = await dbClient.query(
+        const withdrawalResult = await dbClient.query(
       `
         INSERT INTO withdrawal_requests (
           user_id,
           amount,
           pix_key_type,
           pix_key,
+          pix_holder_name,
           status
         )
-        VALUES ($1, $2, $3, $4, 'PENDING')
+        VALUES ($1, $2, $3, $4, $5, 'PENDING')
         RETURNING
           id,
           user_id,
           amount,
           pix_key_type,
           pix_key,
+          pix_holder_name,
           status,
           requested_at
       `,
@@ -137,6 +151,7 @@ async function createWithdrawalRequest({
         withdrawalAmount,
         normalizedPixKeyType,
         normalizedPixKey,
+        normalizedPixHolderName,
       ]
     );
 

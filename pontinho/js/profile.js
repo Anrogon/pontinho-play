@@ -394,6 +394,9 @@ async function requestWithdrawal() {
   const pixKey =
     document.getElementById("withdrawPixKey")?.value.trim() || "";
 
+  const pixHolderName =
+    document.getElementById("withdrawPixHolderName")?.value.trim() || "";
+
   const withdrawMsg = document.getElementById("withdrawMsg");
   const btnConfirmWithdraw = document.getElementById("btnConfirmWithdraw");
 
@@ -425,13 +428,34 @@ async function requestWithdrawal() {
     return;
   }
 
-  if (withdrawMsg) {
-    withdrawMsg.textContent = "Enviando solicitação de saque...";
+  if (pixHolderName.length < 3 || pixHolderName.length > 150) {
+    if (withdrawMsg) {
+      withdrawMsg.textContent =
+        "Informe o nome completo do titular da chave PIX.";
+    }
+    return;
   }
 
-  if (btnConfirmWithdraw) {
-    btnConfirmWithdraw.disabled = true;
-  }
+    const turnstileToken =
+      document.querySelector(
+        "#withdrawForm [name='cf-turnstile-response']"
+      )?.value || "";
+
+    if (!turnstileToken) {
+      if (withdrawMsg) {
+        withdrawMsg.textContent =
+          "Confirme que você é humano.";
+      }
+      return;
+    }
+
+    if (withdrawMsg) {
+      withdrawMsg.textContent = "Enviando solicitação de saque...";
+    }
+
+    if (btnConfirmWithdraw) {
+      btnConfirmWithdraw.disabled = true;
+    }
 
   try {
     const res = await fetch(`${API_BASE}/wallet/withdraw`, {
@@ -444,6 +468,8 @@ async function requestWithdrawal() {
         amount,
         pixKeyType,
         pixKey,
+        pixHolderName,
+        turnstileToken,
       }),
     });
 
@@ -459,13 +485,22 @@ async function requestWithdrawal() {
       return;
     }
 
-    if (withdrawMsg) {
-      withdrawMsg.textContent =
-        "Solicitação de saque enviada com sucesso.";
-    }
+        if (withdrawMsg) {
+          withdrawMsg.textContent =
+            "Solicitação de saque enviada com sucesso.";
+        }
 
-  } catch (err) {
-    console.error("Erro ao solicitar saque:", err);
+        if (window.turnstile) {
+          const turnstileElement =
+            document.querySelector("#withdrawForm .cf-turnstile");
+
+          if (turnstileElement) {
+            window.turnstile.reset(turnstileElement);
+          }
+        }
+
+      } catch (err) {
+        console.error("Erro ao solicitar saque:", err);
 
     if (withdrawMsg) {
       withdrawMsg.textContent =

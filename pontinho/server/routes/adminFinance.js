@@ -87,6 +87,7 @@ router.get("/withdrawals/pending", requireAuth, requireAdmin, async (req, res) =
         wr.amount,
         wr.pix_key_type,
         wr.pix_key,
+        wr.pix_holder_name,
         wr.status,
         wr.requested_at
       FROM withdrawal_requests wr

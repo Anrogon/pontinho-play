@@ -223,6 +223,18 @@
       color: #ffd38a;
       margin-top: 8px;
     }
+
+    /* =========================================================
+      SAQUE — CLOUDFLARE TURNSTILE
+    ========================================================= */
+
+    .withdraw-turnstile {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 18px 0;
+    }
+
   </style>
 </head>
 <body>
@@ -333,6 +345,22 @@
         id="withdrawPixKey"
         placeholder="Chave PIX"
       >
+
+      <input
+        type="text"
+        id="withdrawPixHolderName"
+        maxlength="150"
+        autocomplete="name"
+        placeholder="Nome completo do titular da chave PIX"
+      >
+    </div>
+
+    <div class="withdraw-turnstile">
+      <div
+        class="cf-turnstile"
+        data-sitekey="0x4AAAAAAGEbiieqhFaAVB-J"
+        data-theme="light"
+      ></div>
     </div>
 
     <div class="actions" style="margin-top:14px;">
@@ -396,5 +424,6 @@
   </div>
 
   <script src="./js/profile.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </body>
 </html>

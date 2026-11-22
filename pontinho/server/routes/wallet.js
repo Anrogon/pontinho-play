@@ -945,13 +945,79 @@ router.post("/withdraw", requireAuth, async (req, res) => {
       amount,
       pixKeyType,
       pixKey,
+      pixHolderName,
+      turnstileToken,
     } = req.body || {};
+
+
+    // =========================================================
+    // SAQUE — VALIDAR CLOUDFLARE TURNSTILE
+    // =========================================================
+
+    if (!turnstileToken) {
+      return res.status(400).json({
+        ok: false,
+        error: "Confirme a verificação Sou humano antes de solicitar o saque.",
+      });
+    }
+
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
+
+    if (!turnstileSecret) {
+      console.error("TURNSTILE_SECRET_KEY não configurada.");
+
+      return res.status(500).json({
+        ok: false,
+        error: "Verificação de segurança indisponível.",
+      });
+    }
+
+    let turnstileResult;
+
+    try {
+      const response = await fetch(
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: new URLSearchParams({
+            secret: turnstileSecret,
+            response: turnstileToken,
+          }),
+          signal: AbortSignal.timeout(10000),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Cloudflare respondeu HTTP ${response.status}`);
+      }
+
+      turnstileResult = await response.json();
+
+    } catch (error) {
+      console.error("Erro ao validar Turnstile no saque:", error);
+
+      return res.status(503).json({
+        ok: false,
+        error: "Não foi possível verificar o Sou humano. Tente novamente.",
+      });
+    }
+
+    if (turnstileResult?.success !== true) {
+      return res.status(403).json({
+        ok: false,
+        error: "Verificação Sou humano inválida ou expirada. Tente novamente.",
+      });
+    }
 
     const result = await createWithdrawalRequest({
       userId,
       amount,
       pixKeyType,
       pixKey,
+      pixHolderName,
     });
 
     return res.json({

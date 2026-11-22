@@ -2452,7 +2452,7 @@ export function renderTablesScreen() {
 
     const tableTitle = `
       ${modeName}
-      <span class="table-variant">${isCrazyMode ? "Crazy" : "Clássico"}</span>
+      <span class="table-variant">${isCrazyMode ? "Louco" : "Clássico"}</span>
       Mesa ${tableNumber}
     `;
 
